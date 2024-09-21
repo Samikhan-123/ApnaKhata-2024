@@ -1,0 +1,52 @@
+{
+  "name": "apnakhata",
+  "version": "1.0.0",
+  "description": "daily finance handling",
+  "main": "index.js",
+  "type": "module",
+  "engine" : ">=14.0.0",
+  "scripts": {
+    "start": "node index.js",
+    "index": "nodemon index.js",
+    "serve": "vite preview",
+    "analyze": "vite build --analyze",
+    "check": "vite check",
+    "check:types": "vite check --types-only",
+    "build": "vite build",
+    "lint": "eslint src/**/*.{js,jsx} --fix",
+    "format": "prettier --write src/**/*.{js,jsx}",
+    "precommit": "lint-staged",
+    "prepush": "npm run test",
+    "pretest": "jest --coverage",
+    "jest": "jest",
+    "test": "test"
+  },
+  "author": "sk",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.7.7",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^2.4.3",
+    "bull": "^4.16.3",
+    "colors": "^1.4.0",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "express-validator": "^7.2.0",
+    "google-auth-library": "^9.14.1",
+    "googleapis": "^144.0.0",
+    "helmet": "^7.1.0",
+    "http-errors": "^2.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.6.2",
+    "morgan": "^1.10.0",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.9.15"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nodemon": "^3.1.4",
+    "prettier": "^3.3.3"
+  }
+}

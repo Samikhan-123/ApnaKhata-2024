@@ -48,11 +48,11 @@ export const addExpense = async (req, res) => {
         const message =
           `Advice: Sab se pahle app ne ghabrana nhe hai. 😛\n\n` + // Added advice here
           `Hello ${user.name},\n\n` +
-          `We hope you are doing well!\n\n` +
-          `A user has just added a new expense:\n\n` +
+          `We hope you are doing well!\n` +
+          `A user has just added a new expense\n` +
           `Description: ${description}\n` +
-          `Amount: ${amount}\n\n` +
-          `Date: ${formattedDate}\n\n` +
+          `Amount: ${amount}\n` +
+          `Date: ${formattedDate}\n` +
           `You can view and check these expenses through the app.\n` +
           `Best regards,\n` +
           `The ApnaKhata Team`;

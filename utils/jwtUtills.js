@@ -13,7 +13,7 @@ export const authenticate = (req, res, next) => {
 
     const token = authHeader.split(' ')[1];
     // console.log('Token:', token); // Debugging
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
     req.user = decoded;
     next();
   } catch (error) {

@@ -1,0 +1,16 @@
+2024-09-21 22:28:27:2827 [31merror[39m: [31mLogin error: user.comparePassword is not a function[39m
+2024-09-21 22:28:29:2829 [31merror[39m: [31mLogin error: user.comparePassword is not a function[39m
+2024-09-21 22:28:30:2830 [31merror[39m: [31mLogin error: user.comparePassword is not a function[39m
+2024-09-21 22:28:31:2831 [31merror[39m: [31mLogin error: user.comparePassword is not a function[39m
+2024-09-21 22:28:32:2832 [31merror[39m: [31mLogin error: user.comparePassword is not a function[39m
+2024-09-21 22:50:33:5033 [31merror[39m: [31mError resetting password: Cannot set headers after they are sent to the client[39m
+2024-09-22 00:15:54:1554 [31merror[39m: [31mError in resetPassword:[39m
+2024-09-22 00:15:59:1559 [31merror[39m: [31mError in resetPassword:[39m
+2024-09-22 00:16:40:1640 [31merror[39m: [31mError in resetPassword:[39m
+2024-09-22 00:27:22:2722 [31merror[39m: [31mError in resetPassword:[39m
+2024-09-22 00:29:40:2940 [31merror[39m: [31mError in resetPassword:[39m
+2024-09-22 00:53:02:532 [33mwarn[39m: [33mMultiple password reset attempts for user: 66ee63727c59b4d5d43fdd9c[39m
+2024-09-22 00:56:21:5621 [33mwarn[39m: [33mMultiple password reset attempts for user: 66ee63727c59b4d5d43fdd9c[39m
+2024-09-22 01:21:14:2114 [31merror[39m: [31mFailed to send confirmation email to samukhan5554@gmail.com: No recipients defined[39m
+2024-09-22 02:21:53:2153 [33mwarn[39m: [33mMultiple password reset attempts for user: 66ee63727c59b4d5d43fdd9c[39m
+2024-09-22 12:20:34:2034 [33mwarn[39m: [33mInvalid or expired reset token used: 91cdefe526dfaba67657bcd043386d3c37987e55c48ea7550118f1638efb554f[39m

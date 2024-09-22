@@ -4,40 +4,47 @@ import { sendEmail } from "../utils/sendEmail.js";
 import User from "../model/userSchema.js";
 
 // Add expense
-
 export const addExpense = async (req, res) => {
   try {
-    const { userId, amount, description, date,paidBy } = req.body; // Get required fields
-    if (!paidBy) { 
-      return res.status(400).json({ message: "The 'paidBy' field is required" });
+    const { amount, description, date, paidBy } = req.body; // Get required fields
+    if (!paidBy) {
+      return res
+        .status(400)
+        .json({ message: "The 'paidBy' field is required" });
     }
 
     // Validate request body
-    if (!userId || !amount || !description || !date) {
+    if (!amount || !description || !date) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    const user = await User.findById(paidBy); //  `paidBy` is a user ID
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
 
     // Create and save the new expense
     const newExpense = new Expense({
-      userId,
       amount,
       description,
       date,
-      paidBy,
-
+      paidBy: {
+        userId: user._id,
+        name: user.name,
+      },
     });
 
     await newExpense.save();
 
     // Find all users to send emails ( need to store emails in the database)
-    const users = await User.find({}, "email name"); // Fetch all user emails and names
+    const users = await User.find({}, "email name")
 
     if (users.length > 0) {
       // Send email notifications to all users
 
       // Use `forEach` to loop over all users
       users.forEach((user) => {
-        const formattedDate = new Date(date).toLocaleString("en-US", {
+        const formattedDate = new Date(date).toLocaleString("en-GB", {
           year: "numeric",
           month: "long",
           day: "numeric",
@@ -45,33 +52,88 @@ export const addExpense = async (req, res) => {
           minute: "2-digit",
           hour12: true, // Use 12-hour format
         });
-        const message =
-          `Advice: Sab se pahle app ne ghabrana nhe hai. 😛\n\n` + // Added advice here
-          `Hello ${user.name},\n\n` +
-          `We hope you are doing well!\n` +
-          `A user has just added a new expense\n` +
-          `Description: ${description}\n` +
-          `Amount: ${amount}\n` +
-          `Date: ${formattedDate}\n` +
-          `You can view and check these expenses through the app.\n` +
-          `Best regards,\n` +
-          `The ApnaKhata Team`;
+
+        const message = `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Expense Notification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f9f9f9;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        h2 {
+            color: #4CAF50;
+        }
+        h3 {
+            color: #2196F3;
+        }
+        .highlight {
+            color: #FF5722;
+            font-weight: bold;
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 0.8em;
+            color: #777;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">        
+        <p>Hello <strong>${user.name}</strong>,</p>
+        
+        <p>We hope you are doing well!</p>
+        
+        <h3>New Expense Added By a User</h3>
+        
+        <p>
+            <strong>Description:</strong> <span class="highlight">${description}</span><br>
+            <strong>Amount:</strong> <span class="highlight">Rs ... </span><br>
+            <strong>Date:</strong> <span class="highlight">${formattedDate}</span>
+        </p>
+        
+        <p>You can view and check these expenses through the ApnaKhata.</p>
+        
+        <p>Best regards,</p>
+        
+        <p><strong>The ApnaKhata Team</strong></p>
+        
+        <footer>
+            <p>Thank you for using ApnaKhata! .</p>
+        </footer>
+    </div>
+</body>
+</html>
+`;
 
         sendEmail({
           email: user.email,
           subject: "New Expense Added",
-          message,
+          html: message,
         });
+
       });
     }
 
-    res
-      .status(201)
-      .json({
-        message: "Expense added and emails sent successfully",
-        expense: newExpense.length,
-        users: users.length,
-      });
+    res.status(201).json({
+      message: "Expense added and emails sent successfully",
+      expense: newExpense.length,
+      users: users.length,
+    });
   } catch (error) {
     console.error("Error adding expense or sending emails:", error);
     res.status(500).json({
@@ -85,8 +147,8 @@ export const addExpense = async (req, res) => {
 export const getExpenses = async (req, res) => {
   try {
     const expenses = await Expense.find()
-      .populate("userId", "name") // Populate the user who posted the expense
-      .populate("paidBy", "name") // Populate users who have paid
+      // .populate("userId", "name") // Populate the user who posted the expense
+      .populate("paidBy", "name") // Populate users who have paid and posted the expense
       .sort({ createdAt: -1 }); // Sort by createdAt in descending order
 
     res.status(200).json(expenses);
@@ -202,55 +264,53 @@ export const updateExpense = async (req, res) => {
 };
 
 // Get an user expense by ID
-export const getExpensesByUserId = async (req, res) => {
-  try {
-    const { userId } = req.params;
+// export const getExpensesByUserId = async (req, res) => {
+//   try {
+//     const { userId } = req.params;
 
-    // No need to cast to ObjectId, Mongoose will handle it automatically
-    const expenses = await Expense.find({ userId });
+//     // Fetch expenses where the paidBy.userId matches the provided userId
+//     const expenses = await Expense.find({ "paidBy.userId": userId });
 
-    // if (!expenses || expenses.length === 0) {
-    //   return res
-    //     .status(404)
-    //     .json({ message: "No expenses found for this user" });
-    // }
+//     if (!expenses || expenses.length === 0) {
+//       return res.status(404).json({ message: "No expenses found for this user" });
+//     }
 
-    res.status(200).json(expenses);
-  } catch (error) {
-    console.error("Error fetching expenses:", error);
-    res.status(500).json({ message: "Error fetching expenses", error });
-  }
-};
+//     return res.status(200).json(expenses);
+//   } catch (err) {
+//     console.error("Error fetching expenses:", err);
+//     return res.status(500).json({ message: "Something went wrong" });
+//   }
+// };
 
 // controllers/expenseController.js
 // Existing controllers...
 
 // Mark Expense as Paid
-export const markExpenseAsPaid = async (req, res) => {
-  try {
-    const expenseId = req.params.id;
-    const userId = req.user._id; // Assuming authentication middleware sets req.user
+// export const markExpenseAsPaid = async (req, res) => {
+//   try {
+//     const expenseId = req.params.id;
+//     const userId = req.user._id; // Assuming authentication middleware sets req.user
 
-    const expense = await Expense.findById(expenseId);
-    if (!expense) {
-      return res.status(404).json({ message: "Expense not found" });
-    }
+//     const expense = await Expense.findById(expenseId);
+//     if (!expense) {
+//       return res.status(404).json({ message: "Expense not found" });
+//     }
 
-    if (expense.paidBy.includes(userId)) {
-      return res
-        .status(400)
-        .json({ message: "Expense already marked as paid" });
-    }
+//     if (expense.paidBy.includes(userId)) {
+//       return res
+//         .status(400)
+//         .json({ message: "Expense already marked as paid" });
+//     }
 
-    expense.paidBy.push(userId);
-    await expense.save();
+//     expense.paidBy.push(userId);
+//     await expense.save();
 
-    res.status(200).json({ message: "Expense marked as paid", expense });
-  } catch (error) {
-    console.error("Error marking expense as paid:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
+//     res.status(200).json({ message: "Expense marked as paid", expense });
+//   } catch (error) {
+//     console.error("Error marking expense as paid:", error);
+//     res.status(500).json({ message: "Server error" });
+//   }
+// };
 
 export const sendMailToUsersToAddExpense = async (req, res) => {
   const { email } = req.body;

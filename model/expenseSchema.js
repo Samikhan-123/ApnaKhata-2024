@@ -2,11 +2,8 @@ import mongoose from "mongoose";
 
 const expenseSchema = new mongoose.Schema(
   {
-    userId: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-    },
+
+
     amount: {
       type: Number,
       required: true,
@@ -20,11 +17,15 @@ const expenseSchema = new mongoose.Schema(
       default: Date.now,
     },
     paidBy: {
-      // Users who have paid their share
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      // Store the user's name
+      userId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        required: true,
+      },
+      name: {
+        type: String,
+        required: true,
+      }, 
     },
   },
   { timestamps: true }

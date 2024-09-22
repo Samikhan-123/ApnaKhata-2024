@@ -1,5 +1,5 @@
 import express from 'express';
-import { addExpense, deleteExpense, editExpense, getExpenseById, getExpenses, getExpensesByUserId, markExpenseAsPaid, updateExpense } from '../controller/expenseController.js';
+import { addExpense, deleteExpense, editExpense, getExpenseById, getExpenses, updateExpense } from '../controller/expenseController.js';
 import { authenticate } from '../utils/jwtUtills.js';
 
 const router = express.Router();
@@ -11,22 +11,22 @@ router.post('/add', authenticate, addExpense);
 router.get('/', authenticate, getExpenses);
 
 // Get an expense by ID
-router.get('/get/:id', getExpenseById);
+router.get('/get/:id', authenticate,getExpenseById);
 
 
 // Get user expense by ID
-router.get('/user/:userId', getExpensesByUserId);
+// router.get('/user/:userId', getExpensesByUserId);
 
 // Edit an expense
 router.put('edit/:expenseId', editExpense);
 
 // Delete an expense
-router.delete('/:expenseId', deleteExpense);
+router.delete('/:expenseId',authenticate, deleteExpense);
 // Update an expense by ID
-router.put('/update/:id', updateExpense);
+router.put('/update/:id',authenticate, updateExpense);
 
 // mark an expense as paid
-router.put('/:id/mark-paid', authenticate, markExpenseAsPaid);
+// router.put('/:id/mark-paid', authenticate, markExpenseAsPaid);
 
 
 export default router;

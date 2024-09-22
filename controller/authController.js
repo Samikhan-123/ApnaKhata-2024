@@ -298,16 +298,31 @@ export const resetPassword = async (req, res) => {
   user.password = await bcrypt.hash(password, await bcrypt.genSalt(12));
   user.resetPasswordToken = undefined;
   user.resetPasswordExpire = undefined;
-  user.passwordChangedAt = Date.now();
+  user.passwordChangedAt = new Date();;
   user.passwordVersion = (user.passwordVersion || 0) + 1;
   user.passwordResetAttempts += 1;
 
   await user.save();
 
+const formatDate = (date) => {
+  return new Intl.DateTimeFormat('en-GB', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    second: 'numeric',
+    timeZoneName: 'short'
+  }).format(date);  // Changed this line
+};
+
+const currentDate = new Date();  // Add this line
+const formattedDate = formatDate(currentDate);
   const message = `
     <h1>Your Password Has Been Successfully Reset</h1>
     <p>Dear ${user.name || "User"},</p>
-    <p>Your password was successfully changed on ${new Date().toLocaleString()}.</p>
+    <p>Your password was successfully changed on ${formattedDate}.</p>
     <p>If you did not request this change, please take action to secure your account immediately.</p>
     <h3>Security Tips:</h3>
     <ul>

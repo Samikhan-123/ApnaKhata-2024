@@ -27,15 +27,26 @@ app.use(cors({
   credentials: true,
 }));
 
-// Basic Helmet configuration
+// Helmet configuration with CSP
 app.use(helmet({
-  contentSecurityPolicy: false, // Disable CSP for now
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://accounts.google.com"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'", "https://accounts.google.com"],
+      frameSrc: ["'self'", "https://accounts.google.com"],
+      objectSrc: ["'none'"],
+      upgradeInsecureRequests: [],
+    },
+  },
   referrerPolicy: {
     policy: 'strict-origin-when-cross-origin',
   },
-  frameguard: { action: 'sameorigin' }, // Allow frames from same origin
-  dnsPrefetchControl: { allow: true }, // Allow DNS prefetching
-  hidePoweredBy: true, // Hide X-Powered-By header
+  frameguard: { action: 'sameorigin' },
+  dnsPrefetchControl: { allow: true },
+  hidePoweredBy: true,
 }));
 
 app.use(express.json());

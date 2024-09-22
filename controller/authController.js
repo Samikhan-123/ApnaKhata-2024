@@ -307,15 +307,15 @@ export const resetPassword = async (req, res) => {
 const formatDate = (date) => {
   return new Intl.DateTimeFormat('en-GB', {
     weekday: 'long',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-    hour: 'numeric',
-    hour12 : true,
-    minute: 'numeric',
-    second: 'numeric',
-    timeZoneName: 'short'
-  }).format(date);  // Changed this line
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true,
+    timeZone: "Asia/Karachi", // Set timezone to Karachi
+    timeZoneName: "short"}).format(date);  // Changed this line
 };
 
 const currentDate = new Date();  // Add this line

@@ -6,19 +6,18 @@ import User from "../model/userSchema.js";
 // Add expense
 export const addExpense = async (req, res) => {
   try {
-    const { amount, description, date, paidBy } = req.body; // Get required fields
-    if (!paidBy) {
-      return res
-        .status(400)
-        .json({ message: "The 'paidBy' field is required" });
-    }
+    const { amount, description, date, paidBy } = req.body;
 
     // Validate request body
+    // if (!paidBy) {
+    //   return res.status(400).json({ message: "The 'paidBy' field is required" });
+    // }
+
     if (!amount || !description || !date) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
-    const user = await User.findById(paidBy); //  `paidBy` is a user ID
+    const user = await User.findById(paidBy); // Find user by paidBy field
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
@@ -36,103 +35,101 @@ export const addExpense = async (req, res) => {
 
     await newExpense.save();
 
-    // Find all users to send emails ( need to store emails in the database)
-    const users = await User.find({}, "email name")
+    // Find all users to send emails
+    const users = await User.find({}, "email name");
 
+    // Check if there are users to send emails to
     if (users.length > 0) {
-      // Send email notifications to all users
-
-      // Use `forEach` to loop over all users
-      users.forEach((user) => {
+      // Send email notifications to all users using try-catch
+      users.forEach(async (user) => {
         const formattedDate = new Date(date).toLocaleString("en-GB", {
           year: "numeric",
           month: "long",
           day: "numeric",
           hour: "2-digit",
           minute: "2-digit",
-          hour12: true, // Use 12-hour format
+          hour12: true,
+          timeZone: "Asia/Karachi", // Adjust for GMT+5
         });
 
         const message = `
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Expense Notification</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            background-color: #f9f9f9;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 5px;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        }
-        h2 {
-            color: #4CAF50;
-        }
-        h3 {
-            color: #2196F3;
-        }
-        .highlight {
-            color: #FF5722;
-            font-weight: bold;
-        }
-        footer {
-            margin-top: 20px;
-            font-size: 0.8em;
-            color: #777;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">        
-        <p>Hello <strong>${user.name}</strong>,</p>
-        
-        <p>We hope you are doing well!</p>
-        
-        <h3>New Expense Added By a User</h3>
-        
-        <p>
-            <strong>Description:</strong> <span class="highlight">${description}</span><br>
-            <strong>Amount:</strong> <span class="highlight">Rs ... </span><br>
-            <strong>Date:</strong> <span class="highlight">${formattedDate}</span>
-        </p>
-        
-        <p>You can view and check these expenses through the ApnaKhata.</p>
-        
-        <p>Best regards,</p>
-        
-        <p><strong>The ApnaKhata Team</strong></p>
-        
-        <footer>
-            <p>Thank you for using ApnaKhata! .</p>
-        </footer>
-    </div>
-</body>
-</html>
-`;
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>New Expense Notification</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    line-height: 1.6;
+                    background-color: #f9f9f9;
+                    color: #333;
+                    margin: 0;
+                    padding: 20px;
+                }
+                .container {
+                    background-color: #fff;
+                    padding: 20px;
+                    border-radius: 5px;
+                    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+                }
+                h2 {
+                    color: #4CAF50;
+                }
+                h3 {
+                    color: #2196F3;
+                }
+                .highlight {
+                    color: #FF5722;
+                    font-weight: bold;
+                }
+                footer {
+                    margin-top: 20px;
+                    font-size: 0.8em;
+                    color: #777;
+                }
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <p>Hello <strong>${user.name}</strong>,</p>
+                <p>We hope you are doing well!</p>
+                <h3>New Expense Added By a User</h3>
+                <p>
+                    <strong>Description:</strong> <span class="highlight">${description}</span><br>
+                    <strong>Amount:</strong> <span class="highlight">Rs ${amount}</span><br>
+                    <strong>Date:</strong> <span class="highlight">${formattedDate}</span>
+                </p>
+                <p>You can view and check these expenses through the ApnaKhata.</p>
+                <p>Best regards,</p>
+                <p><strong>The ApnaKhata Team</strong></p>
+                <footer>
+                    <p>Thank you for using ApnaKhata!</p>
+                </footer>
+            </div>
+        </body>
+        </html>
+        `;
 
-        sendEmail({
-          email: user.email,
-          subject: "New Expense Added",
-          html: message,
-        });
-
+        try {
+          await sendEmail({
+            email: user.email,
+            subject: "New Expense Added",
+            html: message,
+          });
+          console.log(`Email sent to ${user.email}`);
+        } catch (emailError) {
+          console.error(`Error sending email to ${user.email}:`, emailError.message);
+          // Optionally, you can log the email error somewhere for tracking
+        }
       });
     }
 
     res.status(201).json({
       message: "Expense added and emails sent successfully",
-      expense: newExpense.length,
-      users: users.length,
+      expense: newExpense,
+      usersNotified: users.length,
     });
   } catch (error) {
     console.error("Error adding expense or sending emails:", error);
@@ -142,6 +139,7 @@ export const addExpense = async (req, res) => {
     });
   }
 };
+
 
 // Get all expenses for a user
 export const getExpenses = async (req, res) => {

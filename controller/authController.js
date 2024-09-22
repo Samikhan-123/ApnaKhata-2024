@@ -2,7 +2,6 @@ import User from "../model/userSchema.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
-import nodemailer from "nodemailer";
 import crypto from "crypto";
 import { sendEmail } from "../utils/sendEmail.js";
 import { logger } from "../utils/Logger.js";

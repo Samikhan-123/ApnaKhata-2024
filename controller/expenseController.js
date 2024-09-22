@@ -49,7 +49,8 @@ export const addExpense = async (req, res) => {
           hour: "2-digit",
           minute: "2-digit",
           hour12: true,
-          timeZone: "Asia/Karachi", // Adjust for GMT+5
+          timeZone: "Asia/Karachi", // Adjust for GMT+
+          timeZoneName: "Asia/Karachi ( GMT+ 00:00:00 GMT )", //
         });
 
         const message = `
@@ -98,7 +99,7 @@ export const addExpense = async (req, res) => {
                 <h3>New Expense Added By a User</h3>
                 <p>
                     <strong>Description:</strong> <span class="highlight">${description}</span><br>
-                    <strong>Amount:</strong> <span class="highlight">Rs ${amount}</span><br>
+                    <strong>Amount:</strong> <span class="highlight">Rs .... </span><br>
                     <strong>Date:</strong> <span class="highlight">${formattedDate}</span>
                 </p>
                 <p>You can view and check these expenses through the ApnaKhata.</p>

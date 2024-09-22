@@ -27,27 +27,27 @@ app.use(cors({
   credentials: true,
 }));
 
-// Helmet configuration with CSP
-app.use(helmet({
-  contentSecurityPolicy: {
-    directives: {
-      defaultSrc: ["'self'"],
-      scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://accounts.google.com"],
-      styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-      imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://accounts.google.com"],
-      frameSrc: ["'self'", "https://accounts.google.com"],
-      objectSrc: ["'none'"],
-      upgradeInsecureRequests: [],
-    },
-  },
-  referrerPolicy: {
-    policy: 'strict-origin-when-cross-origin',
-  },
-  frameguard: { action: 'sameorigin' },
-  dnsPrefetchControl: { allow: true },
-  hidePoweredBy: true,
-}));
+// // Helmet configuration with CSP
+// app.use(helmet({
+//   contentSecurityPolicy: {
+//     directives: {
+//       defaultSrc: ["'self'"],
+//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://accounts.google.com"],
+//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
+//       imgSrc: ["'self'", "data:", "https:"],
+//       connectSrc: ["'self'", "https://accounts.google.com"],
+//       frameSrc: ["'self'", "https://accounts.google.com"],
+//       objectSrc: ["'none'"],
+//       upgradeInsecureRequests: [],
+//     },
+//   },
+//   referrerPolicy: {
+//     policy: 'strict-origin-when-cross-origin',
+//   },
+//   frameguard: { action: 'sameorigin' },
+//   dnsPrefetchControl: { allow: true },
+//   hidePoweredBy: true,
+// }));
 
 app.use(express.json());
 

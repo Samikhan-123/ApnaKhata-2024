@@ -50,7 +50,7 @@ export const addExpense = async (req, res) => {
           minute: "2-digit",
           hour12: true,
           timeZone: "Asia/Karachi", // Adjust for GMT+
-          timeZoneName: "short ( GMT+ 00:00:00 GMT )", //
+          timeZoneName: "short", //
         });
 
         const message = `

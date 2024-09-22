@@ -311,6 +311,7 @@ const formatDate = (date) => {
     month: 'long',
     day: 'numeric',
     hour: 'numeric',
+    hour12 : true,
     minute: 'numeric',
     second: 'numeric',
     timeZoneName: 'short'

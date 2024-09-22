@@ -222,7 +222,7 @@ export const forgotPassword = async (req, res) => {
       subject: "Password Reset Request",
       html: message,
     });
-
+    console.log(`Forgot Email sent to ${user.email}`);
     res.status(200).json({
       message:
         "If a user with that email exists, a password reset link has been sent.",
@@ -342,6 +342,7 @@ const formattedDate = formatDate(currentDate);
       subject: "Password Reset Confirmation",
       html: message,
     });
+    console.log(`Reset Email sent to ${user.email}`);
   } catch (error) {
     console.error(
       `Failed to send confirmation email to ${user.email}: ${error.message}`

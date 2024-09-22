@@ -7,8 +7,8 @@ import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import helmet from 'helmet';
-import createError from 'http-errors';
+// import helmet from 'helmet';
+// import createError from 'http-errors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -65,7 +65,7 @@ app.get('/api', (req, res) => {
 
 // Catch 404 for API routes
 app.use('/api/*', (req, res, next) => {
-  next(createError(404, 'API route not found'));
+  next(createError(404, ' route not found'));
 });
 
 // Serve index.html for any other route

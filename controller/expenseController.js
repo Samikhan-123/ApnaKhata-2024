@@ -39,7 +39,7 @@ export const addExpense = async (req, res) => {
     const users = await User.find({}, "email name");
 
     // Check if there are users to send emails to
-    if (users.length > 0) {
+    if (users.length > 0) { 
       // Send email notifications to all users using try-catch
       users.forEach(async (user) => {
         const formattedDate = new Date(date).toLocaleString("en-GB", {

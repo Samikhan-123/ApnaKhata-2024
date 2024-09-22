@@ -7,8 +7,6 @@ import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
-// import helmet from 'helmet';
-// import createError from 'http-errors';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -27,28 +25,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// // Helmet configuration with CSP
-// app.use(helmet({
-//   contentSecurityPolicy: {
-//     directives: {
-//       defaultSrc: ["'self'"],
-//       scriptSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net", "https://accounts.google.com"],
-//       styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net"],
-//       imgSrc: ["'self'", "data:", "https:"],
-//       connectSrc: ["'self'", "https://accounts.google.com"],
-//       frameSrc: ["'self'", "https://accounts.google.com"],
-//       objectSrc: ["'none'"],
-//       upgradeInsecureRequests: [],
-//     },
-//   },
-//   referrerPolicy: {
-//     policy: 'strict-origin-when-cross-origin',
-//   },
-//   frameguard: { action: 'sameorigin' },
-//   dnsPrefetchControl: { allow: true },
-//   hidePoweredBy: true,
-// }));
-
 app.use(express.json());
 
 // API Routes
@@ -65,7 +41,7 @@ app.get('/api', (req, res) => {
 
 // Catch 404 for API routes
 app.use('/api/*', (req, res, next) => {
-  next(createError(404, ' route not found'));
+  next(createError(404, 'API route not found'));
 });
 
 // Serve index.html for any other route

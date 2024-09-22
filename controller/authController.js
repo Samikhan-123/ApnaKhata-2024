@@ -314,7 +314,6 @@ const formatDate = (date) => {
     minute: "2-digit",
     second: "2-digit",
     hour12: true,
-    timeZone: "Asia/Karachi G", // Set timezone to Karachi
     timeZone: "Asia/Karachi", // Set timezone to Karachi
     timeZoneName: "short"}).format(date);  // Changed this line
 };

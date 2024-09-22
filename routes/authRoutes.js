@@ -28,7 +28,7 @@ router.post(
   router.post(
     '/reset-password/:resetToken', resetPassword
   );
-
+  
   router.post('/google', GoogleAuthHandler)
 
 

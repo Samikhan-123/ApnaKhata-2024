@@ -7,3 +7,4 @@ export const resetPasswordLimiter = rateLimit({
 });
 
 // Use this limiter in your route
+ 

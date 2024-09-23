@@ -31,10 +31,15 @@ const userSchema = new mongoose.Schema({
     type: Boolean,
     default: false
   },
-  profilePicture: {
-    type: String,
-    default: 'no image' // You can set a default profile picture
+  profile: {
+    picture: {
+      type: String,
+    },
+    locale: {
+      type: String,
+    },
   },
+  
   lastLogin: {
     type: Date
   },

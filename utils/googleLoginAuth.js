@@ -14,20 +14,33 @@ export const GoogleAuthHandler = async (req, res) => {
             idToken,
             audience: process.env.GOOGLE_CLIENT_ID,
         });
-        const { email, name, sub: googleId } = ticket.getPayload();
+        const { email, name, sub: googleId, picture: profilePicture, locale } = ticket.getPayload();
 
+        // Construct a profile object with available details
+        const profile = {
+          picture: profilePicture,  // Profile picture
+          locale,                   // Locale (language)
+          name,                     // Full name
+        };
+      
+        // Check if the user already exists in the database
         let user = await User.findOne({ email });
-
+      
+        // If user doesn't exist, create a new one
         if (!user) {
-            user = new User({
-                email,
-                name,
-                googleId,
-                isGoogleUser: true,
-                profile,
-            });
-            await user.save();
+          user = new User({
+            email,
+            name,
+            googleId,
+            isGoogleUser: true,   
+            profile,           
+          });
+      
+          // Save the new user in the database
+          await user.save();
         }
+      
+      
 
         const token = jwt.sign(
             { id: user._id, email: user.email },

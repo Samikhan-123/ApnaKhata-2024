@@ -9,7 +9,7 @@ const router = express.Router();
 router.post('/register', register);
 router.post('/login', login);
 
-// get all users from the database
+// get all users from the database 
 router.get('/users',authenticate, getAllUsers);
 
 // get user profile by id
@@ -28,7 +28,7 @@ router.post(
   router.post(
     '/reset-password/:resetToken', resetPassword
   );
-  
+
   router.post('/google', GoogleAuthHandler)
 
 

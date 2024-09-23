@@ -242,6 +242,8 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
+
+// resetPassword controller
 export const resetPassword = async (req, res) => {
   const { resetToken } = req.params;
   const { password, confirmPassword } = req.body;
@@ -262,95 +264,105 @@ export const resetPassword = async (req, res) => {
   if (unmetRequirements.length) {
     return res.status(400).json({
       success: false,
-      message:
-      "Missing requirements: " +
-      unmetRequirements.join(" "),
+      message: "Missing requirements: " + unmetRequirements.join(" "),
       requirements: unmetRequirements,
     });
   }
 
-  const hashedToken = crypto
-    .createHash("sha256")
-    .update(resetToken)
-    .digest("hex");
-  const user = await User.findOne({
-    resetPasswordToken: hashedToken,
-    resetPasswordExpire: { $gt: Date.now() },
-  });
-
-  if (!user) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Invalid or expired token." });
-  }
-
-  if (user.password) {
-    const isSamePassword = await bcrypt.compare(password, user.password);
-    if (isSamePassword) {
-      return res.status(400).json({
-        success: false,
-        message: "New password must differ from the old password.",
-      });
-    }
-  }
-
-  user.password = await bcrypt.hash(password, await bcrypt.genSalt(12));
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpire = undefined;
-  user.passwordChangedAt = new Date();;
-  user.passwordVersion = (user.passwordVersion || 0) + 1;
-  user.passwordResetAttempts += 1;
-
-  await user.save();
-
-const formatDate = (date) => {
-  return new Intl.DateTimeFormat('en-GB', {
-    weekday: 'long',
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: true,
-    timeZone: "Asia/Karachi", // Set timezone to Karachi
-    timeZoneName: "short"}).format(date);  // Changed this line
-};
-
-const currentDate = new Date();  // Add this line
-const formattedDate = formatDate(currentDate);
-  const message = `
-    <h1>Your Password Has Been Successfully Reset</h1>
-    <p>Dear ${user.name || "User"},</p>
-    <p>Your password was successfully changed on ${formattedDate}.</p>
-    <p>If you did not request this change, please take action to secure your account immediately.</p>
-    <h3>Security Tips:</h3>
-    <ul>
-      <li>Use a strong password that is at least 6 to 8 characters long.</li>
-      <li>Avoid using common words or easily guessable information.</li>
-    </ul>
-    <p>If you have any questions or need further assistance, feel free to reach out to our support team.</p>
-    <p>Thank you for using our service!</p>
-    <p>Best Regards</p>
-    <p><strong>ApnaKhata Team</strong></p>
-  `;
-
   try {
-    await sendEmail({
-      email: user.email,
-      subject: "Password Reset Confirmation",
-      html: message,
+    const hashedToken = crypto
+      .createHash("sha256")
+      .update(resetToken)
+      .digest("hex");
+    
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    }).select('+password');
+
+    if (!user) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid or expired token." });
+    }
+
+    // Compare the new password with the old one
+    if (user.password) {
+      const isSamePassword = await bcrypt.compare(password, user.password);
+      if (isSamePassword) {
+        return res.status(400).json({
+          success: false,
+          message: "New password must differ from the old password.",
+        });
+      }
+    }
+
+    user.password = await bcrypt.hash(password, await bcrypt.genSalt(12));
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+    user.passwordChangedAt = new Date();
+    user.passwordVersion = (user.passwordVersion || 0) + 1;
+    user.passwordResetAttempts = (user.passwordResetAttempts || 0) + 1;
+
+    await user.save();
+
+    const formatDate = (date) => {
+      return new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long',
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+        second: "2-digit",
+        hour12: true,
+        timeZone: "Asia/Karachi",
+        timeZoneName: "short"
+      }).format(date);
+    };
+
+    const currentDate = new Date();
+    const formattedDate = formatDate(currentDate);
+
+    const message = `
+      <h1>Your Password Has Been Successfully Reset</h1>
+      <p>Dear ${user.name || "User"},</p>
+      <p>Your password was successfully changed on ${formattedDate}.</p>
+      <p>If you did not request this change, please take action to secure your account immediately.</p>
+      <h3>Security Tips:</h3>
+      <ul>
+        <li>Use a strong password that is at least 6 to 8 characters long.</li>
+        <li>Avoid using common words or easily guessable information.</li>
+      </ul>
+      <p>If you have any questions or need further assistance, feel free to reach out to our support team.</p>
+      <p>Thank you for using our service!</p>
+      <p>Best Regards,</p>
+      <p><strong>ApnaKhata Team</strong></p>
+    `;
+
+    try {
+      await sendEmail({
+        email: user.email,
+        subject: "Password Reset Confirmation",
+        html: message,
+      });
+      console.log(`Reset Email sent to ${user.email}`);
+    } catch (error) {
+      console.error(
+        `Failed to send confirmation email to ${user.email}: ${error.message}`
+      );
+      // Note: We're not returning here, as the password reset was successful even if the email failed
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Your password has been reset successfully.",
     });
-    console.log(`Reset Email sent to ${user.email}`);
   } catch (error) {
-    console.error(
-      `Failed to send confirmation email to ${user.email}: ${error.message}`
-    );
+    console.error("Password reset error:", error);
+    res.status(500).json({ 
+      success: false, 
+      message: "An error occurred while resetting the password." 
+    });
   }
-
-  res.status(200).json({
-    success: true,
-    message: "Your password has been reset successfully.",
-  });
 };
-

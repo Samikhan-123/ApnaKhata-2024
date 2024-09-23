@@ -94,7 +94,7 @@ export const addExpense = async (req, res) => {
         </head>
         <body>
             <div class="container">
-                <p>Hello <strong>${user.name}</strong>,</p>
+                <p>Hello <strong>${user.name}</strong>,</p> 
                 <p>We hope you are doing well!</p>
                 <h3>New Expense Added By a User</h3>
                 <p>

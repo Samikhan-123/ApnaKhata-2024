@@ -10,14 +10,8 @@ dotenv.config();
 
 export const validatePassword = (password) => {
   const requirements = [];
-  const minLength = 6;
-
-  if (password.length < minLength) {
-    requirements.push(
-      `Password must be at least ${minLength} characters long.`
-    );
-  }
-  if (!/[A-Z]/.test(password)) {
+  
+  if (!/[A-Z]/.test(password)) { 
     requirements.push("Password must contain at least one uppercase letter.");
   }
   if (!/[a-z]/.test(password)) {
@@ -26,6 +20,11 @@ export const validatePassword = (password) => {
   if (!/[0-9]/.test(password)) {
     requirements.push("Password must contain at least one number.");
   }
+
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    requirements.push("Password must contain at least one special character.");
+  }
+  
 
   return requirements;
 };
@@ -50,7 +49,7 @@ export const register = async (req, res) => {
       return res.status(400).json({
         success: false,
         message:
-          "Please address the following requirements: " +
+          "Missing requirements: " +
           unmetRequirements.join(" "),
         requirements: unmetRequirements,
       });
@@ -264,8 +263,8 @@ export const resetPassword = async (req, res) => {
     return res.status(400).json({
       success: false,
       message:
-        "Please address the following requirements: " +
-        unmetRequirements.join(" "),
+      "Missing requirements: " +
+      unmetRequirements.join(" "),
       requirements: unmetRequirements,
     });
   }

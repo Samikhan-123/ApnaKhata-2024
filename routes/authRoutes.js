@@ -1,8 +1,8 @@
 import express from 'express';
 import { register, login, getAllUsers, resetPassword, forgotPassword, getProfileWithExpenses } from '../controller/authController.js';
 import { authenticate } from '../utils/jwtUtills.js';
-import { GoogleAuthHandler } from '../utils/googleLoginAuth.js';
 import { resetPasswordLimiter } from '../utils/rateLimitToMail.js';
+import { googleLogin } from '../utils/googleLoginAuth.js';
 
 const router = express.Router();
 
@@ -12,7 +12,10 @@ router.post('/login', login);
 // get all users from the database 
 router.get('/users',authenticate, getAllUsers);
 
-// get user profile by id
+// Google Authentication Route
+router.post('/google-login', googleLogin);
+
+// Profile Routes
 router.get('/profile/:id',authenticate, getProfileWithExpenses);
 
 // router.get('/profile', authenticate, getProfile);
@@ -29,7 +32,7 @@ router.post(
     '/reset-password/:resetToken', resetPassword
   );
 
-  router.post('/google', GoogleAuthHandler)
+  // router.post('/google', GoogleAuthHandler)
 
 
 export default router;

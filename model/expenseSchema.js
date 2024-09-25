@@ -2,8 +2,6 @@ import mongoose from "mongoose";
 
 const expenseSchema = new mongoose.Schema(
   {
-
-
     amount: {
       type: Number,
       required: true,
@@ -19,17 +17,17 @@ const expenseSchema = new mongoose.Schema(
     paidBy: {
       userId: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User",
+        ref: 'User',
         required: true,
       },
       name: {
         type: String,
         required: true,
-      }, 
+      },
     },
   },
   { timestamps: true }
-); 
+);
 
 const Expense = mongoose.model("Expense", expenseSchema);
 

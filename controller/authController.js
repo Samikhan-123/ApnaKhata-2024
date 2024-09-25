@@ -1,3 +1,4 @@
+// backend/controllers/userController.js
 import User from "../model/userSchema.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
@@ -8,151 +9,176 @@ import Expense from "../model/expenseSchema.js";
 
 dotenv.config();
 
+// Password validation function
 export const validatePassword = (password) => {
   const requirements = [];
-  
+
   if (!/[A-Z]/.test(password)) { 
-    requirements.push("Password must contain at least one uppercase letter.");
+    requirements.push("one uppercase letter");
   }
   if (!/[a-z]/.test(password)) {
-    requirements.push("Password must contain at least one lowercase letter.");
+    requirements.push("one lowercase letter");
   }
   if (!/[0-9]/.test(password)) {
-    requirements.push("Password must contain at least one number.");
+    requirements.push("one number");
   }
-
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    requirements.push("Password must contain at least one special character.");
+    requirements.push("one special character");
   }
-  
 
   return requirements;
 };
 
+// Registration Controller
 export const register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
 
+    // Check if all required fields are present
     if (!name || !email || !password) {
       return res
         .status(400)
-        .json({ message: "Name, email, and password are required." });
+        .json({ message: 'Name, email, and password are required.' });
     }
 
+    // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      return res.status(400).json({ message: "Invalid email format." });
+      return res.status(400).json({ message: 'Invalid email format.' });
     }
 
+    // Validate password requirements
     const unmetRequirements = validatePassword(password);
     if (unmetRequirements.length) {
       return res.status(400).json({
         success: false,
         message:
-          "Missing requirements: " +
-          unmetRequirements.join(" "),
+          'Missing requirements: ' + unmetRequirements.join(', '),
         requirements: unmetRequirements,
       });
     }
 
+    // Check if email is already in use
     const existingUserByEmail = await User.findOne({ email });
     if (existingUserByEmail) {
-      return res.status(400).json({ message: "Email is already in use." });
+      return res.status(400).json({ message: 'Email is already in use.' });
     }
 
-    if (name) {
-      const existingUserByUsername = await User.findOne({ name });
-      if (existingUserByUsername) {
-        return res.status(400).json({ message: "Username is already in use." });
-      }
+    // Check if username is already in use
+    const existingUserByUsername = await User.findOne({ name });
+    if (existingUserByUsername) {
+      return res.status(400).json({ message: 'Username is already in use.' });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    // Create and save the new user
     const newUser = new User({
       name,
       email,
-      password: hashedPassword,
+      password, // Password will be hashed by pre-save middleware
     });
 
     await newUser.save();
 
-    res.status(201).json({ message: "User registered successfully." });
+    res.status(201).json({ message: 'User registered successfully.' });
   } catch (error) {
-    console.error("Error during registration:", error.message);
+    console.error('Error during registration:', error.message);
     res
       .status(500)
-      .json({ message: "Error registering user", error: error.message });
+      .json({ message: 'Error registering user', error: error.message });
   }
 };
 
+// Login Controller (Local Users)
 export const login = async (req, res) => {
-  try {
-    const { email, password } = req.body;
-
-    if (!email || !password) {
-      return res
-        .status(400)
-        .json({ message: "Email and password are required." });
-    }
-
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) {
-      return res.status(404).json({ message: "Email is not registered" });
-    }
-
-    const isMatch = await user.comparePassword(password);
-    if (!isMatch) {
-      return res.status(403).json({ message: "Invalid password" });
-    }
-
-    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "30d",
-    });
-
-    if (user.resetPasswordToken) {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
+    try {
+      const { email, password } = req.body;
+  
+      // Validate input
+      if (!email || !password) {
+        return res.status(400).json({
+          success: false,
+          message: 'Email and password are required.',
+        });
+      }
+  
+      // Find user by email and include password
+      const user = await User.findOne({ email }).select('+password');
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'Invalid email or password.',
+        });
+      }
+  
+      // Check if it's a Google user trying to log in with password
+      if (user.isGoogleUser) {
+        return res.status(400).json({
+          success: false,
+          message: 'Please use Google Sign-In for this account.',
+        });
+      }
+  
+      // Compare password
+      const isMatch = await user.comparePassword(password);
+      if (!isMatch) {
+        return res.status(403).json({
+          success: false,
+          message: 'Invalid email or password.',
+        });
+      }
+  
+      // Generate JWT token and reset password fields if needed
+      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
+      });
+  
+      user.lastLogin = Date.now();
       await user.save();
+  
+      res.status(200).json({
+        success: true,
+        message: 'Login successful.',
+        user: {
+          _id: user._id,
+          name: user.name,
+          email: user.email,
+          isGoogleUser: user.isGoogleUser,
+        },
+        token,
+      });
+    } catch (error) {
+      console.error('Login error:', error);
+      res.status(500).json({
+        success: false,
+        message: 'Error logging in.',
+        error: error.message,
+      });
     }
+  };
+  
 
-    res.status(200).json({
-      success: true,
-      message: "Login successful",
-      user: {
-        _id: user._id,
-        name: user.name,
-        email: user.email,
-      },
-      token,
-    });
-  } catch (error) {
-    console.error("Login error:", error);
-    res.status(500).json({ message: "Error logging in", error: error.message });
-  }
-};
-
+// Get Profile with Expenses Controller
 export const getProfileWithExpenses = async (req, res) => {
-  try {
-    const userId = req.params.id;
-
-    const user = await User.findById(userId).select("-password");
-
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
+    try {
+      const user = req.user; // User is already attached by the authenticate middleware
+  
+      // Fetch expenses where the user is the payer
+      const expenses = await Expense.find({ 
+        'paidBy.userId': user._id // Use dot notation to access nested fields
+      }).select('amount date description');
+  
+      // Return user info including isGoogleUser
+      res.status(200).json({ user: { ...user.toObject(), isGoogleUser: user.isGoogleUser }, expenses });
+    } catch (error) {
+      console.error("Error fetching profile with expenses:", error);
+      res.status(500).json({
+        message: "Error fetching profile",
+        error: error.message,
+      });
     }
-
-    const expenses = await Expense.find({ "paidBy.userId": userId });
-
-    res.status(200).json({ user, expenses });
-  } catch (error) {
-    console.error("Error fetching profile with expenses:", error);
-    res
-      .status(500)
-      .json({ message: "Error fetching profile", error: error.message });
-  }
-};
-
+  };
+  
+// Get All Users Controller
 export const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select("-password");
@@ -165,6 +191,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// Forgot Password Controller
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
 
@@ -191,7 +218,7 @@ export const forgotPassword = async (req, res) => {
       .digest("hex");
 
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
+    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
     user.sendEmailsOnForgetPass = (user.passwordResetAttempts || 0) + 1;
 
     await user.save();
@@ -242,14 +269,13 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-
-// resetPassword controller
+// Reset Password Controller
 export const resetPassword = async (req, res) => {
   const { resetToken } = req.params;
   const { password, confirmPassword } = req.body;
 
   if (!password || !confirmPassword) {
-    return res
+    return res 
       .status(400)
       .json({ success: false, message: "Both password fields are required." });
   }

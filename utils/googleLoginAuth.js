@@ -7,51 +7,64 @@ dotenv.config();
 
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-export const GoogleAuthHandler = async (req, res) => {
-    const { idToken } = req.body;
-    try {
-        const ticket = await client.verifyIdToken({
-            idToken,
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const { email, name, sub: googleId, picture: profilePicture, locale } = ticket.getPayload();
+export const googleLogin = async (req, res) => {
+  try {
+    const { tokenId } = req.body;
 
-        // Construct a profile object with available details
-        const profile = {
-          picture: profilePicture,  // Profile picture
-          locale,                   // Locale (language)
-          name,                     // Full name
-        };
-      
-        // Check if the user already exists in the database
-        let user = await User.findOne({ email });
-      
-        // If user doesn't exist, create a new one
-        if (!user) {
-          user = new User({
-            email,
-            name,
-            googleId,
-            isGoogleUser: true,   
-            profile,           
-          });
-      
-          // Save the new user in the database
-          await user.save();
-        }
-      
-      
-
-        const token = jwt.sign(
-            { id: user._id, email: user.email },
-            process.env.JWT_SECRET,
-            { expiresIn: process.env.JWT_EXPIRY || '30d' }
-        ); 
-
-        res.json({ success: true, user: { id: user._id, name: user.name, email: user.email }, token });
-
-    } catch (error) {
-        console.error("Google authentication error:", error);
-        res.status(400).json({ success: false, message: "Authentication failed" });
+    if (!tokenId) {
+      return res.status(400).json({ message: 'Token ID is required.' });
     }
+
+    // Verify the token
+    const ticket = await client.verifyIdToken({
+      idToken: tokenId,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, picture, locale } = payload;
+
+    // Check if user already exists based on googleId
+    let user = await User.findOne({ googleId });
+
+    // If the user does not exist, create a new user
+    if (!user) {
+      user = new User({
+        name,
+        email,
+        isGoogleUser: true,
+        googleId, // Store the Google ID in the user model
+        profile: {
+          picture,
+          locale,
+        },
+      });
+
+      await user.save();
+    }
+
+    // Generate JWT token with user ID and other claims
+    const token = jwt.sign(
+      { _id: user._id, iat: Math.floor(Date.now() / 1000) },
+      process.env.JWT_SECRET,
+      { expiresIn: '30d' }
+    );
+
+    // Attach the user object to the response
+    res.status(200).json({
+      success: true,
+      message: 'Google login successful.',
+      user: {
+        _id: user._id, // User ID from the database
+        name: user.name,
+        email: user.email,
+        isGoogleUser: user.isGoogleUser,
+        profile: user.profile,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error('Google login error:', error);
+    res.status(500).json({ message: 'Error logging in with Google.', error: error.message });
+  }
 };

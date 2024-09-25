@@ -1,44 +1,34 @@
-import jwt from 'jsonwebtoken'; // Ensure you import jwt correctly
-import dotenv from 'dotenv';
+import jwt from 'jsonwebtoken';
+import User from '../model/userSchema.js';
+// import User from '../model/userSchema.js';
 
-dotenv.config(); // Load environment variables
-
-export const authenticate = (req, res, next) => {
+export const authenticate = async (req, res, next) => {
   try {
-    // console.log('Authorization header:', req.headers.authorization); // Debugging
-    const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const token = req.headers.authorization && req.headers.authorization.split(' ')[1]; // Split to get the token
+
+    if (!token) {
       return res.status(401).json({ success: false, message: "Authorization token is required." });
     }
 
-    const token = authHeader.split(' ')[1];
-    // console.log('Token:', token); // Debugging
-    const decoded = jwt.verify(token, process.env.JWT_SECRET); 
-    req.user = decoded;
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Find the user by _id
+    const user = await User.findById(decoded._id).select('-password');
+
+    if (!user) {
+      return res.status(401).json({ success: false, message: "User not found" });
+    }
+
+    req.user = user; // Attach the user object to the request
     next();
   } catch (error) {
-    console.error("Error in requireSignIn middleware:", error);
-    return res.status(401).json({ success: false, message: "Invalid token" });
+    console.error("Error in authenticate middleware:", error.message); // Log the error message
+    if (error.name === 'JsonWebTokenError') {
+      return res.status(401).json({ success: false, message: "Invalid token" });
+    }
+    if (error.name === 'TokenExpiredError') {
+      return res.status(401).json({ success: false, message: "Token expired" });
+    }
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
-
-
-    export const isAdmin = async (req, res, next) => {
-        try {
-          const userId = req.user._id;
-          const user = await userModel.findById(userId);
-      
-          if (!user) {
-            return res.status(404).json({ success: false, message: "User not found" });
-          }
-      
-          if (user.role !== "admin") {
-            return res.status(403).json({ success: false, message: "Unauthorized access" });
-          }
-      
-          next();
-        } catch (error) {
-          console.error("Error in isAdmin middleware:", error);
-          return res.status(500).json({ success: false, message: "Internal server error" });
-        }
-      };

@@ -12,7 +12,9 @@ export const googleLogin = async (req, res) => {
     const { tokenId } = req.body;
 
     if (!tokenId) {
-      return res.status(400).json({ message: 'Token ID is required.' });
+      return res
+        .status(400)
+        .json({ success: false, message: 'Token ID is required.' });
     }
 
     // Verify the token
@@ -27,35 +29,47 @@ export const googleLogin = async (req, res) => {
     // Check if user already exists based on googleId
     let user = await User.findOne({ googleId });
 
-    // If the user does not exist, create a new user
+    // If the user does not exist, check by email
     if (!user) {
-      user = new User({
-        name,
-        email,
-        isGoogleUser: true,
-        googleId, // Store the Google ID in the user model
-        profile: {
-          picture,
-          locale,
-        },
-      });
+      // Check if there's an existing local user with the same email
+      user = await User.findOne({ 'local.email': email });
+      if (user) {
+        // If found and it's not a Google user
+        if (!user.isGoogleUser) {
+          return res.status(400).json({
+            success: false,
+            message:
+              'This account is registered as a local user. Please log in using your email and password.',
+          });
+        }
+      } else {
+        // If no user exists, create a new one
+        user = new User({
+          name,
+          email,
+          isGoogleUser: true,
+          googleId,
+          profile: {
+            picture,
+            locale,
+          },
+        });
 
-      await user.save();
+        await user.save();
+      }
     }
 
     // Generate JWT token with user ID and other claims
-    const token = jwt.sign(
-      { _id: user._id, iat: Math.floor(Date.now() / 1000) },
-      process.env.JWT_SECRET,
-      { expiresIn: '30d' }
-    );
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
 
     // Attach the user object to the response
     res.status(200).json({
       success: true,
       message: 'Google login successful.',
       user: {
-        _id: user._id, // User ID from the database
+        _id: user._id,
         name: user.name,
         email: user.email,
         isGoogleUser: user.isGoogleUser,
@@ -65,6 +79,22 @@ export const googleLogin = async (req, res) => {
     });
   } catch (error) {
     console.error('Google login error:', error);
-    res.status(500).json({ message: 'Error logging in with Google.', error: error.message });
+
+    // Handle duplicate key error specifically
+    if (error.code === 11000) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'A user with this email already exists. Please log in using your email and password.',
+      });
+    }
+
+    res
+      .status(500)
+      .json({
+        success: false,
+        message: 'ohh! something went wrong with server.',
+        error: error.message,
+      });
   }
 };

@@ -1,11 +1,11 @@
 // backend/controllers/userController.js
-import User from "../model/userSchema.js";
-import bcrypt from "bcrypt";
-import jwt from "jsonwebtoken";
-import dotenv from "dotenv";
-import crypto from "crypto";
-import { sendEmail } from "../utils/sendEmail.js";
-import Expense from "../model/expenseSchema.js";
+import User from '../model/userSchema.js';
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import crypto from 'crypto';
+import { sendEmail } from '../utils/emailConfig.js';
+import Expense from '../model/expenseSchema.js';
 
 dotenv.config();
 
@@ -13,17 +13,17 @@ dotenv.config();
 export const validatePassword = (password) => {
   const requirements = [];
 
-  if (!/[A-Z]/.test(password)) { 
-    requirements.push("one uppercase letter");
+  if (!/[A-Z]/.test(password)) {
+    requirements.push('one uppercase letter');
   }
   if (!/[a-z]/.test(password)) {
-    requirements.push("one lowercase letter");
+    requirements.push('one lowercase letter');
   }
   if (!/[0-9]/.test(password)) {
-    requirements.push("one number");
+    requirements.push('one number');
   }
   if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    requirements.push("one special character");
+    requirements.push('one special character e.g. !@#$%^&*');
   }
 
   return requirements;
@@ -52,8 +52,7 @@ export const register = async (req, res) => {
     if (unmetRequirements.length) {
       return res.status(400).json({
         success: false,
-        message:
-          'Missing requirements: ' + unmetRequirements.join(', '),
+        message: 'Missing requirements: ' + unmetRequirements.join(', '),
         requirements: unmetRequirements,
       });
     }
@@ -70,11 +69,14 @@ export const register = async (req, res) => {
       return res.status(400).json({ message: 'Username is already in use.' });
     }
 
+    // Hash the password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Create and save the new user
     const newUser = new User({
       name,
       email,
-      password, // Password will be hashed by pre-save middleware
+      password: hashedPassword, // Store the hashed password
     });
 
     await newUser.save();
@@ -88,134 +90,150 @@ export const register = async (req, res) => {
   }
 };
 
+
 // Login Controller (Local Users)
 export const login = async (req, res) => {
-    try {
-      const { email, password } = req.body;
-  
-      // Validate input
-      if (!email || !password) {
-        return res.status(400).json({
-          success: false,
-          message: 'Email and password are required.',
-        });
-      }
-  
-      // Find user by email and include password
-      const user = await User.findOne({ email }).select('+password');
-      if (!user) {
-        return res.status(404).json({
-          success: false,
-          message: 'user with this email not found.',
-        });
-      }
-  
-      // Check if it's a Google user trying to log in with password
-      if (user.isGoogleUser) {
-        return res.status(400).json({
-          success: false,
-          message: 'Please use Google Sign-In for this account.',
-        });
-      }
-  
-      // Compare password
-      const isMatch = await user.comparePassword(password);
-      if (!isMatch) {
-        return res.status(403).json({
-          success: false,
-          message: 'Invalid email or password.',
-        });
-      }
-  
-      // Generate JWT token and reset password fields if needed
-      const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
-        expiresIn: '30d',
-      });
-  
-      user.lastLogin = Date.now();
-      await user.save();
-  
-      res.status(200).json({
-        success: true,
-        message: 'Login successful.',
-        user: {
-          _id: user._id,
-          name: user.name,
-          email: user.email,
-          isGoogleUser: user.isGoogleUser,
-        },
-        token,
-      });
-    } catch (error) {
-      console.error('Login error:', error);
-      res.status(500).json({
+  try {
+    const { email, password } = req.body;
+
+    // Validate input
+    if (!email || !password) {
+      return res.status(400).json({
         success: false,
-        message: 'Error logging in.',
-        error: error.message,
+        message: 'Email and password are required.',
       });
     }
-  };
-  
+
+    // Find user by email and include password
+    const user = await User.findOne({ email }).select('+password');
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'user with this email not found.',
+      });
+    }
+
+    // Check if it's a Google user trying to log in with password
+    if (user.isGoogleUser) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please use Google Sign-In for this account.',
+      });
+    }
+
+    // Compare password
+    const isMatch = await user.comparePassword(password);
+    if (!isMatch) {
+      return res.status(403).json({
+        success: false,
+        message: 'Invalid email or password.',
+      });
+    }
+
+    // Generate JWT token and reset password fields if needed
+    const token = jwt.sign({ _id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: '30d',
+    });
+
+    user.lastLogin = Date.now();
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Login successful.',
+      user: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        isGoogleUser: user.isGoogleUser,
+      },
+      token,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error logging in.',
+      error: error.message,
+    });
+  }
+};
 
 // Get Profile with Expenses Controller
 export const getProfileWithExpenses = async (req, res) => {
-    try {
-      const user = req.user; // User is already attached by the authenticate middleware
-  
-      // Fetch expenses where the user is the payer
-      const expenses = await Expense.find({ 
-        'paidBy.userId': user._id // Use dot notation to access nested fields
-      }).select('amount date description');
-  
-      // Return user info including isGoogleUser
-      res.status(200).json({ user: { ...user.toObject(), isGoogleUser: user.isGoogleUser }, expenses });
-    } catch (error) {
-      console.error("Error fetching profile with expenses:", error);
-      res.status(500).json({
-        message: "Error fetching profile",
-        error: error.message,
+  try {
+    const user = req.user; // User is already attached by the authenticate middleware
+
+    // Fetch expenses where the user is the payer
+    const expenses = await Expense.find({
+      'paidBy.userId': user._id, // Use dot notation to access nested fields
+    }).select('amount date description');
+
+    // Return user info including isGoogleUser
+    res
+      .status(200)
+      .json({
+        user: { ...user.toObject(), isGoogleUser: user.isGoogleUser },
+        expenses,
       });
-    }
-  };
-  
+  } catch (error) {
+    console.error('Error fetching profile with expenses:', error);
+    res.status(500).json({
+      message: 'Error fetching profile',
+      error: error.message,
+    });
+  }
+};
+
 // Get All Users Controller
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
+    const users = await User.find().select('-password');
     res.status(200).json(users);
   } catch (error) {
-    console.error("Error fetching users:", error);
+    console.error('Error fetching users:', error);
     res
       .status(500)
-      .json({ message: "Error fetching users", error: error.message });
+      .json({ message: 'Error fetching users', error: error.message });
   }
 };
 
 // Forgot Password Controller
+// Forgot Password Controller
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
+  let user = null; // Initialize user variable
 
   try {
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
       return res
         .status(400)
-        .json({ message: "Please provide a valid email address" });
+        .json({ message: 'Please provide a valid email address' });
     }
 
-    const user = await User.findOne({ email }).select("+passwordResetAttempts");
+    user = await User.findOne({ email }).select('+passwordResetAttempts');
 
     if (!user) {
-      return res.status(200).json({
-        message:
-          "If a user with that email exists, a password reset link has been sent.",
+      return res.status(400).json({
+        message: 'user with this email not found.',
       });
     }
 
-    const resetToken = crypto.randomBytes(32).toString("hex");
+    // Check if user is a Google user
+    if (user.isGoogleUser) {
+      return res.status(400).json({
+        success: false,
+        message:
+          'This account uses Google Sign-In. Please use Google to access your account.',
+        isGoogleUser: true,
+      });
+    }
+
+    const resetToken = crypto.randomBytes(32).toString('hex');
     const hashedToken = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(resetToken)
-      .digest("hex");
+      .digest('hex');
 
     user.resetPasswordToken = hashedToken;
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
@@ -223,12 +241,43 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    const resetUrl = `${process.env.CLIENT_URL}/reset-password/${resetToken}`;
+    const resetUrl = process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/reset-password/${resetToken}` : `http://localhost:5173/reset-password/${resetToken}`;
+    // const resetUrl = `http://localhost:5173/reset-password/${resetToken}`;
+    const formatDate = (date) => {
+      return new Intl.DateTimeFormat('en-GB', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: true,
+        timeZone: 'Asia/Karachi',
+        // timeZoneName: 'short',
+      }).format(date);
+    };
 
+    const currentDate = new Date();
+    const formattedDate = formatDate(currentDate);
     const message = `
       <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px;">
         <h2 style="color: #333;">Dear ${user.name},</h2>
-        <p>You have requested to reset your password. Please use the following link to set a new password:</p>
+        <p>You have requested to reset your password on <span 
+        style="
+         font-size: .7rem; 
+         font-weight: 500; 
+         color: #333; 
+         background-color: #f2f2f2; 
+         padding: 4px 8px; 
+         border-radius: 4px; 
+         border: 1px solid #ddd;"
+         >
+        ${formattedDate}
+         </span>
+       <br><br>
+
+       Please use the following link to set a new password:</p> 
         <p>
           <a href="${resetUrl}" style="background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
             Reset Password
@@ -238,23 +287,25 @@ export const forgotPassword = async (req, res) => {
           This link will expire in 10 minutes for security reasons.
         </p>
         <p>If you did not request this password reset, please ignore this email and ensure your account is secure.</p>
-        <p>Best regards,<br>
-        <strong>ApnaKhata Team</strong></p>
+          <div style="margin-top: 20px; font-size: 0.9em; color: #777; ">
+              <p>Best Regards,</p>
+              <p>ApnaKhata Expense Tracker</p>
+            </div>
       </div>
     `;
 
     await sendEmail({
       email: user.email,
-      subject: "Password Reset Request",
+      subject: 'Password Reset Request',
       html: message,
     });
     console.log(`Forgot Email sent to ${user.email}`);
     res.status(200).json({
       message:
-        "If a user with that email exists, a password reset link has been sent.",
+        'If a user with that email exists, a password reset link has been sent.',
     });
   } catch (error) {
-    console.error("Error in forgotPassword:", error);
+    console.error('Error in forgotPassword:', error);
 
     if (user) {
       user.resetPasswordToken = undefined;
@@ -264,7 +315,7 @@ export const forgotPassword = async (req, res) => {
 
     res.status(500).json({
       message:
-        "An error occurred while processing your request. Please try again later.",
+        'An error occurred while processing your request. Please try again later.',
     });
   }
 };
@@ -275,75 +326,69 @@ export const resetPassword = async (req, res) => {
   const { password, confirmPassword } = req.body;
 
   if (!password || !confirmPassword) {
-    return res 
+    return res
       .status(400)
-      .json({ success: false, message: "Both password fields are required." });
+      .json({ success: false, message: 'Both password fields are required.' });
   }
 
   if (password !== confirmPassword) {
     return res
       .status(400)
-      .json({ success: false, message: "Passwords do not match." });
+      .json({ success: false, message: 'Passwords do not match.' });
   }
 
   const unmetRequirements = validatePassword(password);
   if (unmetRequirements.length) {
     return res.status(400).json({
       success: false,
-      message: "Missing requirements: " + unmetRequirements.join(" "),
+      message: 'Missing requirements: ' + unmetRequirements.join(' '),
       requirements: unmetRequirements,
     });
   }
 
   try {
     const hashedToken = crypto
-      .createHash("sha256")
+      .createHash('sha256')
       .update(resetToken)
-      .digest("hex");
-    
+      .digest('hex');
+
     const user = await User.findOne({
       resetPasswordToken: hashedToken,
       resetPasswordExpire: { $gt: Date.now() },
     }).select('+password');
 
     if (!user) {
-      return res
-        .status(400)
-        .json({ success: false, message: "Invalid or expired token." });
+      return res.status(400).json({
+        success: false,
+        message: 'Password reset token is invalid or has expired.',
+        code: 'TOKEN_EXPIRED',
+      });
     }
 
-    // Compare the new password with the old one
-    if (user.password) {
-      const isSamePassword = await bcrypt.compare(password, user.password);
-      if (isSamePassword) {
-        return res.status(400).json({
-          success: false,
-          message: "New password must differ from the old password.",
-        });
-      }
-    }
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-    user.password = await bcrypt.hash(password, await bcrypt.genSalt(12));
+    user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     user.passwordChangedAt = new Date();
     user.passwordVersion = (user.passwordVersion || 0) + 1;
-    user.passwordResetAttempts = (user.passwordResetAttempts || 0) + 1;
 
+    await user.save();
     await user.save();
 
     const formatDate = (date) => {
       return new Intl.DateTimeFormat('en-GB', {
         weekday: 'long',
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
         hour12: true,
-        timeZone: "Asia/Karachi",
-        timeZoneName: "short"
+        timeZone: 'Asia/Karachi',
+        // timeZoneName: 'short',
       }).format(date);
     };
 
@@ -352,24 +397,37 @@ export const resetPassword = async (req, res) => {
 
     const message = `
       <h1>Your Password Has Been Successfully Reset</h1>
-      <p>Dear ${user.name || "User"},</p>
-      <p>Your password was successfully changed on ${formattedDate}.</p>
-      <p>If you did not request this change, please take action to secure your account immediately.</p>
-      <h3>Security Tips:</h3>
-      <ul>
-        <li>Use a strong password that is at least 6 to 8 characters long.</li>
+      <p>Dear ${user.name || 'User'},</p>
+      <p>Your password was successfully changed on  <span 
+        style="
+         font-size: .7rem; 
+         font-weight: 500; 
+         color: #333; 
+         background-color: #f2f2f2; 
+         padding: 4px 8px; 
+         border-radius: 4px; 
+         border: 1px solid #ddd;"
+         >
+        ${formattedDate}
+         </span>
+         </p>
+        <p>If you did not request this change, please take action to secure your account immediately.</p>
+       <h3>Security Tips:</h3>
+       <ul>
+        <li>Use a strong password that is at least 8 characters long.</li>
         <li>Avoid using common words or easily guessable information.</li>
       </ul>
-      <p>If you have any questions or need further assistance, feel free to reach out to our support team.</p>
       <p>Thank you for using our service!</p>
-      <p>Best Regards,</p>
-      <p><strong>ApnaKhata Team</strong></p>
+               <div style="margin-top: 20px; font-size: 0.9em; color: #777; ">
+              <p>Best Regards,</p>
+              <p>ApnaKhata Expense Tracker</p>
+            </div>
     `;
 
     try {
       await sendEmail({
         email: user.email,
-        subject: "Password Reset Confirmation",
+        subject: 'Password Reset Confirmation',
         html: message,
       });
       console.log(`Reset Email sent to ${user.email}`);
@@ -382,13 +440,13 @@ export const resetPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Your password has been reset successfully.",
+      message: 'Your password has been reset successfully.',
     });
   } catch (error) {
-    console.error("Password reset error:", error);
-    res.status(500).json({ 
-      success: false, 
-      message: "An error occurred while resetting the password." 
+    console.error('Password reset error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'An error occurred while resetting the password.',
     });
   }
 };

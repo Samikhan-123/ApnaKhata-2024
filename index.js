@@ -5,11 +5,11 @@ import connectedDB from './db/connectDB.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
-import path from 'path';
+import path from 'path'; 
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import createError from 'http-errors';
-
+ 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -19,16 +19,16 @@ connectedDB();
 const app = express();
 
 // Middleware
-app.use(morgan('dev'));
+app.use(morgan('dev'));  
 
 // Basic CORS configuration
 app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*', 
   credentials: true,
 }));
 
 
-
+ 
 app.use(express.json());
 
 // API Routes
@@ -36,11 +36,15 @@ app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 
 // Serve static files
-app.use(express.static(path.join(__dirname, './dist')));
+app.use(express.static(path.join(__dirname, './dist'))); 
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// API root route
+// API root route 
 app.get('/api', (req, res) => {
   res.send('Apna Khata API is running');
+});
+app.get('/', (req, res) => { 
+  res.send('server is running on port ' + PORT + '.'); 
 });
 
 // Catch 404 for API routes
@@ -50,7 +54,7 @@ app.use('/api/*', (req, res, next) => {
 
 // Serve index.html for any other route
 app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, './dist/index.html'));
+  res.sendFile(path.join(__dirname, './dist/index.html')); 
 });
 
 // Error-handling middleware

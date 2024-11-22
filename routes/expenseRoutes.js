@@ -1,32 +1,55 @@
 import express from 'express';
-import { addExpense, deleteExpense, editExpense, getExpenseById, getExpenses, updateExpense } from '../controller/expenseController.js';
+import {
+  addExpense,
+  deleteExpense,
+  getExpenseById,
+  getExpenses,
+  updateExpense,
+  getExpenseStats,
+  getExpensesByCategory,
+  getMonthlyExpenses,
+} from '../controller/expenseController.js';
 import { authenticate } from '../utils/jwtUtills.js';
+import { upload } from '../middleware/mutler.js';
+import {validateExpense} from '../utils/validateExpense.js';
 
 const router = express.Router();
 
-// Add an expense
-router.post('/add', authenticate, addExpense);
+// Base route: /api/expenses
 
-// Get all expenses
+// Get all expenses with filters
 router.get('/', authenticate, getExpenses);
 
-// Get an expense by ID
-router.get('/get/:id', authenticate,getExpenseById);
+// Get expense statistics
+router.get('/stats', authenticate, getExpenseStats);
 
+// Get expenses by category
+router.get('/by-category', authenticate, getExpensesByCategory);
 
-// Get user expense by ID
-// router.get('/user/:userId', getExpensesByUserId);
+// Get monthly expenses
+router.get('/monthly', authenticate, getMonthlyExpenses);
 
-// Edit an expense
-router.put('edit/:expenseId', editExpense);
+// Get specific expense
+router.get('/:id', authenticate, getExpenseById);
 
-// Delete an expense
-router.delete('/:expenseId',authenticate, deleteExpense);
-// Update an expense by ID
-router.put('/update/:id',authenticate, updateExpense);
+// Add new expense
+router.post(
+  '/add',
+  authenticate,
+  upload.single('receipt'),
+  validateExpense,
+  addExpense
+);
 
-// mark an expense as paid
-// router.put('/:id/mark-paid', authenticate, markExpenseAsPaid);
+// Update expense
+router.put(
+  '/:id',
+  authenticate,
+  upload.single('receipt'),
+  validateExpense,
+  updateExpense
+);
 
-
+// Delete expense
+router.delete('/:id', authenticate, deleteExpense);
 export default router;

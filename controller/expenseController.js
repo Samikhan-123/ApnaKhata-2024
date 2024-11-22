@@ -1,332 +1,563 @@
-import mongoose from "mongoose";
-import Expense from "../model/expenseSchema.js";
-import { sendEmail } from "../utils/sendEmail.js";
-import User from "../model/userSchema.js";
+import mongoose from 'mongoose';
+import Expense from '../model/expenseSchema.js';
+import User from '../model/userSchema.js';
+import { sendEmail } from '../utils/emailConfig.js';
 
+// Helper function to check if a string is a valid date
+const isValidDate = (dateString) => {
+  const date = new Date(dateString);
+  return date instanceof Date && !isNaN(date);
+};
 
+// Get all expenses
+export const getExpenses = async (req, res) => {
+  try {
+    const {
+      startDate,
+      endDate,
+      category,
+      minAmount,
+      maxAmount,
+      paymentMethod,
+      tags,
+      search,
+      page = 1,
+      limit = 15,
+    } = req.query;
 
-// Add Expense function with cleaner logic
+    let query = { user: req.user._id };
+
+    // Date filters
+    if (startDate || endDate) {
+      query.date = {};
+      if (startDate) query.date.$gte = new Date(startDate);
+      if (endDate) query.date.$lte = new Date(endDate);
+    }
+
+    // Category filter
+    if (category && category !== 'all') query.category = category;
+
+    // Payment method filter
+    if (paymentMethod && paymentMethod !== 'all')
+      query.paymentMethod = paymentMethod;
+
+    // Amount filters
+    if (minAmount) query.amount = { $gte: Number(minAmount) };
+    if (maxAmount) query.amount = { ...query.amount, $lte: Number(maxAmount) };
+
+    // Tags filter
+    if (tags) {
+      const tagArray = tags.split(',').map((tag) => tag.trim());
+      query.tags = { $in: tagArray };
+    }
+
+    // Search functionality
+    if (search) {
+      const searchRegex = new RegExp(search, 'i');
+      query.$or = [
+        { description: searchRegex },
+        { category: searchRegex },
+        { paymentMethod: searchRegex },
+        { tags: searchRegex },
+        ...(isValidDate(search)
+          ? [
+              {
+                date: {
+                  $gte: new Date(search),
+                  $lt: new Date(
+                    new Date(search).setDate(new Date(search).getDate() + 1)
+                  ),
+                },
+              },
+            ]
+          : []),
+      ];
+    }
+
+    const sortOptions = { date: -1 }; // Descending order by date
+
+    const expenses = await Expense.find(query)
+      .sort(sortOptions)
+      .skip((page - 1) * limit)
+      .limit(Number(limit));
+
+    const total = await Expense.countDocuments(query);
+
+    res.status(200).json({
+      expenses,
+      pagination: {
+        total,
+        page: Number(page),
+        pages: Math.ceil(total / limit),
+      },
+      success: true,
+      message: 'Expenses fetched successfully',
+    });
+  } catch (error) {
+    console.error('Error fetching expenses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching expenses',
+      error: error.message,
+    });
+  }
+};
+
+// Add expense
 export const addExpense = async (req, res) => {
   try {
-    const { amount, description, date } = req.body;
-
-    // Check for missing fields
-    if (!amount || !description || !date) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Get user information from req.user (assuming JWT middleware is being used)
-    const user = req.user;
-
-    if (!user) {
-      return res.status(401).json({ message: "Unauthorized. Please login." });
-    }
-
-    // Create and save the new expense
-    const newExpense = new Expense({
-      amount,
+    const {
       description,
+      amount,
       date,
-      paidBy: {
-        userId: user._id,
-        name: user.name,
-      },
+      category,
+      paymentMethod,
+      tags,
+      notes,
+      isRecurring,
+      recurringDetails,
+    } = req.body;
+
+    // Parse recurring details if provided and valid
+    const parsedRecurringDetails =
+      isRecurring && typeof recurringDetails === 'string'
+        ? JSON.parse(recurringDetails)
+        : recurringDetails || null;
+
+    // Parse tags if provided as a string
+    const parsedTags =
+      typeof tags === 'string'
+        ? tags.split(',').map((tag) => tag.trim())
+        : tags || [];
+
+    // Prepare receipt details
+    const receipt = req.file
+      ? {
+          filename: req.file.filename,
+          path: req.file.path,
+          mimetype: req.file.mimetype,
+        }
+      : null;
+
+    // Create a new expense
+    const newExpense = new Expense({
+      user: req.user._id,
+      description,
+      amount: Number(amount),
+      date: new Date(date),
+      category,
+      paymentMethod,
+      tags: parsedTags,
+      notes,
+      receipt,
+      isRecurring: isRecurring === true || isRecurring === 'true',
+      recurringDetails: parsedRecurringDetails,
     });
 
     await newExpense.save();
 
-    // Optionally send email notifications
-    const users = await User.find({}, "email name");
+    // Enhanced HTML Email
+    const emailHtml = `
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
+        <h2 style="color: #2c3e50; text-align: center; padding-bottom: 10px; border-bottom: 2px solid #eee;">
+          🎉 New Expense Added!
+        </h2>
+        
+        <div style="margin: 20px 0; background: #f9f9f9; padding: 15px; border-radius: 5px;">
+          <h3 style="color: #34495e; margin-bottom: 15px;">Expense Summary:</h3>
+          <ul style="list-style: none; padding: 0; line-height: 1.6;">
+            <li><strong>Description:</strong> ${description}</li>
+            <li><strong>Amount:</strong> ${new Intl.NumberFormat('en-PK', {
+              style: 'currency',
+              currency: 'PKR',
+            }).format(amount)}</li>
+            <li><strong>Category:</strong> ${category}</li>
+            <li><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</li>
+            <li><strong>Payment Method:</strong> ${paymentMethod}</li>
+            ${
+              parsedTags.length > 0
+                ? `<li><strong>Tags:</strong> ${parsedTags.join(', ')}</li>`
+                : ''
+            }
+            ${notes ? `<li><strong>Notes:</strong> ${notes}</li>` : ''}
+           <li><strong>Quote:</strong>" بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔"</li>
+            ${
+              isRecurring
+                ? `<li><strong>Recurring Expense:</strong> Yes</li>`
+                : ''
+            }
+          </ul>
+        </div>
 
-    if (users.length > 0) {
-      const emailPromises = users.map(async (recipient) => {
-        const formattedDate = new Date(date).toLocaleString("en-GB", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-          hour12: true,
-          timeZone: "Asia/Karachi",
-        });
-        const message = `
-        <html>
-          <head>
-            <style>
-              body {
-                font-family: Arial, sans-serif;
-                background-color: #f4f4f4;
-                color: #333;
-                margin: 0;
-                padding: 20px;
-              }
-              .container {
-                background-color: #ffffff;
-                padding: 20px;
-                border-radius: 8px;
-                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-              }
-              h2 {
-                color: #4CAF50;
-              }
-              p {
-                line-height: 1.5;
-              }
-              .expense-details {
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                padding: 15px;
-                background-color: #f9f9f9;
-              }
-              .footer {
-                margin-top: 20px;
-                font-size: 0.9em;
-                color: #777;
-              }
-            </style>
-          </head>
-          <body>
-            <div class="container">
-              <h2>Hello ${recipient.name},</h2>
-              <p>A new expense has been added to your account:</p>
-              <div class="expense-details">
-                <p><strong>Description:</strong> ${description}</p>
-                <p><strong>Amount:</strong> Rs ${amount}</p>
-                <p><strong>Date:</strong> ${formattedDate}</p>
-              </div>
-              <p>Thank you for keeping your expenses up to date!</p>
-              <div class="footer">
-                <p>Best Regards,</p>
-                <p>ApnaKhata Team</p>
-              </div>
-            </div>
-          </body>
-        </html>
-      `;
-      
-
-        try {
-          await sendEmail({
-            email: recipient.email,
-            subject: "New Expense Added",
-            html: message,
-          });
-
-        } catch (emailError) {
-          console.error(`Error sending email to ${recipient.email}:`, emailError.message);
+        ${
+          receipt
+            ? `
+          <div style="margin-top: 20px; text-align: center;">
+            <p style="color: #7f8c8d; font-size: 0.9em;">📎 A receipt has been uploaded with this expense.</p>
+          </div>
+          `
+            : ''
         }
-      });
 
-      await Promise.all(emailPromises);
-    }
+        <div style="text-align: center; margin-top: 20px; font-size: 0.85em; color: #7f8c8d;">
+          <p>This is an automated notification from <strong>ApnaKhata Expense Tracker</strong>.</p>
+          <p>Please do not reply to this email. If you have any concerns, contact our support team.</p>
+        </div>
+      </div>
+    `;
 
-    return res.status(201).json({
-      message: "Expense added successfully",
+    // Send notification email
+    await sendEmail({
+      email: req.user.email,
+      subject: '📌 New Expense Added - ApnaKhata',
+      html: emailHtml,
+    });
+
+    // Respond with success
+    res.status(201).json({
+      success: true,
+      message: 'Expense added successfully',
       expense: newExpense,
     });
   } catch (error) {
-    console.error("Error adding expense:", error);
-    return res.status(500).json({ message: "Error adding expense", error: error.message });
+    console.error('Error adding expense:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error adding expense',
+      error: error.message,
+      details: {
+        body: req.body,
+        file: req.file,
+      },
+    });
   }
 };
 
-
-// Get all expenses for a user
-export const getExpenses = async (req, res) => {
-  try {
-    const expenses = await Expense.find()
-      // .populate("userId", "name") // Populate the user who posted the expense
-      .populate("paidBy", "name") // Populate users who have paid and posted the expense
-      .sort({ createdAt: -1 }); // Sort by createdAt in descending order
-
-    res.status(200).json(expenses);
-  } catch (error) {
-    console.error("Error fetching expenses:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-//  to get an expense by ID
+// Get expense by ID
 export const getExpenseById = async (req, res) => {
   try {
-    const expenseId = req.params.id;
-
-    if (!expenseId) {
-      return res.status(400).json({ message: "Expense ID is required" });
-    }
-
-    // Check if the ID is a valid ObjectId
-    if (!mongoose.Types.ObjectId.isValid(expenseId)) {
-      return res.status(400).json({ message: "Invalid expense ID format" });
-    }
-
-    const expense = await Expense.findById(expenseId);
+    const expense = await Expense.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
 
     if (!expense) {
-      return res.status(404).json({ message: "Expense id not found" });
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found',
+      });
     }
 
-    res.status(200).json(expense);
-  } catch (error) {
-    console.error("Error fetching expense:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-};
-
-// Edit expense
-export const editExpense = async (req, res) => {
-  try {
-    const { expenseId } = req.params; // Get expenseId from URL parameters
-    const { amount, description, date } = req.body; // Updated fields
-
-    if (!amount || !description || !date) {
-      return res.status(400).json({ message: "All fields are required" });
-    }
-
-    // Find the expense by ID and update
-    const updatedExpense = await Expense.findByIdAndUpdate(
-      expenseId,
-      { amount, description, date },
-      { new: true } // Return the updated document
-    );
-
-    if (!updatedExpense) {
-      return res.status(404).json({ message: "Expense not found" });
+    // Add receipt URL if exists
+    const expenseObj = expense.toObject();
+    if (expenseObj.receipt) {
+      expenseObj.receipt.url = `${req.protocol}://${req.get('host')}/uploads/receipts/${expenseObj.receipt.filename}`;
     }
 
     res.status(200).json({
-      message: "Expense updated successfully",
-      expense: updatedExpense,
+      success: true,
+      expense: expenseObj,
     });
   } catch (error) {
-    console.error("Error editing expense:", error); // Log the error
-    res
-      .status(500)
-      .json({ message: "Error editing expense", error: error.message });
+    console.error('Error fetching expense:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching expense',
+    });
+  }
+};
+// Update expense
+export const updateExpense = async (req, res) => {
+  try {
+    const {
+      description,
+      amount,
+      date,
+      category,
+      paymentMethod,
+      tags,
+      notes,
+      isRecurring,
+      recurringDetails,
+    } = req.body;
+
+    const expense = await Expense.findOne({
+      _id: req.params.id,
+      user: req.user._id,
+    });
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found',
+      });
+    }
+
+    // Parse recurring details only if it's a string and isRecurring is true
+    let parsedRecurringDetails = null;
+    if (isRecurring === true || isRecurring === 'true') {
+      try {
+        parsedRecurringDetails =
+          typeof recurringDetails === 'string'
+            ? JSON.parse(recurringDetails)
+            : recurringDetails;
+      } catch (parseError) {
+        console.error('Error parsing recurring details:', parseError);
+        parsedRecurringDetails = recurringDetails;
+      }
+    }
+
+    // Parse tags if they're provided as a string
+    const parsedTags =
+      typeof tags === 'string'
+        ? tags.split(',').map((tag) => tag.trim())
+        : tags || [];
+
+    // Update fields
+    expense.description = description;
+    expense.amount = Number(amount);
+    expense.date = new Date(date);
+    expense.category = category;
+    expense.paymentMethod = paymentMethod;
+    expense.tags = parsedTags;
+    expense.notes = notes;
+    expense.isRecurring = isRecurring === true || isRecurring === 'true';
+    expense.recurringDetails = parsedRecurringDetails;
+
+    if (req.file) {
+      expense.receipt = {
+        filename: req.file.filename,
+        path: req.file.path,
+        mimetype: req.file.mimetype,
+      };
+    }
+
+    await expense.save();
+    res.status(200).json({
+      success: true,
+      message: 'Expense updated successfully',
+      expense,
+    });
+  } catch (error) {
+    console.error('Error updating expense:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error updating expense',
+      error: error.message,
+      details: {
+        body: req.body,
+        file: req.file,
+      },
+    });
   }
 };
 
 // Delete expense
 export const deleteExpense = async (req, res) => {
   try {
-    const { expenseId } = req.params; // Get expenseId from URL parameters
-
-    // Find the expense by ID and delete
-    const deletedExpense = await Expense.findByIdAndDelete(expenseId);
-
-    if (!deletedExpense) {
-      return res.status(404).json({ message: "Expense not found" });
-    }
-
-    res.status(200).json({ message: "Expense deleted successfully" });
-  } catch (error) {
-    console.error("Error deleting expense:", error); // Log the error
-    res
-      .status(500)
-      .json({ message: "Error deleting expense", error: error.message });
-  }
-};
-
-// expenseController.js
-
-export const updateExpense = async (req, res) => {
-  try {
     const { id } = req.params;
-    const { name, amount, description, date } = req.body;
-
-    const updatedExpense = await Expense.findByIdAndUpdate(
-      id,
-      { name, amount, description, date },
-      { new: true, runValidators: true }
-    );
-
-    if (!updatedExpense) {
-      return res.status(404).json({ message: "Expense not found" });
+    console.log('id', id);
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Expense ID is required',
+      });
     }
 
-    res.status(200).json(updatedExpense);
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid expense ID format',
+      });
+    }
+
+    const expense = await Expense.findOne({
+      _id: id,
+      user: req.user._id,
+    });
+
+    if (!expense) {
+      return res.status(404).json({
+        success: false,
+        message: 'Expense not found',
+      });
+    }
+    // Delete associated receipt file if exists
+    if (expense.receipt?.filename) {
+      const filePath = `uploads/receipts/${expense.receipt.filename}`;
+      try {
+        await fs.promises.unlink(filePath);
+      } catch (err) {
+        console.error('Error deleting receipt file:', err);
+      }
+    }
+
+    await expense.deleteOne();
+
+    res.status(200).json({
+      success: true,
+      message: 'Expense successfully deleted',
+    });
   } catch (error) {
-    console.error("Error updating expense:", error);
-    res.status(500).json({ message: "Server error" });
+    console.error('Error deleting expense:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting expense',
+    });
   }
 };
 
-// Get an user expense by ID
-// export const getExpensesByUserId = async (req, res) => {
-//   try {
-//     const { userId } = req.params;
-
-//     // Fetch expenses where the paidBy.userId matches the provided userId
-//     const expenses = await Expense.find({ "paidBy.userId": userId });
-
-//     if (!expenses || expenses.length === 0) {
-//       return res.status(404).json({ message: "No expenses found for this user" });
-//     }
-
-//     return res.status(200).json(expenses);
-//   } catch (err) {
-//     console.error("Error fetching expenses:", err);
-//     return res.status(500).json({ message: "Something went wrong" });
-//   }
-// };
-
-// controllers/expenseController.js
-// Existing controllers...
-
-// Mark Expense as Paid
-// export const markExpenseAsPaid = async (req, res) => {
-//   try {
-//     const expenseId = req.params.id;
-//     const userId = req.user._id; // Assuming authentication middleware sets req.user
-
-//     const expense = await Expense.findById(expenseId);
-//     if (!expense) {
-//       return res.status(404).json({ message: "Expense not found" });
-//     }
-
-//     if (expense.paidBy.includes(userId)) {
-//       return res
-//         .status(400)
-//         .json({ message: "Expense already marked as paid" });
-//     }
-
-//     expense.paidBy.push(userId);
-//     await expense.save();
-
-//     res.status(200).json({ message: "Expense marked as paid", expense });
-//   } catch (error) {
-//     console.error("Error marking expense as paid:", error);
-//     res.status(500).json({ message: "Server error" });
-//   }
-// };
-
-export const sendMailToUsersToAddExpense = async (req, res) => {
-  const { email } = req.body;
-
+// Get expense statistics
+export const getExpenseStats = async (req, res) => {
   try {
-    const emails = await User.find({ email });
+    const { startDate, endDate } = req.query;
+    const query = { user: req.user._id };
 
-    if (!emails) {
-      return res.status(404).json({ message: "emails not found" });
-    }
+    if (startDate) query.date = { $gte: new Date(startDate) };
+    if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
 
-    await emails.save();
+    const stats = await Expense.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: null,
+          totalAmount: { $sum: '$amount' },
+          averageAmount: { $avg: '$amount' },
+          maxAmount: { $max: '$amount' },
+          minAmount: { $min: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
-    const message = `Hello this is a notification that an expense has been added to your account.\n\n`;
+    const categoryStats = await Expense.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
 
-    await sendEmail({
-      email: emails.email,
-      subject: "Expense Alert",
-      message,
+    const paymentMethodStats = await Expense.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$paymentMethod',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+        },
+      },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      stats: stats[0] || {},
+      categoryStats,
+      paymentMethodStats,
     });
-
-    res.status(200).json({ message: "Password reset email sent!" });
   } catch (error) {
-    console.error("Detailed error in forgotPassword:", error);
-
+    console.error('Error getting expense stats:', error);
     res.status(500).json({
-      message: "Error sending email. Please try again later.",
-      error: error.message,
+      success: false,
+      message: 'Error getting expense statistics',
     });
   }
+};
+
+// Get expenses by category
+export const getExpensesByCategory = async (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const query = { user: req.user._id };
+
+    if (startDate) query.date = { $gte: new Date(startDate) };
+    if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
+
+    const expenses = await Expense.aggregate([
+      { $match: query },
+      {
+        $group: {
+          _id: '$category',
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+          expenses: { $push: '$$ROOT' },
+        },
+      },
+      { $sort: { total: -1 } },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      expenses,
+    });
+  } catch (error) {
+    console.error('Error getting expenses by category:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting expenses by category',
+    });
+  }
+};
+
+// Get monthly expenses
+export const getMonthlyExpenses = async (req, res) => {
+  try {
+    const { year = new Date().getFullYear() } = req.query;
+
+    const expenses = await Expense.aggregate([
+      {
+        $match: {
+          user: req.user._id,
+          date: {
+            $gte: new Date(`${year}-01-01`),
+            $lte: new Date(`${year}-12-31`),
+          },
+        },
+      },
+      {
+        $group: {
+          _id: { $month: '$date' },
+          total: { $sum: '$amount' },
+          count: { $sum: 1 },
+          expenses: { $push: '$$ROOT' },
+        },
+      },
+      {
+        $project: {
+          month: '$_id',
+          total: 1,
+          count: 1,
+          expenses: 1,
+          _id: 0,
+        },
+      },
+      { $sort: { month: 1 } },
+    ]);
+
+    res.status(200).json({
+      success: true,
+      year,
+      expenses,
+    });
+  } catch (error) {
+    console.error('Error getting monthly expenses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting monthly expenses',
+    });
+  }
+};
+
+export default {
+  getExpenses,
+  addExpense,
+  getExpenseById,
+  updateExpense,
+  deleteExpense,
+  getExpenseStats,
+  getExpensesByCategory,
+  getMonthlyExpenses,
 };

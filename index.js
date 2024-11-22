@@ -21,11 +21,18 @@ const app = express();
 // Middleware
 app.use(morgan('dev'));  
 
-// Basic CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*', 
-  credentials: true,
-}));
+// // Basic CORS configuration
+// app.use(cors({
+//   origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+//   credentials: true,
+// }));
+
+// Serve static files from the dist directory
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files
+  app.use(express.static(path.join(__dirname, 'dist')));
+}
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 
  
@@ -36,8 +43,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 
 // Serve static files
-app.use(express.static(path.join(__dirname, './dist'))); 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+// app.use(express.static(path.join(__dirname, './dist'))); 
 
 // API root route 
 app.get('/api', (req, res) => {
@@ -53,9 +59,17 @@ app.use('/api/*', (req, res, next) => {
 });
 
 // Serve index.html for any other route
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, './dist/index.html')); 
-});
+// Handle React routing in production
+if (process.env.NODE_ENV === 'production') {
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
+} else {
+  // Development route
+  app.get('/', (req, res) => {
+    res.send('something went wrong');
+  });
+}
 
 // Error-handling middleware
 app.use((err, req, res, next) => {

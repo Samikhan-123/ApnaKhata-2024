@@ -155,9 +155,11 @@ const EditExpense = () => {
   if (loading) {
     return (
       <Layout title="Edit Expense - ApnaKhata">
-        <Container className="d-flex justify-content-center align-items-center min-vh-100">
-          <Spinner animation="border" variant="primary" />
-          <p>Loading data...</p>
+        <Container className="d-flex justify-content-center align-items-center">
+          <div className="text-center py-5">
+            <Spinner animation="border" variant="primary" />
+            <p>Loading data...</p>
+          </div>
         </Container>
       </Layout>
     );
@@ -191,6 +193,7 @@ const EditExpense = () => {
                     {success}
                   </Alert>
                 )}
+                
                 <Form onSubmit={formik.handleSubmit}>
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
@@ -223,6 +226,53 @@ const EditExpense = () => {
                     />
                     <Form.Control.Feedback type="invalid">
                       {formik.errors.description}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Category *</Form.Label>
+                    <Form.Select
+                      name="category"
+                      value={formik.values.category}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      isInvalid={
+                        formik.touched.category && formik.errors.category
+                      }
+                    >
+                      <option value="">Select Category</option>
+                      {categories.map((category) => (
+                        <option key={category} value={category}>
+                          {category}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {formik.errors.category}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Payment Method *</Form.Label>
+                    <Form.Select
+                      name="paymentMethod"
+                      value={formik.values.paymentMethod}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      isInvalid={
+                        formik.touched.paymentMethod &&
+                        formik.errors.paymentMethod
+                      }
+                    >
+                      <option value="">Select Payment Method </option>
+                      {paymentMethods.map((method) => (
+                        <option key={method} value={method}>
+                          {method}
+                        </option>
+                      ))}
+                    </Form.Select>
+                    <Form.Control.Feedback type="invalid">
+                      {formik.errors.paymentMethod}
                     </Form.Control.Feedback>
                   </Form.Group>
 

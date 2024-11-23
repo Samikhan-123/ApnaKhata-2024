@@ -22,7 +22,7 @@ export const getExpenses = async (req, res) => {
       tags,
       search,
       page = 1,
-      limit = 15,
+      limit =365,
     } = req.query;
 
     let query = { user: req.user._id };

@@ -45,7 +45,7 @@ const ViewData = () => {
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
-    itemsPerPage: 15,
+    itemsPerPage: 20,
   });
 
   // Filters State
@@ -88,6 +88,7 @@ const ViewData = () => {
       });
 
       setExpenses(response.data.expenses);
+      console.log("expenses",response.data.expenses);
       setPagination((prev) => ({
         ...prev,
         totalPages: Math.ceil(
@@ -95,7 +96,7 @@ const ViewData = () => {
         ),
       }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch expenses.');
+      setError(err.response?.data?.message || 'something went wrong.');
     } finally {
       setLoading(false);
     }
@@ -187,7 +188,7 @@ const ViewData = () => {
 
     return (
       <>
-        <Pagination className="justify-content-center mt-4">
+        <Pagination className="justify-content-center mt-5">
           <Pagination.First
             disabled={currentPage === 1}
             onClick={() => handlePageChange(1)}
@@ -206,8 +207,8 @@ const ViewData = () => {
             onClick={() => handlePageChange(totalPages)}
           />
         </Pagination>
-        <div className="text-center mt-3">
-          <InputGroup className="w-50 mx-auto">
+        <div className="text-center mt-3 mb-5">
+          <InputGroup className="w-25 mx-auto">
             <Form.Control
               type="number"
               placeholder="Go to page..."
@@ -238,29 +239,29 @@ const ViewData = () => {
         {/* Header */}
         <Row className="mb-4">
           <Col>
-            <Card className="shadow-sm ">
+            <Card className="shadow-sm bg-light">
               <Card.Body className="d-flex justify-content-between align-items-center">
-                <h4 className="mb-0"> ApnaKhata Expense Tracker</h4>
-                <div>
+                <h4 className="mb-0 d-none  d-md-block"> ApnaKhata Expense Tracker</h4>
+                <div className="d-flex flex-wrap justify-content-end">
                   <Button
                     variant="outline-primary"
-                    className="me-2"
+                    className="me-2 me-md-3 mb-2 mb-md-0"
                     onClick={() => setShowFilters(!showFilters)}
                   >
                     <FaFilter className="me-1" />
-                    Filters
+                    <span className=" d-md-inline">Filters</span>
                   </Button>
                   <Button
                     variant="outline-success"
-                    className="me-2"
+                    className="me-2 me-md-3 mb-2 mb-md-0"
                     onClick={() => navigate('/create')}
                   >
                     <FaPlus className="me-1" />
-                    Add Expense
+                    <span className=" d-md-inline">Add Expense</span>
                   </Button>
                   {/* <Button variant="outline-dark">
                     <FaFileExport className="me-1" />
-                    Export
+                    <span className="d-none d-md-inline">Export</span>
                   </Button> */}
                 </div>
               </Card.Body>
@@ -313,7 +314,9 @@ const ViewData = () => {
                 </div>
               </Card.Body>
             </Card>
-            <h2 style={{ margin: 'auto', textAlign: 'center' }}>
+            {renderPagination()}
+
+            <h2 className="my-5 mx-auto text-center ">
               Manage Expenses
             </h2>
             <Tabs defaultActiveKey="list" id="expense-tabs" className="mb-3">

@@ -78,8 +78,8 @@ app.use((err, req, res, next) => {
   res.status(statusCode).json({
     message: statusCode === 500 ? 'Internal Server Error' : err.message,
     error: process.env.NODE_ENV === 'development' ? err : undefined
-  });
-});
+  }); 
+}); 
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {

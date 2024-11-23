@@ -302,7 +302,7 @@ const ViewData = () => {
           <>
             <Card className="mb-3">
               <Card.Body>
-                <div className="d-flex justify-content-between align-items-center">
+                <div className="d-block d-sm-flex justify-content-between align-items-center">
                   <Card.Title>
                     Total Expenses:
                     {new Intl.NumberFormat('en-PK', {
@@ -313,7 +313,8 @@ const ViewData = () => {
                   <Card.Text>Total Records: {expenses.length}</Card.Text>
                 </div>
               </Card.Body>
-            </Card>
+              </Card>
+              <br />
             {renderPagination()}
 
             <h2 className="my-5 mx-auto text-center ">

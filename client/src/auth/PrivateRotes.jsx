@@ -12,7 +12,7 @@ const PrivateRoute = ({ children }) => {
 
   useEffect(() => {
     if (!user && !redirecting) {
-      toast.error("Please enter an email and password");
+      toast.error("Please login or register to continue");
       setRedirecting(true); // Prevent repeated toasts
     }
   }, [user, redirecting]);

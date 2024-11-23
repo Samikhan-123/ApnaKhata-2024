@@ -34,7 +34,7 @@ const Header = () => {
       >
         <Container fluid>
           {/* Logo */}
-          <NavLink className="navbar-brand fw-bold" to="/">
+          <NavLink className="navbar-brand fw-bold" to="/expenses">
             <span style={{ color: '#3498db', letterSpacing: '3px' }}>Apna</span>
             <span style={{ color: '#2ecc71', letterSpacing: '3px' }}>
               Khata

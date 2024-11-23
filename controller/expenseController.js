@@ -180,7 +180,7 @@ export const addExpense = async (req, res) => {
                 : ''
             }
             ${notes ? `<li><strong>Notes:</strong> ${notes}</li>` : ''}
-           <li><strong>Quote:</strong>" بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔"</li>
+          
             ${
               isRecurring
                 ? `<li><strong>Recurring Expense:</strong> Yes</li>`
@@ -199,9 +199,13 @@ export const addExpense = async (req, res) => {
             : ''
         }
 
+           <br />
+            <br />
+           <li><strong>Quote:</strong>" بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔"</li>
+
         <div style="text-align: center; margin-top: 20px; font-size: 0.85em; color: #7f8c8d;">
           <p>This is an automated notification from <strong>ApnaKhata Expense Tracker</strong>.</p>
-          <p>Please do not reply to this email. If you have any concerns, contact our support team.</p>
+          <p>Please do not reply to this email.</p>
         </div>
       </div>
     `;

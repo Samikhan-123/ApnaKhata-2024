@@ -21,11 +21,11 @@ const app = express();
 // Middleware
 app.use(morgan('dev'));  
 
-// // Basic CORS configuration
-// app.use(cors({
-//   origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
-//   credentials: true,
-// }));
+// Basic CORS configuration
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+  credentials: true,
+}));
 
 // Serve static files from the dist directory
 if (process.env.NODE_ENV === 'production') {

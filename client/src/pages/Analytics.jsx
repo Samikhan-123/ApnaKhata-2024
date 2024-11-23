@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, Row, Col } from 'react-bootstrap';
+import { Card, Row, Col, Spinner } from 'react-bootstrap';
 import { Line, Pie, Doughnut } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
@@ -45,7 +45,12 @@ const Analytics = ({ token }) => {
   }, [token]);
 
   if (loading) {
-    return <p>Loading analytics...</p>;
+    return (
+      <div className="text-center py-5">
+        <Spinner animation="border" variant="primary" />
+        <p>Loading analytics...</p>
+      </div>
+    );
   }
 
   // Helper to format currency
@@ -206,18 +211,18 @@ const Analytics = ({ token }) => {
           </Card.Body>
         </Card>
       </Col>
-      <Col md={3}>
+      {/* <Col md={3}>
         <Card className="h-100">
           <Card.Body>
             <h6 className="text-muted">Total Transactions</h6>
             <h4 className="mb-0">{totalTransactions}</h4>
             <small className="text-muted">
-              Avg per transaction:{' '}
+              Avg per transaction:
               {formatCurrency(averageExpensePerTransaction)}
             </small>
           </Card.Body>
         </Card>
-      </Col>
+      </Col> */}
       <Col md={3}>
         <Card className="h-100">
           <Card.Body>

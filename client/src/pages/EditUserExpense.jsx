@@ -156,7 +156,7 @@ const EditExpense = () => {
     return (
       <Layout title="Edit Expense - ApnaKhata">
         <Container className="d-flex justify-content-center align-items-center">
-          <div className="text-center py-5">
+          <div className="text-center py-5 min-vh-100">
             <Spinner animation="border" variant="primary" />
             <p>Loading data...</p>
           </div>

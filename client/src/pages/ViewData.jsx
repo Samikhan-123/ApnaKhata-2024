@@ -20,7 +20,7 @@ import axios from 'axios';
 import { FaFilter, FaFileExport, FaPlus, FaCalculator } from 'react-icons/fa';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import Layout from '../components/Layout';
-import ExpenseCard from '../pages/ExpenseTable'; // Ensure correct path
+import ExpenseCard from '../pages/ExpenseTable';
 import Filters from '../pages/Filters';
 import Analytics from '../pages/Analytics';
 
@@ -46,6 +46,7 @@ const ViewData = () => {
     currentPage: 1,
     totalPages: 1,
     itemsPerPage: 20,
+    totalRecords: 0,
   });
 
   // Filters State
@@ -57,54 +58,54 @@ const ViewData = () => {
     maxAmount: '',
     searchTerm: '',
     paymentMethod: 'all',
+    tags: '',
   });
 
   // Fetch Expenses
   const fetchExpenses = useCallback(async () => {
-    setLoading(true);
-    setError('');
     try {
-      const {
-        startDate,
-        endDate,
-        category,
-        paymentMethod,
-        searchTerm,
-        minAmount,
-        maxAmount,
-      } = filters;
+      setLoading(true);
+      const queryParams = new URLSearchParams();
 
-      const response = await axios.get('/api/expenses', {
-        headers: { Authorization: `Bearer ${token}` },
-        params: {
-          startDate,
-          endDate,
-          category: category === 'all' ? '' : category,
-          paymentMethod: paymentMethod === 'all' ? '' : paymentMethod,
-          search: searchTerm,
-          minAmount: minAmount || undefined,
-          maxAmount: maxAmount || undefined,
-        },
+      // Add pagination params
+      queryParams.append('page', pagination.currentPage);
+      queryParams.append('itemsPerPage', pagination.itemsPerPage);
+
+      // Add filters to query params
+      Object.entries(filters).forEach(([key, value]) => {
+        if (value && value !== 'all') {
+          if (key === 'tags') {
+            queryParams.append('tags', value.trim());
+          } else {
+            queryParams.append(key, value);
+          }
+        }
       });
 
+      const response = await axios.get(
+        `/api/expenses?${queryParams.toString()}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
       setExpenses(response.data.expenses);
-      console.log("expenses",response.data.expenses);
       setPagination((prev) => ({
         ...prev,
-        totalPages: Math.ceil(
-          response.data.expenses.length / prev.itemsPerPage
-        ),
+        totalPages: response.data.pagination.totalPages,
+        totalRecords: response.data.pagination.totalRecords,
+        currentPage: response.data.pagination.currentPage,
       }));
     } catch (err) {
-      setError(err.response?.data?.message || 'something went wrong.');
+      setError(err.response?.data?.message || 'Failed to fetch expenses');
     } finally {
       setLoading(false);
     }
-  }, [filters, token]);
+  }, [filters, pagination.currentPage, pagination.itemsPerPage, token]);
 
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses, pagination.currentPage]);
+  }, [fetchExpenses]);
 
   // Handlers
   const handleDeleteClick = (expense) => {
@@ -114,14 +115,14 @@ const ViewData = () => {
 
   const handleDelete = async () => {
     try {
-      await axios.delete(`/api/expenses/${selectedExpense.id}`, {
+      await axios.delete(`/api/expenses/${selectedExpense._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSuccess('Expense deleted successfully.');
+      setSuccess('Expense deleted successfully');
       setShowDeleteModal(false);
       fetchExpenses();
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete expense.');
+      setError(err.response?.data?.message || 'Failed to delete expense');
     }
   };
 
@@ -133,7 +134,7 @@ const ViewData = () => {
   const handlePageChange = (newPage) => {
     if (newPage < 1 || newPage > pagination.totalPages) return;
     setPagination((prev) => ({ ...prev, currentPage: newPage }));
-    setGoToPage(''); // Clear the input field
+    setGoToPage('');
   };
 
   const calculateSplit = () => {
@@ -141,54 +142,70 @@ const ViewData = () => {
     setSplitAmount(participants > 0 ? total / participants : 0);
   };
 
-  // Get Paginated Data
-  const paginatedExpenses = expenses.slice(
-    (pagination.currentPage - 1) * pagination.itemsPerPage,
-    pagination.currentPage * pagination.itemsPerPage
-  );
-
   // Calculate Totals
   const totalExpenses = expenses.reduce(
     (acc, expense) => acc + expense.amount,
     0
   );
 
-  // Render Pagination with Dynamic Visibility and Go To Page
-  // Render Pagination with Dynamic Visibility, Ellipsis, and Go To Page
+  // Render Pagination
   const renderPagination = () => {
-    const { currentPage, totalPages } = pagination;
+    const { currentPage, totalPages, totalRecords } = pagination;
 
-    // Hide pagination if only one page
-    if (totalPages <= 1) return null;
+    if (totalRecords === 0 || totalPages <= 1) return null;
 
     const pages = [];
-    const maxVisiblePages = 5; // Max visible pages in pagination
+    const maxVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2));
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
 
-    for (let page = 1; page <= totalPages; page++) {
-      // Show the first page, last page, and currentPage ± 1 range
-      if (
-        page === 1 ||
-        page === totalPages ||
-        (page >= currentPage - 1 && page <= currentPage + 1)
-      ) {
-        pages.push(
-          <Pagination.Item
-            key={page}
-            active={currentPage === page}
-            onClick={() => handlePageChange(page)}
-          >
-            {page}
-          </Pagination.Item>
-        );
-      } else if (page === currentPage - 2 || page === currentPage + 2) {
-        // Add ellipsis for skipped ranges
-        pages.push(<Pagination.Ellipsis key={`ellipsis-${page}`} disabled />);
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1);
+    }
+
+    // First page
+    if (startPage > 1) {
+      pages.push(
+        <Pagination.Item key={1} onClick={() => handlePageChange(1)}>
+          1
+        </Pagination.Item>
+      );
+      if (startPage > 2) {
+        pages.push(<Pagination.Ellipsis key="ellipsis-start" />);
       }
     }
 
+    // Visible pages
+    for (let page = startPage; page <= endPage; page++) {
+      pages.push(
+        <Pagination.Item
+          key={page}
+          active={currentPage === page}
+          onClick={() => handlePageChange(page)}
+        >
+          {page}
+        </Pagination.Item>
+      );
+    }
+
+    // Last page
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pages.push(<Pagination.Ellipsis key="ellipsis-end" />);
+      }
+      pages.push(
+        <Pagination.Item
+          key={totalPages}
+          onClick={() => handlePageChange(totalPages)}
+        >
+          {totalPages}
+        </Pagination.Item>
+      );
+    }
+
     return (
-      <>
-        <Pagination className="justify-content-center mt-5">
+      <div className="d-flex flex-column align-items-center mt-4">
+        <Pagination>
           <Pagination.First
             disabled={currentPage === 1}
             onClick={() => handlePageChange(1)}
@@ -207,16 +224,23 @@ const ViewData = () => {
             onClick={() => handlePageChange(totalPages)}
           />
         </Pagination>
-        <div className="text-center mt-3 mb-5">
-          <InputGroup className="w-25 mx-auto">
+
+        <div className="d-flex align-items-center my-3">
+          <small className="text-muted me-3">
+            Page {currentPage} of {totalPages} ({totalRecords} total records)
+          </small>
+          <InputGroup size="sm" style={{ width: 'auto' }}>
             <Form.Control
               type="number"
-              placeholder="Go to page..."
+              min="1"
+              max={totalPages}
               value={goToPage}
               onChange={(e) => setGoToPage(e.target.value)}
+              placeholder="Go to page"
+              style={{ width: '100px' }}
             />
             <Button
-              variant="primary"
+              variant="outline-secondary"
               onClick={() => handlePageChange(Number(goToPage))}
               disabled={
                 !goToPage ||
@@ -229,43 +253,35 @@ const ViewData = () => {
             </Button>
           </InputGroup>
         </div>
-      </>
+      </div>
     );
   };
 
   return (
     <Layout>
-      <Container fluid className="py-4 min-vh-100">
-        {/* Header */}
-        <Row className="mb-4">
+      <Container fluid className="py-4">
+        {/* Header Section */}
+        <Row className="mb-4 align-items-center">
           <Col>
-            <Card className="shadow-sm bg-light">
-              <Card.Body className="d-flex justify-content-between align-items-center">
-                <h4 className="mb-0 d-none  d-md-block"> ApnaKhata Expense Tracker</h4>
-                <div className="d-flex flex-wrap justify-content-end">
-                  <Button
-                    variant="outline-primary"
-                    className="me-2 me-md-3 mb-2 mb-md-0"
-                    onClick={() => setShowFilters(!showFilters)}
-                  >
-                    <FaFilter className="me-1" />
-                    <span className=" d-md-inline">Filters</span>
-                  </Button>
-                  <Button
-                    variant="outline-success"
-                    className="me-2 me-md-3 mb-2 mb-md-0"
-                    onClick={() => navigate('/create')}
-                  >
-                    <FaPlus className="me-1" />
-                    <span className=" d-md-inline">Add Expense</span>
-                  </Button>
-                  {/* <Button variant="outline-dark">
-                    <FaFileExport className="me-1" />
-                    <span className="d-none d-md-inline">Export</span>
-                  </Button> */}
-                </div>
-              </Card.Body>
-            </Card>
+            <h1>Expenses</h1>
+          </Col>
+          <Col xs="auto">
+            <div className="d-flex gap-2">
+              <Button
+                variant="outline-primary"
+                onClick={() => setShowFilters(!showFilters)}
+              >
+                <FaFilter className="me-2" />
+                {showFilters ? 'Hide Filters' : 'Show Filters'}
+              </Button>
+              <Button
+                variant="primary"
+                onClick={() => navigate('/add-expense')}
+              >
+                <FaPlus className="me-2" />
+                Add Expense
+              </Button>
+            </div>
           </Col>
         </Row>
 
@@ -276,54 +292,60 @@ const ViewData = () => {
               <Filters
                 filters={filters}
                 onFilterChange={handleFilterChange}
-                totalRecords={expenses.length}
+                totalRecords={pagination.totalRecords}
               />
             </Col>
           </Row>
         )}
 
-        {/* Content Section */}
+        {/* Alerts */}
         {error && (
-          <Alert dismissible variant="danger">
+          <Alert variant="danger" onClose={() => setError('')} dismissible>
             {error}
           </Alert>
         )}
         {success && (
-          <Alert dismissible variant="success">
+          <Alert variant="success" onClose={() => setSuccess('')} dismissible>
             {success}
           </Alert>
         )}
+
+        {/* Content Section */}
         {loading ? (
-          <div className="text-center py-5">
+          <div className="text-center py-5 d-flex flex-column align-items-center min-vh-100">
             <Spinner animation="border" variant="primary" />
-            <p>Loading data...</p>
+            <p>Loading expenses...</p>
           </div>
         ) : (
           <>
-            <Card className="mb-3">
+            <Card className="mb-4">
               <Card.Body>
-                <div className="d-block d-sm-flex justify-content-between align-items-center">
-                  <Card.Title>
-                    Total Expenses:
-                    {new Intl.NumberFormat('en-PK', {
-                      style: 'currency',
-                      currency: 'PKR',
-                    }).format(totalExpenses)}
-                  </Card.Title>
-                  <Card.Text>Total Records: {expenses.length}</Card.Text>
+                <div className="d-flex justify-content-between align-items-center">
+                  <div>
+                    <Card.Title className="mb-0">Total Expenses</Card.Title>
+                    <h3 className="mt-2">
+                      {new Intl.NumberFormat('en-PK', {
+                        style: 'currency',
+                        currency: 'PKR',
+                      }).format(totalExpenses)}
+                    </h3>
+                  </div>
+                  <div className="text-end">
+                    <Card.Text className="text-muted mb-0">
+                      Total Records
+                    </Card.Text>
+                    <h4 className="mt-2">{pagination.totalRecords}</h4>
+                  </div>
                 </div>
               </Card.Body>
-              </Card>
-              <br />
+            </Card>
+
             {renderPagination()}
 
-            <h2 className="my-5 mx-auto text-center ">
-              Manage Expenses
-            </h2>
-            <Tabs defaultActiveKey="list" id="expense-tabs" className="mb-3">
+            <Tabs defaultActiveKey="list" id="expense-tabs" className="mb-4">
               <Tab eventKey="list" title="Expenses">
                 <ExpenseCard
-                  expenses={paginatedExpenses}
+                  expenses={expenses}
                   onDeleteClick={handleDeleteClick}
                 />
               </Tab>
@@ -331,23 +353,24 @@ const ViewData = () => {
                 <Analytics expenses={expenses} />
               </Tab>
             </Tabs>
+
             {renderPagination()}
           </>
         )}
 
-        {/* Floating Split Calculator */}
+        {/* Split Calculator Button */}
         <div
           style={{
             position: 'fixed',
             bottom: '20px',
             right: '20px',
-            zIndex: '1000',
+            zIndex: 1000,
           }}
         >
           <Button
             variant="primary"
             size="lg"
-            className="rounded-circle"
+            className="rounded-circle shadow"
             onClick={() => setShowSplitModal(true)}
           >
             <FaCalculator />
@@ -390,7 +413,7 @@ const ViewData = () => {
           </Modal.Body>
           <Modal.Footer>
             <Button variant="primary" onClick={calculateSplit}>
-              Recalculate
+              Calculate
             </Button>
             <Button
               variant="secondary"
@@ -416,7 +439,11 @@ const ViewData = () => {
               <div className="mt-3">
                 <strong>{selectedExpense.category}</strong>
                 <br />
-                Amount: {selectedExpense.amount}
+                Amount:{' '}
+                {new Intl.NumberFormat('en-PK', {
+                  style: 'currency',
+                  currency: 'PKR',
+                }).format(selectedExpense.amount)}
               </div>
             )}
           </Modal.Body>

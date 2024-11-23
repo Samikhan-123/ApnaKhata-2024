@@ -6,7 +6,7 @@ import { toast } from 'react-toastify';
 
 const NotFoundRedirect = () => {
   useEffect(() => {
-    toast.warning("No route found, redirecting to home.");
+    toast.warning("No route found, navigating to home.");
   }, []);
 
   return <Navigate to="/" replace />;

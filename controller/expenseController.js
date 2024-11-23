@@ -22,7 +22,7 @@ export const getExpenses = async (req, res) => {
       tags,
       search,
       page = 1,
-      limit =365,
+      itemsPerPage = 20, // Default: 20 items per page
     } = req.query;
 
     let query = { user: req.user._id };
@@ -45,10 +45,15 @@ export const getExpenses = async (req, res) => {
     if (minAmount) query.amount = { $gte: Number(minAmount) };
     if (maxAmount) query.amount = { ...query.amount, $lte: Number(maxAmount) };
 
-    // Tags filter
-    if (tags) {
-      const tagArray = tags.split(',').map((tag) => tag.trim());
-      query.tags = { $in: tagArray };
+    // Tags filter 
+    if (tags && tags.trim()) {
+      const tagArray = tags
+        .split(',')
+        .map((tag) => tag.trim())
+        .filter((tag) => tag);
+      if (tagArray.length > 0) {
+        query.tags = { $in: tagArray.map((tag) => new RegExp(tag, 'i')) };
+      }
     }
 
     // Search functionality
@@ -78,17 +83,20 @@ export const getExpenses = async (req, res) => {
 
     const expenses = await Expense.find(query)
       .sort(sortOptions)
-      .skip((page - 1) * limit)
-      .limit(Number(limit));
+      .skip((page - 1) * itemsPerPage)
+      .limit(Number(itemsPerPage));
 
-    const total = await Expense.countDocuments(query);
+    const totalRecords = await Expense.countDocuments(query);
 
     res.status(200).json({
       expenses,
       pagination: {
-        total,
-        page: Number(page),
-        pages: Math.ceil(total / limit),
+        totalRecords,
+        currentPage: Number(page),
+        totalPages: Math.ceil(totalRecords / itemsPerPage),
+        itemsPerPage: Number(itemsPerPage),
+        hasNextPage: page * itemsPerPage < totalRecords,
+        hasPreviousPage: page > 1,
       },
       success: true,
       message: 'Expenses fetched successfully',
@@ -160,7 +168,7 @@ export const addExpense = async (req, res) => {
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
         <h2 style="color: #2c3e50; text-align: center; padding-bottom: 10px; border-bottom: 2px solid #eee;">
-          🎉 New Expense Added!
+           New Expense Added!
         </h2>
         
         <div style="margin: 20px 0; background: #f9f9f9; padding: 15px; border-radius: 5px;">
@@ -201,7 +209,7 @@ export const addExpense = async (req, res) => {
 
            <br />
             <br />
-           <li><strong>Quote:</strong>" بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔"</li>
+           <p> بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔</p>
 
         <div style="text-align: center; margin-top: 20px; font-size: 0.85em; color: #7f8c8d;">
           <p>This is an automated notification from <strong>ApnaKhata Expense Tracker</strong>.</p>

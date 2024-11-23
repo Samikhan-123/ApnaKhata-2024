@@ -314,7 +314,7 @@ export const forgotPassword = async (req, res) => {
 
     res.status(500).json({
       message:
-        'An error occurred while processing your request. Please try again later.',
+        'An error occurred while processing your request, server error.',
     });
   }
 };

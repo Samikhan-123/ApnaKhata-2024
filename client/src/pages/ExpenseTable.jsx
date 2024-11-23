@@ -120,7 +120,7 @@ const ExpenseCard = ({ expenses, onDeleteClick }) => {
                       <strong>Tags : </strong>
                       {expense.tags ? (
                         expense.tags.length > 1 ? (
-                          expense.tags.join(' / ')
+                          expense.tags.join(' , ')
                         ) : (
                           expense.tags
                         )

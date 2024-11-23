@@ -60,8 +60,23 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
     color: '#6c757d',
   };
 
+  const handleTagsChange = (e) => {
+    const { value } = e.target;
+    // Remove any extra spaces and handle commas
+    const cleanedValue = value
+      .split(',')
+      .map((tag) => tag.trim())
+      .filter((tag) => tag)
+      .join(', ');
+
+    onFilterChange({
+      ...filters,
+      tags: cleanedValue,
+    });
+  };
+  
   return (
-    <Form>
+    <Form className="py-5">
       <Row className="g-3">
         {/* Category Filter */}
         <Col md={3}>
@@ -130,7 +145,6 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
               onChange={handleChange}
               placeholder="Min Amount"
             />
-          
           </Form.Group>
         </Col>
 
@@ -145,7 +159,6 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
               onChange={handleChange}
               placeholder="Max Amount"
             />
-           
           </Form.Group>
         </Col>
 
@@ -159,7 +172,6 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
               value={filters.startDate}
               onChange={handleChange}
             />
-          
           </Form.Group>
         </Col>
 
@@ -173,7 +185,6 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
               value={filters.endDate}
               onChange={handleChange}
             />
-        
           </Form.Group>
         </Col>
 
@@ -185,7 +196,7 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
               type="text"
               name="tags"
               value={filters.tags}
-              onChange={handleChange}
+              onChange={handleTagsChange}
               placeholder="Enter tags (comma-separated)"
             />
             {filters.tags && (
@@ -218,19 +229,20 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
         </Col> */}
 
         {/* Total Records */}
-        <Col md={12}>
-          {showRecordCount ? (
-            <p className="text-muted">Total Records Found: {totalRecords}</p>
-          ) : (
-            <p className="text-muted">No records found.</p>
-          )}
-        </Col>
 
         {/* Reset Filters Button */}
         <Col md={3} className="d-flex align-items-end">
           <Button variant="secondary" onClick={resetFilters} className="w-100">
             Reset Filters
           </Button>
+        </Col>
+
+        <Col md={12} className="text-center py-3">
+          {showRecordCount ? (
+            <p className="text-muted">Total Records Found: {totalRecords}</p>
+          ) : (
+            <p className="text-muted">No records found.</p>
+          )}
         </Col>
       </Row>
     </Form>

@@ -89,7 +89,7 @@ const LoginPage = () => {
             md={8}
             sm={10}
             xs={10}
-            className="bg-light rounded shadow-sm"
+            className="bg-light rounded shadow-sm p-4"
           >
             <Breadcrumb className="mb-3">
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>

@@ -19,10 +19,10 @@ const ForgotPasswordPage = () => {
       setAlert({ message: response.data.message || "Reset link sent successfully!", type: "success" });
     } catch (err) {
       if (err.response?.status === 429) {
-        setAlert({ message: err.response.data || "Too many password reset attempts from this IP, please try again after an hour", type: "danger" });
+        setAlert({ message: err.response.data || "Too many password reset attempts from this IP, please try later", type: "danger" });
       } else {
         setAlert({
-          message:err.response.data.message || 'ooh! something went wrong with server',
+          message:err.response.data.message || 'something went wrong',
           type: 'danger',
         });
       }

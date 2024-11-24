@@ -7,6 +7,7 @@ import {
   Row,
   Col,
   Card,
+  Spinner
 } from 'react-bootstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -14,23 +15,12 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Layout from '../components/Layout';
-
 const PostExpenses = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  // // get current loacl time
-  // const getCurrentLocalDatetime = () => {
-  //   const now = new Date();
-  //   const offset = now.getTimezoneOffset() * 60000; // Get the offset in milliseconds
-  //   const localISOTime = new Date(now.getTime() - offset).toISOString();
-  //   return localISOTime.slice(0, 16); // Extract 'YYYY-MM-DDTHH:mm'
-  // };
-
-
   const categories = [
     'Food & Dining',
     'Shopping',
@@ -43,16 +33,15 @@ const PostExpenses = () => {
     'Personal Care',
     'Others',
   ];
-
   const paymentMethods = [
     'Cash',
     'Credit Card',
     'Debit Card',
     'JazzCash',
     'EasyPaisa',
+    'Bank Transfer',
     'Other',
   ];
-
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .required('Description is required')
@@ -61,22 +50,36 @@ const PostExpenses = () => {
       .required('Amount is required')
       .min(0, 'Amount must be a positive number'),
     date: Yup.date().nullable().required('Date is required'),
-    category: Yup.string().required('Category is required'),
-    paymentMethod: Yup.string().required('Payment method is required'),
-    tags: Yup.string().required('Tags are required')
+    category: Yup.string()
+      .required('Category is required')
+      .oneOf(categories, 'Invalid category'),
+    paymentMethod: Yup.string()
+      .required('Payment method is required')
+      .oneOf(paymentMethods, 'Invalid payment method'),
+    tags: Yup.string()
+      .required('Tags are required')
       .matches(
         /^[a-zA-Z0-9,\s]*$/,
         'Tags can only contain letters, numbers, and commas'
       )
       .nullable(),
-    notes: Yup.string().nullable(), 
+    notes: Yup.string().nullable(),
+    receipt: Yup.mixed()
+      .nullable()
+      .test('fileSize', 'File size too large', (value) => {
+        if (!value) return true;
+        return value.size <= 5 * 1024 * 1024; // 5MB limit
+      })
+      .test('fileType', 'Unsupported file type', (value) => {
+        if (!value) return true;
+        return ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(value.type);
+      }),
   });
-
   const formik = useFormik({
     initialValues: {
       description: '',
       amount: '',
-      date: new Date().toISOString().split('T')[0], // Automatically prefilled with local date
+      date: new Date().toISOString().split('T')[0],
       category: '',
       paymentMethod: '',
       tags: '',
@@ -88,10 +91,8 @@ const PostExpenses = () => {
       setLoading(true);
       setError('');
       setSuccess('');
-
       try {
         const formData = new FormData();
-
         // Append all form fields
         Object.keys(values).forEach((key) => {
           if (key === 'receipt' && values[key]) {
@@ -100,20 +101,22 @@ const PostExpenses = () => {
             formData.append(key, values[key]);
           }
         });
-
         const response = await axios.post('/api/expenses/add', formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         });
-
         if (response.data.success) {
           setSuccess('Expense added successfully!');
-          setTimeout(() => navigate('/expenses'), 1500);
-        }
-        else {
-          return response.data.message;
+          // Clear form
+          formik.resetForm();
+          // Navigate after a short delay
+          setTimeout(() => {
+            navigate('/expenses');
+          }, 1500);
+        } else {
+          throw new Error(response.data.message || 'Failed to add expense');
         }
       } catch (err) {
         console.error('Error adding expense:', err);
@@ -125,7 +128,6 @@ const PostExpenses = () => {
       }
     },
   });
-
   return (
     <Layout title="Add Expense - ApnaKhata">
       <Container className="py-5">
@@ -171,7 +173,6 @@ const PostExpenses = () => {
                       {formik.errors.amount}
                     </Form.Control.Feedback>
                   </Form.Group>
-
                   {/* Description */}
                   <Form.Group className="mb-3">
                     <Form.Label>Description *</Form.Label>
@@ -190,7 +191,6 @@ const PostExpenses = () => {
                       {formik.errors.description}
                     </Form.Control.Feedback>
                   </Form.Group>
-
                   {/* Category */}
                   <Form.Group className="mb-3">
                     <Form.Label>Category *</Form.Label>
@@ -214,7 +214,6 @@ const PostExpenses = () => {
                       {formik.errors.category}
                     </Form.Control.Feedback>
                   </Form.Group>
-
                   {/* Payment Method */}
                   <Form.Group className="mb-3">
                     <Form.Label>Payment Method *</Form.Label>
@@ -228,7 +227,7 @@ const PostExpenses = () => {
                         formik.errors.paymentMethod
                       }
                     >
-                      <option value="">Select Payment Method </option>
+                      <option value="">Select Payment Method</option>
                       {paymentMethods.map((method) => (
                         <option key={method} value={method}>
                           {method}
@@ -239,7 +238,6 @@ const PostExpenses = () => {
                       {formik.errors.paymentMethod}
                     </Form.Control.Feedback>
                   </Form.Group>
-
                   {/* Date */}
                   <Form.Group className="mb-3">
                     <Form.Label>Date *</Form.Label>
@@ -257,8 +255,6 @@ const PostExpenses = () => {
                       {formik.errors.date}
                     </Form.Control.Feedback>
                   </Form.Group>
-
-                  
                   {/* Receipt Upload */}
                   <Form.Group className="mb-3">
                     <Form.Label>Receipt (optional)</Form.Label>
@@ -267,10 +263,18 @@ const PostExpenses = () => {
                       onChange={(e) =>
                         formik.setFieldValue('receipt', e.target.files[0])
                       }
+                      isInvalid={formik.touched.receipt && formik.errors.receipt}
                       accept="image/*,.pdf"
                     />
+                    <Form.Control.Feedback type="invalid">
+                      {formik.errors.receipt}
+                    </Form.Control.Feedback>
+                    {formik.values.receipt && (
+                      <small className="text-muted">
+                        Selected file: {formik.values.receipt.name}
+                      </small>
+                    )}
                   </Form.Group>
-
                   {/* Tags */}
                   <Form.Group className="mb-3">
                     <Form.Label>Tags *</Form.Label>
@@ -287,7 +291,6 @@ const PostExpenses = () => {
                       {formik.errors.tags}
                     </Form.Control.Feedback>
                   </Form.Group>
-
                   {/* Notes */}
                   <Form.Group className="mb-3">
                     <Form.Label>Notes (optional)</Form.Label>
@@ -299,14 +302,32 @@ const PostExpenses = () => {
                       placeholder="Add any notes (optional)"
                     />
                   </Form.Group>
-
                   <div className="d-grid gap-2">
-                    <Button variant="primary" type="submit" disabled={loading}>
-                      {loading ? 'Adding...' : 'Add Expense'}
+                    <Button 
+                      variant="primary" 
+                      type="submit" 
+                      disabled={loading || !formik.isValid}
+                    >
+                      {loading ? (
+                        <>
+                          <Spinner
+                            as="span"
+                            animation="border"
+                            size="sm"
+                            role="status"
+                            aria-hidden="true"
+                            className="me-2"
+                          />
+                          Adding...
+                        </>
+                      ) : (
+                        'Add Expense'
+                      )}
                     </Button>
                     <Button
                       variant="outline-secondary"
                       onClick={() => navigate('/expenses')}
+                      disabled={loading}
                     >
                       Cancel
                     </Button>
@@ -320,5 +341,4 @@ const PostExpenses = () => {
     </Layout>
   );
 };
-
 export default PostExpenses;

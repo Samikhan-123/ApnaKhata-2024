@@ -2,7 +2,13 @@ import mongoose from 'mongoose';
 import Expense from '../model/expenseSchema.js';
 import User from '../model/userSchema.js';
 import { sendEmail } from '../utils/emailConfig.js';
+import path from 'path';
+import fs from 'fs';
+import mime from 'mime-types';
+import { fileURLToPath } from 'url';
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 // Helper function to check if a string is a valid date
 const isValidDate = (dateString) => {
   const date = new Date(dateString);
@@ -96,7 +102,7 @@ export const getExpenses = async (req, res) => {
         totalPages: Math.ceil(totalRecords / itemsPerPage),
         itemsPerPage: Number(itemsPerPage),
         hasNextPage: page * itemsPerPage < totalRecords,
-        hasPreviousPage: page > 1,
+        hasPreviousPage: page > 1
       },
       success: true,
       message: 'Expenses fetched successfully',
@@ -110,6 +116,81 @@ export const getExpenses = async (req, res) => {
     });
   }
 };
+
+
+// Get receipt by filename
+export const getReceipt = async (req, res) => {
+  try {
+    const { filename } = req.params;
+    const filePath = path.join(process.cwd(), 'uploads', 'receipts', filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({
+        success: false,
+        message: 'Receipt not found'
+      });
+    }
+
+    // Get file mime type
+    const mimeType = mime.lookup(filePath) || 'application/octet-stream';
+    
+    // Set headers
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+
+    // Stream the file
+    const fileStream = fs.createReadStream(filePath);
+    fileStream.pipe(res);
+
+  } catch (error) {
+    console.error('Error fetching receipt:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching receipt',
+      error: error.message
+    });
+  }
+};
+
+// Get all expenses without filters
+export const getAllExpenses = async (req, res) => {
+  try {
+    const expenses = await Expense.find({ user: req.user._id })
+      .sort({ date: -1 })
+      .select('-__v'); // Exclude version key
+
+    // Calculate total amount
+    const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+
+    // Transform receipt URLs if they exist
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const transformedExpenses = expenses.map(expense => {
+      const expObj = expense.toObject();
+      if (expObj.receipt) {
+        expObj.receipt.url = `${baseUrl}/api/expenses/receipt/${expObj.receipt.filename}`;
+      }
+      return expObj;
+    });
+
+    res.status(200).json({
+      success: true,
+      count: expenses.length,
+      totalAmount,
+      expenses: transformedExpenses,
+      message: 'Expenses fetched successfully'
+    });
+
+  } catch (error) {
+    console.error('Error fetching all expenses:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching expenses',
+      error: error.message
+    });
+  }
+};
+
 
 // Add expense
 export const addExpense = async (req, res) => {
@@ -206,10 +287,12 @@ export const addExpense = async (req, res) => {
           `
             : ''
         }
-
-           <br />
-            <br />
-           <p> بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔</p>
+        <br />
+        <br />
+        <p>
+          بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے
+          بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔
+        </p>
 
         <div style="text-align: center; margin-top: 20px; font-size: 0.85em; color: #7f8c8d;">
           <p>This is an automated notification from <strong>ApnaKhata Expense Tracker</strong>.</p>

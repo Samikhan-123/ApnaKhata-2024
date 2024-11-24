@@ -5,85 +5,108 @@ import connectedDB from './db/connectDB.js';
 import expenseRoutes from './routes/expenseRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
-import path from 'path'; 
+import path from 'path';
 import { fileURLToPath } from 'url';
 import helmet from 'helmet';
 import createError from 'http-errors';
- 
+import fs from 'fs';
+
+const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Load environment variables first
 dotenv.config();
+
+// Connect to database
 connectedDB();
 
-const app = express();
+// Security middleware
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images to load
+  })
+);
+
 
 // Middleware
-app.use(morgan('dev'));  
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Basic CORS configuration
-app.use(cors({
-  origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
-  credentials: true,
-}));
+// CORS configuration
+app.use(
+  cors({
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? [process.env.FRONTEND_URL].filter(Boolean)
+        : '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
-// Serve static files from the dist directory
+// Static files
 if (process.env.NODE_ENV === 'production') {
-  // Serve static files
   app.use(express.static(path.join(__dirname, 'dist')));
 }
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-
- 
-app.use(express.json());
+// Serve uploads with proper headers
+app.use(
+  '/uploads',
+  (req, res, next) => {
+    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
+    next();
+  },
+  express.static(path.join(__dirname, 'uploads'))
+);
 
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
 
-// Serve static files
-// app.use(express.static(path.join(__dirname, './dist'))); 
-
-// API root route 
-app.get('/api', (req, res) => {
-  res.send('Apna Khata API is running');
-});
-app.get('/', (req, res) => { 
-  res.send('server is running on port ' + PORT + '.'); 
+// API health check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// Catch 404 for API routes
+// 404 handler for API routes
 app.use('/api/*', (req, res, next) => {
-  next(createError(404, ' route not found'));
+  next(createError(404, 'API route not found'));
 });
 
-// Serve index.html for any other route
-// Handle React routing in production
+// Production route handler
 if (process.env.NODE_ENV === 'production') {
   app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
-} else {
-  // Development route
-  app.get('/', (req, res) => {
-    res.send('something went wrong');
-  });
 }
 
-// Error-handling middleware
+// Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err.message);
+  console.error('Error:', err);
+
+  // Clean up uploaded file if there's an error
+  if (req.file && req.file.path) {
+    fs.unlink(req.file.path, (unlinkError) => {
+      if (unlinkError) console.error('Error deleting file:', unlinkError);
+    });
+  }
+
   const statusCode = err.status || 500;
   res.status(statusCode).json({
+    success: false,
     message: statusCode === 500 ? 'Internal Server Error' : err.message,
-    error: process.env.NODE_ENV === 'development' ? err : undefined
-  }); 
-}); 
+    error: process.env.NODE_ENV === 'development' ? err : undefined,
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`Server Running in ${process.env.NODE_ENV || 'development'} mode on http://localhost:${PORT}`);
+  console.log(
+    `Server Running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+  );
 });
 
 export default app;

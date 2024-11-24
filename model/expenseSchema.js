@@ -45,8 +45,8 @@ const expenseSchema = new mongoose.Schema(
         'Cash',
         'Credit Card',
         'Debit Card',
-        'UPI',
-        'Net Banking',
+        'JazzCash',
+        'EasyPaisa',
         'Other',
       ],
     },
@@ -59,18 +59,22 @@ const expenseSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
+    notes: {
+      type: String,
+      required: false,
+    },
   },
   { timestamps: true }
 );
 
-// Important: Keep this toJSON method to ensure consistent ID field
-expenseSchema.methods.toJSON = function () {
-  const obj = this.toObject();
-  obj.id = obj._id.toString();
-  delete obj._id;
-  delete obj.__v;
-  return obj;
-};
+// // Important: Keep this toJSON method to ensure consistent ID field
+// expenseSchema.methods.toJSON = function () {
+//   const obj = this.toObject();
+//   obj.id = obj._id.toString();
+//   delete obj._id;
+//   delete obj.__v;
+//   return obj;
+// };
 
 const Expense = mongoose.model('Expense', expenseSchema);
 export default Expense;

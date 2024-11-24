@@ -43,8 +43,8 @@ const EditExpense = () => {
     'Cash',
     'Credit Card',
     'Debit Card',
-    'UPI',
-    'Net Banking',
+    'JazzCash',
+    'EasyPaisa',
     'Other',
   ];
 
@@ -143,7 +143,7 @@ const EditExpense = () => {
           setCurrentReceipt(expense.receipt?.url || ''); // Set the receipt file or URL
         }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to fetch expense');
+        setError(err.response?.data?.message || 'something went wrong');
       } finally {
         setLoading(false);
       }

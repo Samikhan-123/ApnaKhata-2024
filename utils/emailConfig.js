@@ -27,7 +27,7 @@ export const createTransporter = async () => {
       );
     }
 
-    console.log('Access token generated successfully.');
+    // console.log('Access token generated successfully.');
 
     return {
       service: 'gmail',

@@ -46,7 +46,7 @@ const Analytics = ({ token }) => {
 
   if (loading) {
     return (
-      <div className="text-center py-5">
+      <div className="text-center py-5 justify-content-center align-items-center min-vh-100 ">
         <Spinner animation="border" variant="primary" />
         <p>Loading analytics...</p>
       </div>
@@ -180,6 +180,7 @@ const Analytics = ({ token }) => {
       },
     },
   };
+  
 
   return (
     <Row className="g-4">
@@ -211,7 +212,7 @@ const Analytics = ({ token }) => {
           </Card.Body>
         </Card>
       </Col>
-      {/* <Col md={3}>
+      <Col md={3}>
         <Card className="h-100">
           <Card.Body>
             <h6 className="text-muted">Total Transactions</h6>
@@ -222,7 +223,7 @@ const Analytics = ({ token }) => {
             </small>
           </Card.Body>
         </Card>
-      </Col> */}
+      </Col>
       <Col md={3}>
         <Card className="h-100">
           <Card.Body>

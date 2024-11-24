@@ -40,6 +40,8 @@ const ViewData = () => {
   const [splitAmount, setSplitAmount] = useState(0);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [goToPage, setGoToPage] = useState('');
+  const [allExpenses, setAllExpenses] = useState([]);
+  const [totalAmount, setTotalAmount] = useState(0);
 
   // Pagination State
   const [pagination, setPagination] = useState({
@@ -103,9 +105,25 @@ const ViewData = () => {
     }
   }, [filters, pagination.currentPage, pagination.itemsPerPage, token]);
 
+  // Add function to fetch all expenses
+  const fetchAllExpenses = useCallback(async () => {
+    try {
+      const response = await axios.get('/api/expenses/all', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setAllExpenses(response.data.expenses);
+      setTotalAmount(response.data.totalAmount);
+    } catch (err) {
+      console.error('Error fetching all expenses:', err);
+    }
+  }, [token]);
+
+  // Update useEffect to fetch both filtered and unfiltered data
   useEffect(() => {
     fetchExpenses();
-  }, [fetchExpenses]);
+    fetchAllExpenses();
+  }, [fetchExpenses, fetchAllExpenses]);
 
   // Handlers
   const handleDeleteClick = (expense) => {
@@ -274,10 +292,7 @@ const ViewData = () => {
                 <FaFilter className="me-2" />
                 {showFilters ? 'Hide Filters' : 'Show Filters'}
               </Button>
-              <Button
-                variant="primary"
-                onClick={() => navigate('/add-expense')}
-              >
+              <Button variant="primary" onClick={() => navigate('/create')}>
                 <FaPlus className="me-2" />
                 Add Expense
               </Button>
@@ -322,19 +337,21 @@ const ViewData = () => {
               <Card.Body>
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    <Card.Title className="mb-0">Total Expenses</Card.Title>
+                    <Card.Title className="mb-0">
+                      Total Expenses (All Time)
+                    </Card.Title>
                     <h3 className="mt-2">
                       {new Intl.NumberFormat('en-PK', {
                         style: 'currency',
                         currency: 'PKR',
-                      }).format(totalExpenses)}
+                      }).format(totalAmount)}
                     </h3>
                   </div>
                   <div className="text-end">
                     <Card.Text className="text-muted mb-0">
-                      Total Records
+                      Total Records (All Time)
                     </Card.Text>
-                    <h4 className="mt-2">{pagination.totalRecords}</h4>
+                    <h4 className="mt-2">{allExpenses.length}</h4>
                   </div>
                 </div>
               </Card.Body>
@@ -350,7 +367,7 @@ const ViewData = () => {
                 />
               </Tab>
               <Tab eventKey="analytics" title="Analytics">
-                <Analytics expenses={expenses} />
+                <Analytics expenses={allExpenses} />
               </Tab>
             </Tabs>
 

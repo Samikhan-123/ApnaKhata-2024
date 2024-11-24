@@ -74,7 +74,7 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
       tags: cleanedValue,
     });
   };
-  
+
   return (
     <Form className="py-5">
       <Row className="g-3">
@@ -122,8 +122,8 @@ const Filters = ({ filters, onFilterChange, totalRecords }) => {
                 'Cash',
                 'Credit Card',
                 'Debit Card',
-                'UPI',
-                'Net Banking',
+                'JazzCash',
+                'EasyPaisa',
                 'Other',
               ].map((method) => (
                 <option key={method} value={method}>

@@ -8,6 +8,8 @@ import {
   getExpenseStats,
   getExpensesByCategory,
   getMonthlyExpenses,
+  getReceipt,
+  getAllExpenses,
 } from '../controller/expenseController.js';
 import { authenticate } from '../utils/jwtUtills.js';
 import { upload } from '../middleware/mutler.js';
@@ -16,6 +18,13 @@ import {validateExpense} from '../utils/validateExpense.js';
 const router = express.Router();
 
 // Base route: /api/expenses
+
+// Get receipt by filename
+router.get('/receipt/:filename', authenticate, getReceipt);
+
+// Get all expenses without filters
+router.get('/all', authenticate, getAllExpenses);
+
 
 // Get all expenses with filters
 router.get('/', authenticate, getExpenses);

@@ -12,7 +12,7 @@ import Register from "./pages/Register";
 import Login from "./pages/Login";
 import Profile from "./pages/Profile";
 import ExpenseForm from "./pages/PostExpenses";
-import ExpenseList from "./pages/ViewData";
+import ExpenseTable from "./pages/ViewData";
 import EditExpense from "./pages/EditUserExpense";
 import ForgotPasswordPage from "./pages/ForgetPassword";
 import ResetPasswordPage from "./pages/ResetPassword";
@@ -48,7 +48,7 @@ function App() {
           path="/expenses"
           element={
             <PrivateRoute>
-              <ExpenseList />
+              <ExpenseTable />
             </PrivateRoute>
           }
         />

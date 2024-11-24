@@ -48,8 +48,8 @@ const PostExpenses = () => {
     'Cash',
     'Credit Card',
     'Debit Card',
-    'UPI',
-    'Net Banking',
+    'JazzCash',
+    'EasyPaisa',
     'Other',
   ];
 
@@ -69,7 +69,7 @@ const PostExpenses = () => {
         'Tags can only contain letters, numbers, and commas'
       )
       .nullable(),
-    notes: Yup.string().nullable(), // Optional field
+    notes: Yup.string().nullable(), 
   });
 
   const formik = useFormik({
@@ -81,6 +81,7 @@ const PostExpenses = () => {
       paymentMethod: '',
       tags: '',
       notes: '',
+      receipt: null,
     },
     validationSchema,
     onSubmit: async (values) => {
@@ -88,23 +89,36 @@ const PostExpenses = () => {
       setError('');
       setSuccess('');
 
-      const submitData = new FormData();
-      Object.keys(values).forEach((key) => {
-        submitData.append(key, values[key]);
-      });
-
       try {
-        await axios.post('/api/expenses/add', submitData, {
+        const formData = new FormData();
+
+        // Append all form fields
+        Object.keys(values).forEach((key) => {
+          if (key === 'receipt' && values[key]) {
+            formData.append('receipt', values[key]);
+          } else if (key !== 'receipt') {
+            formData.append(key, values[key]);
+          }
+        });
+
+        const response = await axios.post('/api/expenses/add', formData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         });
 
-        setSuccess('Expense added successfully!');
-        setTimeout(() => navigate('/expenses'), 1500);
+        if (response.data.success) {
+          setSuccess('Expense added successfully!');
+          setTimeout(() => navigate('/expenses'), 1500);
+        } else {
+          throw new Error(response.data.message || 'Failed to add expense');
+        }
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to add expense');
+        console.error('Error adding expense:', err);
+        setError(
+          err.response?.data?.message || err.message || 'Failed to add expense'
+        );
       } finally {
         setLoading(false);
       }

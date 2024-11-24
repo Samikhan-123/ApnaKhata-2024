@@ -193,7 +193,7 @@ const EditExpense = () => {
                     {success}
                   </Alert>
                 )}
-                
+
                 <Form onSubmit={formik.handleSubmit}>
                   <Form.Group className="mb-3">
                     <Form.Label>Amount *</Form.Label>
@@ -295,17 +295,18 @@ const EditExpense = () => {
 
                   <Form.Group className="mb-3">
                     <Form.Label>Receipt (optional)</Form.Label>
-                    {currentReceipt && (
+                    {/* {currentReceipt && (
                       <div className="mb-2">
                         <a
                           href={currentReceipt}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          View Current Receipt
+                          {currentReceipt.split('/').pop()}
                         </a>
                       </div>
-                    )}
+                    )} */}
+                    <p> current receipt: your old file</p>
                     <Form.Control
                       type="file"
                       onChange={(e) =>

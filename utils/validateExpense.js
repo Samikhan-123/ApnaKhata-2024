@@ -52,8 +52,8 @@ export const validateExpense = (req, res, next) => {
       'Cash',
       'Credit Card',
       'Debit Card',
-      'UPI',
-      'Net Banking',
+      'JazzCash',
+      'EasyPaisa',
       'Other',
     ];
     if (!paymentMethod || !validPaymentMethods.includes(paymentMethod)) {

@@ -111,8 +111,9 @@ const PostExpenses = () => {
         if (response.data.success) {
           setSuccess('Expense added successfully!');
           setTimeout(() => navigate('/expenses'), 1500);
-        } else {
-          throw new Error(response.data.message || 'Failed to add expense');
+        }
+        else {
+          return response.data.message;
         }
       } catch (err) {
         console.error('Error adding expense:', err);

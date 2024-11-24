@@ -99,7 +99,7 @@ const ViewData = () => {
         currentPage: response.data.pagination.currentPage,
       }));
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to fetch expenses');
+      setError(err.response?.data?.message || 'something went wrong');
     } finally {
       setLoading(false);
     }

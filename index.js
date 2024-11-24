@@ -22,11 +22,11 @@ dotenv.config();
 connectedDB();
 
 // Security middleware
-app.use(
-  helmet({
-    crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images to load
-  })
-);
+// app.use(
+//   helmet({
+//     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images to load
+//   })
+// );
 
 
 // Middleware

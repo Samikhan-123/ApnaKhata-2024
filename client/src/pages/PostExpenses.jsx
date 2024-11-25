@@ -108,6 +108,7 @@ const PostExpenses = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
+        console.log("response",response.data)
         if (response.data.success) {
           setSuccess('Expense added successfully!');
           // Clear form

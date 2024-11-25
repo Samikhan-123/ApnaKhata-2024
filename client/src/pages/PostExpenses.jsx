@@ -7,7 +7,7 @@ import {
   Row,
   Col,
   Card,
-  Spinner
+  Spinner,
 } from 'react-bootstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -15,13 +15,14 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Layout from '../components/Layout';
+import toast from 'react-hot-toast';
 const PostExpenses = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const categories = [
     'Food & Dining',
     'Shopping',
@@ -73,7 +74,12 @@ const PostExpenses = () => {
       })
       .test('fileType', 'Unsupported file type', (value) => {
         if (!value) return true;
-        return ['image/jpeg', 'image/png', 'image/gif', 'application/pdf'].includes(value.type);
+        return [
+          'image/jpeg',
+          'image/png',
+          'image/gif',
+          'application/pdf',
+        ].includes(value.type);
       }),
   });
   const formik = useFormik({
@@ -92,39 +98,28 @@ const PostExpenses = () => {
       setLoading(true);
       setError('');
       setSuccess('');
+
+      const submitData = new FormData();
+      Object.keys(values).forEach((key) => {
+        if (key === 'receipt' && values.receipt instanceof File) {
+          submitData.append(key, values[key]);
+        } else {
+          submitData.append(key, values[key]);
+        }
+      });
       try {
-        const formData = new FormData();
-        // Append all form fields
-        Object.keys(values).forEach((key) => {
-          if (key === 'receipt' && values[key]) {
-            formData.append('receipt', values[key]);
-          } else if (key !== 'receipt') {
-            formData.append(key, values[key]);
-          }
-        });
-        const response = await axios.post('/api/expenses/add', formData, {
+        await axios.post(`/api/expenses/add`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',
           },
         });
-        console.log("response",response.data)
-        if (response.data.success) {
-          setSuccess('Expense added successfully!');
-          // Clear form
-          formik.resetForm();
-          // Navigate after a short delay
-          setTimeout(() => {
-            navigate('/expenses');
-          }, 1500);
-        } else {
-          throw new Error(response.data.message || 'Failed to add expense');
-        }
+
+        setSuccess('Expense added successfully!');
+        toast.success('Expense added successfully!');
+        setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
-        console.error('Error adding expense:', err);
-        setError(
-          err.response?.data?.message || err.message || 'Failed to add expense'
-        );
+        setError(err.response?.data?.message || 'Failed to update expense');
       } finally {
         setLoading(false);
       }
@@ -265,7 +260,9 @@ const PostExpenses = () => {
                       onChange={(e) =>
                         formik.setFieldValue('receipt', e.target.files[0])
                       }
-                      isInvalid={formik.touched.receipt && formik.errors.receipt}
+                      isInvalid={
+                        formik.touched.receipt && formik.errors.receipt
+                      }
                       accept="image/*,.pdf"
                     />
                     <Form.Control.Feedback type="invalid">
@@ -305,9 +302,9 @@ const PostExpenses = () => {
                     />
                   </Form.Group>
                   <div className="d-grid gap-2">
-                    <Button 
-                      variant="primary" 
-                      type="submit" 
+                    <Button
+                      variant="primary"
+                      type="submit"
                       disabled={loading || !formik.isValid}
                     >
                       {loading ? (

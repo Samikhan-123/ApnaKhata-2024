@@ -55,12 +55,7 @@ if (process.env.NODE_ENV === 'production') {
 
 // Serve uploads with proper headers
 app.use(
-  '/uploads',
-  (req, res, next) => {
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    next();
-  },
-  express.static(path.join(__dirname, 'uploads'))
+  '/uploads',express.static(path.join(__dirname, 'uploads'))
 );
 
 // API Routes

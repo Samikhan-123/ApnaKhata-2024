@@ -6,7 +6,6 @@ import {
   Container,
   Row,
   Col,
-  Toast,
   Card,
   Spinner
 } from 'react-bootstrap';
@@ -22,8 +21,7 @@ const PostExpenses = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-   const [showToast, setShowToast] = useState(false);
-
+  
   const categories = [
     'Food & Dining',
     'Shopping',
@@ -112,31 +110,20 @@ const PostExpenses = () => {
         });
         if (response.data.success) {
           setSuccess('Expense added successfully!');
-          setShowToast(true);
-
           // Clear form
           formik.resetForm();
-          // Use try-catch for navigation
-          try {
-            setTimeout(() => {
-              navigate('/expenses', { replace: true });
-            }, 5000);
-          } catch (navError) {
-            console.error('Navigation error:', navError);
-            // Fallback navigation
-            window.location.href = '/expenses';
-          }
+          // Navigate after a short delay
+          setTimeout(() => {
+            navigate('/expenses');
+          }, 1500);
         } else {
-          throw new Error(response.data.message || 'Failed to add this expense');
+          throw new Error(response.data.message || 'Failed to add expense');
         }
       } catch (err) {
         console.error('Error adding expense:', err);
         setError(
-          err.response?.data?.message ||
-            err.message ||
-            'Failed to add expense. Please try again.'
+          err.response?.data?.message || err.message || 'Failed to add expense'
         );
-        setShowToast(true);
       } finally {
         setLoading(false);
       }
@@ -145,27 +132,6 @@ const PostExpenses = () => {
   return (
     <Layout title="Add Expense - ApnaKhata">
       <Container className="py-5">
-        {/* Toast for notifications */}
-        <Toast
-          show={showToast}
-          onClose={() => setShowToast(false)}
-          delay={4000}
-          autohide
-          style={{
-            position: 'fixed',
-            top: 20,
-            right: 50,
-            zIndex: 9999,
-          }}
-        >
-          <Toast.Header>
-            <strong className="me-auto">{success ? 'Success' : 'Error'}</strong>
-          </Toast.Header>
-          <Toast.Body className={success ? 'text-success' : 'text-danger'}>
-            {success || error}
-          </Toast.Body>
-        </Toast>
-
         <Row className="justify-content-center">
           <Col md={8} lg={8}>
             <Card>
@@ -298,9 +264,7 @@ const PostExpenses = () => {
                       onChange={(e) =>
                         formik.setFieldValue('receipt', e.target.files[0])
                       }
-                      isInvalid={
-                        formik.touched.receipt && formik.errors.receipt
-                      }
+                      isInvalid={formik.touched.receipt && formik.errors.receipt}
                       accept="image/*,.pdf"
                     />
                     <Form.Control.Feedback type="invalid">
@@ -340,9 +304,9 @@ const PostExpenses = () => {
                     />
                   </Form.Group>
                   <div className="d-grid gap-2">
-                    <Button
-                      variant="primary"
-                      type="submit"
+                    <Button 
+                      variant="primary" 
+                      type="submit" 
                       disabled={loading || !formik.isValid}
                     >
                       {loading ? (

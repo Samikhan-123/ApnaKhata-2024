@@ -35,17 +35,18 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
 // CORS configuration
-app.use(
-  cors({
-    origin:
-      process.env.NODE_ENV === 'production'
-        ? [process.env.FRONTEND_URL].filter(Boolean)
-        : '*',
-    credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  })
-);
+app.use(cors('*'));
+// app.use(
+//   cors({
+//     origin:
+//       process.env.NODE_ENV === 'production'
+//         ? [process.env.FRONTEND_URL].filter(Boolean)
+//         : '*',
+//     credentials: true,
+//     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+//     allowedHeaders: ['Content-Type', 'Authorization'],
+//   })
+// );
 
 // Static files
 if (process.env.NODE_ENV === 'production') {

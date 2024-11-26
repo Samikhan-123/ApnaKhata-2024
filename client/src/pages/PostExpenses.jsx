@@ -47,7 +47,7 @@ const PostExpenses = () => {
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .required('Description is required')
-      .max(200, 'Description cannot exceed 200 characters'),
+      .max(100, 'Description cannot exceed 100 characters'),
     amount: Yup.number()
       .required('Amount is required')
       .min(0, 'Amount must be a positive number'),
@@ -119,7 +119,8 @@ const PostExpenses = () => {
         toast.success('Expense added successfully!');
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to update expense');
+        setError(err.response?.data?.message || 'Failed to add expense');
+        toast.error('Failed to add expense');
       } finally {
         setLoading(false);
       }

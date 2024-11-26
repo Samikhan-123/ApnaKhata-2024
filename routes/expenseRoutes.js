@@ -46,7 +46,6 @@ router.post(
   '/add',
   authenticate,
   upload.single('receipt'),
-  validateExpense,
   addExpense
 );
 

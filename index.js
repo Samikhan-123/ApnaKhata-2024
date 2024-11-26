@@ -19,7 +19,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 
 // Connect to database
-connectedDB();
+connectedDB(); 
 
 // Security middleware
 // app.use(
@@ -73,7 +73,7 @@ app.get('/api/health', (req, res) => {
 
 // 404 handler for API routes
 app.use('/api/*', (req, res, next) => {
-  next(createError(404, 'API route not found'));
+  next(createError(404, ' route not found'));
 });
 
 // Production route handler

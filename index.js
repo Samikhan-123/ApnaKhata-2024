@@ -8,7 +8,7 @@ import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import createError from 'http-errors';
-// import fs from 'fs';
+import fs from 'fs';
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
@@ -47,9 +47,9 @@ app.use(
 );
 
 // Static files
-// if (process.env.NODE_ENV === 'production') {
-//   app.use(express.static(path.join(__dirname, 'dist')));
-// }
+if (process.env.NODE_ENV === 'production') {
+  app.use(express.static(path.join(__dirname, 'dist')));
+}
 
 // Serve uploads with proper headers
 app.use(
@@ -73,6 +73,12 @@ app.get('/api/health', (req, res) => {
 // 404 handler for API routes
 app.use('/api/*', (req, res, next) => {
   next(createError(404, ' route not found'));
+});
+app.use('/api', (req, res) => {
+  res.status(200).json({ message: 'server running' });
+});
+app.use('/', (req, res) => {
+  res.status(200).json({ message: 'welcome server' });
 });
 
 // Production route handler

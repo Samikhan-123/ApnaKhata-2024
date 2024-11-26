@@ -7,7 +7,6 @@ import authRoutes from './routes/authRoutes.js';
 import morgan from 'morgan';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import helmet from 'helmet';
 import createError from 'http-errors';
 import fs from 'fs';
 

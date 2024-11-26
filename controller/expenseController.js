@@ -207,11 +207,7 @@ export const addExpense = async (req, res) => {
       recurringDetails,
     } = req.body;
 
-    // Parse recurring details if provided and valid
-    const parsedRecurringDetails =
-      isRecurring && typeof recurringDetails === 'string'
-        ? JSON.parse(recurringDetails)
-        : recurringDetails || null;
+   
 
     // Parse tags if provided as a string
     const parsedTags =
@@ -239,8 +235,7 @@ export const addExpense = async (req, res) => {
       tags: parsedTags,
       notes,
       receipt,
-      isRecurring: isRecurring === true || isRecurring === 'true',
-      recurringDetails: parsedRecurringDetails,
+   
     });
 
     await newExpense.save();
@@ -270,11 +265,7 @@ export const addExpense = async (req, res) => {
             }
             ${notes ? `<li><strong>Notes:</strong> ${notes}</li>` : ''}
           
-            ${
-              isRecurring
-                ? `<li><strong>Recurring Expense:</strong> Yes</li>`
-                : ''
-            }
+
           </ul>
         </div>
 
@@ -287,7 +278,6 @@ export const addExpense = async (req, res) => {
           `
             : ''
         }
-        <br />
         <br />
         <p>
           بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے

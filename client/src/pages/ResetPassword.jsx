@@ -25,6 +25,7 @@ const ResetPasswordPage = () => {
     strength: '',
     progress: 0,
     variant: '',
+    message: '',
   });
 
   const navigate = useNavigate();
@@ -107,7 +108,6 @@ const ResetPasswordPage = () => {
         setSuccessMessage(
           'Password successfully reset! Redirecting to login...'
         );
-
         // Redirect to login after a short delay
         setTimeout(() => navigate('/login'), 2000);
       } else {

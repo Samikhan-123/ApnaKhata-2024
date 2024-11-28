@@ -10,23 +10,16 @@ import { fileURLToPath } from 'url';
 import createError from 'http-errors';
 import fs from 'fs';
 
+
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Load environment variables first
-dotenv.config(); 
- 
+// Load environment variables
+dotenv.config();
+
 // Connect to database
-connectedDB(); 
-
-// Security middleware
-// app.use(
-//   helmet({
-//     crossOriginResourcePolicy: { policy: 'cross-origin' }, // Allow images to load
-//   })
-// );
-
+connectedDB();
 
 // Middleware
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
@@ -45,22 +38,17 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
- 
-// Static files
+
+// Static files (for production)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+  });
 }
 
-
-// Serve uploads with proper headers
-app.use(
-  '/uploads',
-  (req, res, next) => {
-    res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
-    next();
-  },
-  express.static(path.join(__dirname, 'uploads'))
-);
+// Serve uploads with headers
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -71,29 +59,21 @@ app.get('/api/health', (req, res) => {
   res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
 });
 
-// 404 handler for API routes
-app.use('/api/*', (req, res, next) => {
-  next(createError(404, ' route not found'));
-});
-app.use('/api', (req, res) => {
-  res.status(200).json({ message: 'server running' });
-});
+// Root route for server status
 app.use('/', (req, res) => {
-  res.status(200).json({ message: 'welcome server' });
+  res.status(200).json({ message: 'careful this is server' });
 });
 
-// Production route handler
-if (process.env.NODE_ENV === 'production') {
-  app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-}
+// 404 handler for API routes (catch-all for unhandled routes)
+app.use('/api/*', (req, res, next) => {
+  next(createError(404, 'Route not found'));
+});
 
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);
 
-  // Clean up uploaded file if there's an error
+  // Safely clean up uploaded file if there’s an error
   if (req.file && req.file.path) {
     fs.unlink(req.file.path, (unlinkError) => {
       if (unlinkError) console.error('Error deleting file:', unlinkError);
@@ -111,9 +91,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
-    `Server Running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+    `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
   );
 });
 
 export default app;
-  

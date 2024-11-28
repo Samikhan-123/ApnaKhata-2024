@@ -89,9 +89,12 @@ const ExpenseCard = ({ expenses, onDeleteClick }) => {
   const handleDownloadReceipt = async () => {
     if (!selectedReceipt) return;
 
+    // Change the filename to whatever you want (e.g., "new-receipt-name.pdf")
+    const newFilename = `new-receipt-${new Date().toLocaleDateString('en-GB')}`;
+
     const link = document.createElement('a');
     link.href = selectedReceipt.url;
-    link.download = selectedReceipt.filename;
+    link.download = newFilename; // Force the file to download with the new filename
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);

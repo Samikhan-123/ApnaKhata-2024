@@ -15,7 +15,6 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Layout from '../components/Layout';
-import toast from 'react-hot-toast';
 const PostExpenses = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -116,11 +115,12 @@ const PostExpenses = () => {
         });
 
         setSuccess('Expense added successfully!');
-        toast.success('Expense added successfully!');
+
+        // toast.success('Expense added successfully!');
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to add expense');
-        toast.error('Failed to add expense');
+        // toast.error('Failed to add expense');
       } finally {
         setLoading(false);
       }

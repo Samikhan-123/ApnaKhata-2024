@@ -26,14 +26,13 @@ function Home() {
   };
 
   return (
-    <Layout title="Home - ApnaKhata">
+    <Layout title="Home - ApnaKhata Expense Tracker">
       <div
         className="home-container d-flex flex-column align-items-center justify-content-center text-center"
         style={{
           height: '100vh',
           backgroundColor: '#3498db',
           color: '#fff',
-       
         }}
       >
         <Container className="p-5">

@@ -203,8 +203,6 @@ export const addExpense = async (req, res) => {
       paymentMethod,
       tags,
       notes,
-      isRecurring,
-      recurringDetails,
     } = req.body;
 
    

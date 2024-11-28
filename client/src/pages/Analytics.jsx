@@ -234,7 +234,7 @@ const Analytics = ({ token }) => {
       </Col>
 
       {/* Charts Section */}
-      <Col md={6}>
+      <Col md={9}>
         <Card className="h-100">
           <Card.Body>
             <h5>Expenses Trend</h5>

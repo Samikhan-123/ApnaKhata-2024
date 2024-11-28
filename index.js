@@ -15,8 +15,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Load environment variables first
-dotenv.config();
-
+dotenv.config(); 
+ 
 // Connect to database
 connectedDB(); 
 
@@ -45,7 +45,7 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-
+ 
 // Static files
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
@@ -115,3 +115,4 @@ app.listen(PORT, () => {
 });
 
 export default app;
+  

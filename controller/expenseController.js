@@ -1,6 +1,5 @@
 import mongoose from 'mongoose';
 import Expense from '../model/expenseSchema.js';
-import User from '../model/userSchema.js';
 import { sendEmail } from '../utils/emailConfig.js';
 import path from 'path';
 import fs from 'fs';
@@ -632,6 +631,15 @@ export const getMonthlyExpenses = async (req, res) => {
       message: 'Error getting monthly expenses',
     });
   }
+};
+
+// Helper function to get file URL
+export const getFileUrl = (req, filename) => {
+  if (!filename) return null;
+  const uploadDir = process.env.NODE_ENV === 'production' 
+    ? '/tmp/uploads/receipts'
+    : 'uploads/receipts';
+  return `${req.protocol}://${req.get('host')}/${uploadDir}/${filename}`;
 };
 
 export default {

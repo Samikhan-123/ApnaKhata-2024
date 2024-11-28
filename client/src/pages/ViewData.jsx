@@ -31,6 +31,8 @@ const ViewData = () => {
 
   // States
   const [expenses, setExpenses] = useState([]);
+  const [allExpenses, setAllExpenses] = useState([]);
+  const [totalAmount, setTotalAmount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -41,8 +43,6 @@ const ViewData = () => {
   const [splitAmount, setSplitAmount] = useState(0);
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [goToPage, setGoToPage] = useState('');
-  const [allExpenses, setAllExpenses] = useState([]);
-  const [totalAmount, setTotalAmount] = useState(0);
 
   // Pagination State
   const [pagination, setPagination] = useState({
@@ -64,8 +64,8 @@ const ViewData = () => {
     tags: '',
   });
 
-  // Fetch Expenses
-  const fetchExpenses = useCallback(async () => {
+  // Fetch Expenses and All Expenses Combined
+  const fetchExpensesData = useCallback(async () => {
     try {
       setLoading(true);
       const queryParams = new URLSearchParams();
@@ -85,46 +85,36 @@ const ViewData = () => {
         }
       });
 
-      const response = await axios.get(
-        `/api/expenses?${queryParams.toString()}`,
-        {
+      const [expensesResponse, allExpensesResponse] = await Promise.all([
+        axios.get(`/api/expenses?${queryParams.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+        }),
+        axios.get('/api/expenses/all', {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      ]);
 
-      setExpenses(response.data.expenses);
+      setExpenses(expensesResponse.data.expenses);
       setPagination((prev) => ({
         ...prev,
-        totalPages: response.data.pagination.totalPages,
-        totalRecords: response.data.pagination.totalRecords,
-        currentPage: response.data.pagination.currentPage,
+        totalPages: expensesResponse.data.pagination.totalPages,
+        totalRecords: expensesResponse.data.pagination.totalRecords,
+        currentPage: expensesResponse.data.pagination.currentPage,
       }));
+
+      setAllExpenses(allExpensesResponse.data.expenses);
+      setTotalAmount(allExpensesResponse.data.totalAmount);
     } catch (err) {
-      setError(err.response?.data?.message || 'something went wrong');
+      setError(err.response?.data?.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   }, [filters, pagination.currentPage, pagination.itemsPerPage, token]);
 
-  // Add function to fetch all expenses
-  const fetchAllExpenses = useCallback(async () => {
-    try {
-      const response = await axios.get('/api/expenses/all', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      setAllExpenses(response.data.expenses);
-      setTotalAmount(response.data.totalAmount);
-    } catch (err) {
-      console.error('Error fetching all expenses:', err);
-    }
-  }, [token]);
-
   // Update useEffect to fetch both filtered and unfiltered data
   useEffect(() => {
-    fetchExpenses();
-    fetchAllExpenses();
-  }, [fetchExpenses, fetchAllExpenses]);
+    fetchExpensesData();
+  }, [fetchExpensesData]);
 
   // Handlers
   const handleDeleteClick = (expense) => {
@@ -139,7 +129,7 @@ const ViewData = () => {
       });
       setSuccess('Expense deleted successfully');
       setShowDeleteModal(false);
-      fetchExpenses();
+      fetchExpensesData();
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete expense');
     }
@@ -320,7 +310,12 @@ const ViewData = () => {
             <div className="d-flex align-items-center">
               {error}
               &nbsp;&nbsp;&nbsp;
-              <Button variant="danger" size="sm" onClick={() => window.location.reload()} className="ml-5">
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={() => window.location.reload()}
+                className="ml-5"
+              >
                 <FaSync className="me-2" />
                 Refresh
               </Button>

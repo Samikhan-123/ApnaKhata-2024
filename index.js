@@ -10,7 +10,6 @@ import { fileURLToPath } from 'url';
 import createError from 'http-errors';
 import fs from 'fs';
 
-
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

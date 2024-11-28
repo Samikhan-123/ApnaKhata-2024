@@ -51,6 +51,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
 }
 
+
 // Serve uploads with proper headers
 app.use(
   '/uploads',

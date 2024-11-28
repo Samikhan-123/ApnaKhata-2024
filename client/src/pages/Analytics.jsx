@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState } from 'react';
 import { Card, Row, Col, Spinner } from 'react-bootstrap';
 import { Line, Pie, Doughnut } from 'react-chartjs-2';

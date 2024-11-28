@@ -1,3 +1,4 @@
+/* eslint-disable no-unused-vars */
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   Container,
@@ -17,7 +18,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import axios from 'axios';
-import { FaFilter, FaFileExport, FaPlus, FaCalculator } from 'react-icons/fa';
+import { FaFilter, FaPlus, FaCalculator, FaSync } from 'react-icons/fa';
 import { format, startOfMonth, endOfMonth } from 'date-fns';
 import Layout from '../components/Layout';
 import ExpenseCard from '../pages/ExpenseTable';
@@ -316,7 +317,14 @@ const ViewData = () => {
         {/* Alerts */}
         {error && (
           <Alert variant="danger" onClose={() => setError('')} dismissible>
-            {error}
+            <div className="d-flex align-items-center">
+              {error}
+              &nbsp;&nbsp;&nbsp;
+              <Button variant="danger" size="sm" onClick={() => window.location.reload()} className="ml-5">
+                <FaSync className="me-2" />
+                Refresh
+              </Button>
+            </div>
           </Alert>
         )}
         {success && (

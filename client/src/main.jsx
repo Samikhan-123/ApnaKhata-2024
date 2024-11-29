@@ -1,6 +1,5 @@
 // src/index.jsx
-// eslint-disable-next-line no-unused-vars
-import React from 'react';
+import React, { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import App from './App.jsx';
 import './index.css';
@@ -10,20 +9,21 @@ import 'bootstrap-icons/font/bootstrap-icons.css'; // Import Bootstrap Icons
 import { AuthProvider } from './auth/AuthContext.jsx';
 
 createRoot(document.getElementById('root')).render(
-  <AuthProvider>
-    <App />
-    <ToastContainer
-      // Customize ToastContainer settings
-      hideProgressBar={true}
-      position="top-right"
-      autoClose={3000}
-      newestOnTop={true}
-      closeOnClick={true}
-      rtl={false}
-      pauseOnFocusLoss
-      draggable
-      theme="colored"
-      closeButton={true}
-    />
-  </AuthProvider>
+  <StrictMode>
+    <AuthProvider>
+      <App />
+      <ToastContainer
+        hideProgressBar={true}
+        position="top-right"
+        autoClose={3000}
+        newestOnTop={true}
+        closeOnClick={true}
+        rtl={false}
+        pauseOnFocusLoss
+        draggable
+        theme="colored"
+        closeButton={true}
+      />
+    </AuthProvider>
+  </StrictMode>
 );

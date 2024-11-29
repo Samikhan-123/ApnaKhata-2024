@@ -52,7 +52,10 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Serve uploads with headers
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(
+  '/uploads/receipts',
+  express.static(path.join(__dirname, 'uploads', 'receipts'))
+);
 
 // API Routes
 app.use('/api/auth', authRoutes);

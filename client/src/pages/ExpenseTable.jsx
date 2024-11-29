@@ -22,7 +22,8 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../auth/AuthContext';
 
-const ExpenseCard = ({ expenses, onDeleteClick }) => {
+const ExpenseCard = ({ expenses = [], onDeleteClick }) => {
+  // Ensure expenses is defaulted to an empty array
   const { token } = useAuth();
   const navigate = useNavigate();
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -109,12 +110,16 @@ const ExpenseCard = ({ expenses, onDeleteClick }) => {
     };
   };
 
+  // Fix: Ensure expenses is always an array before calling .reduce()
   const calculateSplit = () => {
-    const total = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
+    const total = (expenses || []).reduce(
+      (acc, curr) => acc + (curr.amount || 0),
+      0
+    );
     setSplitAmount(participants > 0 ? total / participants : 0);
   };
 
-  const totalExpenses = expenses.reduce(
+  const totalExpenses = (expenses || []).reduce(
     (acc, curr) => acc + (curr.amount || 0),
     0
   );

@@ -633,14 +633,14 @@ export const getMonthlyExpenses = async (req, res) => {
   }
 };
 
-// Helper function to get file URL
-export const getFileUrl = (req, filename) => {
-  if (!filename) return null;
-  const uploadDir = process.env.NODE_ENV === 'production' 
-    ? '/tmp/uploads/receipts'
-    : 'uploads/receipts';
-  return `${req.protocol}://${req.get('host')}/${uploadDir}/${filename}`;
-};
+// // Helper function to get file URL
+// export const getFileUrl = (req, filename) => {
+//   if (!filename) return null;
+//   const uploadDir = process.env.NODE_ENV === 'production' 
+//     ? '/tmp/uploads/receipts'
+//     : 'uploads/receipts';
+//   return `${req.protocol}://${req.get('host')}/${uploadDir}/${filename}`;
+// };
 
 export default {
   getExpenses,

@@ -28,7 +28,6 @@ const ViewData = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
 
-  // Initialize all state variables with safe defaults
   const [expenses, setExpenses] = useState([]);
   const [allExpenses, setAllExpenses] = useState([]);
   const [totalAmount, setTotalAmount] = useState(0);
@@ -43,7 +42,7 @@ const ViewData = () => {
   const [selectedExpense, setSelectedExpense] = useState(null);
   const [goToPage, setGoToPage] = useState('');
 
-  // Pagination state with safe defaults
+  // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
@@ -51,7 +50,7 @@ const ViewData = () => {
     totalRecords: 0,
   });
 
-  // Filters state with safe defaults
+  // Filters state
   const [filters, setFilters] = useState({
     category: 'all',
     startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
@@ -63,9 +62,7 @@ const ViewData = () => {
     tags: '',
   });
 
-  // Safe calculation helper
   const calculateTotal = useCallback((expenseArray) => {
-    // Ensure expenseArray is defined and an array
     if (!Array.isArray(expenseArray) || expenseArray.length === 0) return 0;
     return expenseArray.reduce((acc, curr) => {
       const amount = Number(curr?.amount) || 0;
@@ -73,19 +70,16 @@ const ViewData = () => {
     }, 0);
   }, []);
 
-  // Fetch expenses with comprehensive error handling
   const fetchExpensesData = useCallback(async () => {
     try {
       setLoading(true);
       setError('');
 
       const queryParams = new URLSearchParams();
-
-      // Add pagination params with safety checks
       queryParams.append('page', pagination?.currentPage || 1);
       queryParams.append('itemsPerPage', pagination?.itemsPerPage || 20);
 
-      // Add filters with safety checks
+      // Adding filters to the API request
       Object.entries(filters).forEach(([key, value]) => {
         if (value && value !== 'all') {
           if (key === 'tags') {
@@ -96,7 +90,6 @@ const ViewData = () => {
         }
       });
 
-      // Parallel API calls with error handling
       const [expensesResponse, allExpensesResponse] = await Promise.all([
         axios.get(`/api/expenses?${queryParams.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -106,7 +99,6 @@ const ViewData = () => {
         }),
       ]);
 
-      // Set states with safety checks
       setExpenses(expensesResponse.data?.expenses || []);
       setPagination((prev) => ({
         ...prev,
@@ -117,9 +109,7 @@ const ViewData = () => {
       setAllExpenses(allExpensesResponse.data?.expenses || []);
       setTotalAmount(allExpensesResponse.data?.totalAmount || 0);
     } catch (err) {
-      console.error('Error fetching expenses:', err);
       setError(err.response?.data?.message || 'Failed to fetch expenses');
-      // Reset to safe defaults on error
       setExpenses([]);
       setAllExpenses([]);
       setTotalAmount(0);
@@ -132,7 +122,6 @@ const ViewData = () => {
     fetchExpensesData();
   }, [fetchExpensesData]);
 
-  // Handlers with error handling
   const handleDeleteClick = useCallback((expense) => {
     setSelectedExpense(expense);
     setShowDeleteModal(true);
@@ -164,7 +153,6 @@ const ViewData = () => {
 
   const handlePageChange = useCallback(
     (newPage) => {
-      if (!pagination) return;
       if (newPage < 1 || newPage > (pagination.totalPages || 1)) return;
       setPagination((prev) => ({ ...prev, currentPage: newPage }));
       setGoToPage('');
@@ -177,7 +165,6 @@ const ViewData = () => {
     setSplitAmount(participants > 0 ? total / participants : 0);
   }, [expenses, participants, calculateTotal]);
 
-  // Loading state
   if (loading) {
     return (
       <Layout>
@@ -189,11 +176,9 @@ const ViewData = () => {
     );
   }
 
-  // Main render
   return (
     <Layout>
       <Container fluid className="py-4">
-        {/* Header Section */}
         <Row className="mb-4 align-items-center">
           <Col>
             <h1>Expenses</h1>
@@ -215,7 +200,6 @@ const ViewData = () => {
           </Col>
         </Row>
 
-        {/* Filters Section */}
         {showFilters && (
           <Row className="mb-4">
             <Col>
@@ -228,7 +212,6 @@ const ViewData = () => {
           </Row>
         )}
 
-        {/* Alerts */}
         {error && (
           <Alert variant="danger" onClose={() => setError('')} dismissible>
             <div className="d-flex align-items-center">
@@ -245,13 +228,13 @@ const ViewData = () => {
             </div>
           </Alert>
         )}
+
         {success && (
           <Alert variant="success" onClose={() => setSuccess('')} dismissible>
             {success}
           </Alert>
         )}
 
-        {/* Content Section */}
         <Card className="mb-4">
           <Card.Body>
             <div className="d-flex justify-content-between align-items-center">
@@ -279,7 +262,7 @@ const ViewData = () => {
         </Card>
 
         <Tabs defaultActiveKey="list" id="expense-tabs" className="mb-4">
-          <Tab eventKey="list" title="Expenses">
+          <Tab eventKey="list" title="Expenses List">
             <ExpenseCard
               expenses={Array.isArray(expenses) ? expenses : []}
               onDeleteClick={handleDeleteClick}
@@ -292,114 +275,75 @@ const ViewData = () => {
           </Tab>
         </Tabs>
 
-        {/* Split Calculator Button */}
-        <div
-          style={{
-            position: 'fixed',
-            bottom: '20px',
-            right: '20px',
-            zIndex: 1000,
-          }}
-        >
-          <Button
-            variant="primary"
-            size="lg"
-            className="rounded-circle shadow"
-            onClick={() => setShowSplitModal(true)}
-          >
-            <FaCalculator />
-          </Button>
-        </div>
+        <Pagination className="d-flex justify-content-center mt-4" size="sm">
+          {Array.from({ length: pagination.totalPages }).map((_, index) => (
+            <Pagination.Item
+              key={index}
+              active={pagination.currentPage === index + 1}
+              onClick={() => handlePageChange(index + 1)}
+            >
+              {index + 1}
+            </Pagination.Item>
+          ))}
+        </Pagination>
+      </Container>
 
-        {/* Split Calculator Modal */}
-        <Modal
-          show={showSplitModal}
-          onHide={() => setShowSplitModal(false)}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Split Calculator</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            <h5>
-              Total Expenses:{' '}
-              {new Intl.NumberFormat('en-PK', {
-                style: 'currency',
-                currency: 'PKR',
-              }).format(calculateTotal(expenses))}
-            </h5>
-            <Form.Group className="mb-3">
-              <Form.Label>Number of Participants</Form.Label>
+      {/* Delete Modal */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirm Deletion</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>Are you sure you want to delete this expense?</Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="danger" onClick={handleDelete}>
+            Delete
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Split Modal */}
+      <Modal
+        show={showSplitModal}
+        onHide={() => setShowSplitModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Split Expenses</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <div className="mb-3">
+            <Form.Label>Total Amount: </Form.Label>
+            <Form.Control type="number" value={splitAmount} readOnly />
+          </div>
+          <div className="mb-3">
+            <Form.Label>Number of Participants: </Form.Label>
+            <InputGroup>
               <Form.Control
                 type="number"
-                min="1"
                 value={participants}
-                onChange={(e) =>
-                  setParticipants(Math.max(1, Number(e.target.value) || 1))
-                }
+                onChange={(e) => setParticipants(e.target.value)}
+                min="1"
               />
-            </Form.Group>
-            <h5>
-              Split Amount:{' '}
-              {new Intl.NumberFormat('en-PK', {
-                style: 'currency',
-                currency: 'PKR',
-              }).format(splitAmount || 0)}
-            </h5>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="primary"
-              onClick={calculateSplit}
-              disabled={!Array.isArray(expenses) || expenses.length === 0}
-            >
-              Calculate
-            </Button>
-            <Button
-              variant="secondary"
-              onClick={() => setShowSplitModal(false)}
-            >
-              Close
-            </Button>
-          </Modal.Footer>
-        </Modal>
-
-        {/* Delete Confirmation Modal */}
-        <Modal
-          show={showDeleteModal}
-          onHide={() => setShowDeleteModal(false)}
-          centered
-        >
-          <Modal.Header closeButton>
-            <Modal.Title>Confirm Delete</Modal.Title>
-          </Modal.Header>
-          <Modal.Body>
-            Are you sure you want to delete this expense?
-            {selectedExpense && (
-              <div className="mt-3">
-                <strong>{selectedExpense.category}</strong>
-                <br />
-                Amount:{' '}
-                {new Intl.NumberFormat('en-PK', {
-                  style: 'currency',
-                  currency: 'PKR',
-                }).format(selectedExpense.amount || 0)}
-              </div>
-            )}
-          </Modal.Body>
-          <Modal.Footer>
-            <Button
-              variant="secondary"
-              onClick={() => setShowDeleteModal(false)}
-            >
-              Cancel
-            </Button>
-            <Button variant="danger" onClick={handleDelete}>
-              Delete
-            </Button>
-          </Modal.Footer>
-        </Modal>
-      </Container>
+              <InputGroup.Text>people</InputGroup.Text>
+            </InputGroup>
+          </div>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowSplitModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="primary" onClick={calculateSplit}>
+            Calculate
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </Layout>
   );
 };

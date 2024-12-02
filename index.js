@@ -38,11 +38,11 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-// app.use((req, res, next) => {
-//   res.setHeader('X-Frame-Options', 'DENY'); // Prevent embedding the page in an iframe
+app.use((req, res, next) => {
+  res.setHeader('X-Frame-Options', 'DENY'); // Prevent embedding the page in an iframe
  
-//   next();
-// });
+  next();
+});
 // Static files (for production) 
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));

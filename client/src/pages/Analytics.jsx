@@ -30,20 +30,22 @@ const Analytics = ({ token }) => {
   const [loading, setLoading] = useState(true);
 
   // Fetch all data for analytics
-  useEffect(() => {
-    const fetchAllExpenses = async () => {
-      try {
-        const response = await axios.get('/api/expenses');
-        setTotalExpensesData(response.data.expenses);
-      } catch (error) {
-        console.error('Error fetching all expenses:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
+ useEffect(() => {
+   const fetchAllExpenses = async () => {
+     try {
+       const response = await axios.get('/api/expenses');
+       setTotalExpensesData(response.data.expenses || []); // Ensure an array
+     } catch (error) {
+       console.error('Error fetching all expenses:', error);
+       setTotalExpensesData([]); // Fallback to empty array on error
+     } finally {
+       setLoading(false);
+     }
+   };
 
-    fetchAllExpenses();
-  }, [token]);
+   fetchAllExpenses();
+ }, [token]);
+
 
   if (loading) {
     return (
@@ -65,11 +67,14 @@ const Analytics = ({ token }) => {
   const calculateMonthlyAverage = (expenses) => {
     if (expenses.length === 0) return { average: 0, totalMonths: 0 };
 
-    const monthlyExpenses = expenses.reduce((acc, expense) => {
-      const month = new Date(expense.date).toISOString().slice(0, 7); // Get "YYYY-MM" format
-      acc[month] = (acc[month] || 0) + expense.amount;
-      return acc;
-    }, {});
+    const monthlyExpenses = Array.isArray(expenses)
+      ? expenses.reduce((acc, expense) => {
+          const month = new Date(expense.date).toISOString().slice(0, 7);
+          acc[month] = (acc[month] || 0) + expense.amount;
+          return acc;
+        }, {})
+      : {};
+
 
     const totalMonths = Object.keys(monthlyExpenses).length;
     const totalExpenses = Object.values(monthlyExpenses).reduce(
@@ -81,10 +86,10 @@ const Analytics = ({ token }) => {
   };
 
   // Summary Metrics
-  const totalExpenses = totalExpensesData.reduce(
-    (sum, expense) => sum + expense.amount,
-    0
-  );
+  const totalExpenses = Array.isArray(totalExpensesData)
+    ? totalExpensesData.reduce((sum, expense) => sum + expense.amount, 0)
+    : 0;
+
 
   const totalTransactions = totalExpensesData.length;
 
@@ -99,21 +104,31 @@ const Analytics = ({ token }) => {
   const averageExpensePerTransaction =
     totalTransactions > 0 ? totalExpenses / totalTransactions : 0;
 
-  const categoryTotals = totalExpensesData.reduce((acc, expense) => {
-    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
-    return acc;
-  }, {});
+  const categoryTotals = Array.isArray(totalExpensesData)
+    ? totalExpensesData.reduce((acc, expense) => {
+        acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+        return acc;
+      }, {})
+    : {};
 
-  const mostExpensiveCategory = Object.keys(categoryTotals).reduce(
-    (a, b) => (categoryTotals[a] > categoryTotals[b] ? a : b),
-    ''
-  );
 
-  const paymentMethodTotals = totalExpensesData.reduce((acc, expense) => {
-    acc[expense.paymentMethod] =
-      (acc[expense.paymentMethod] || 0) + expense.amount;
-    return acc;
-  }, {});
+ const mostExpensiveCategory =
+   Object.keys(categoryTotals).length > 0
+     ? Object.keys(categoryTotals).reduce((a, b) =>
+         categoryTotals[a] > categoryTotals[b] ? a : b
+       )
+     : '';
+
+
+
+ const paymentMethodTotals = Array.isArray(totalExpensesData)
+   ? totalExpensesData.reduce((acc, expense) => {
+       acc[expense.paymentMethod] =
+         (acc[expense.paymentMethod] || 0) + expense.amount;
+       return acc;
+     }, {})
+   : {};
+
 
   // Chart: Expenses Trend (Line Chart)
   const trendData = {

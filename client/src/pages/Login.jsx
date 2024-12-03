@@ -179,7 +179,7 @@ const LoginPage = () => {
                   onSuccess={handleGoogleLogin}
                   onError={() => {
                     setError("Google login failed");
-                    toast.error("Google login failed");
+                    // toast.error("Google login failed");
                   }}
                 />
               </GoogleOAuthProvider>

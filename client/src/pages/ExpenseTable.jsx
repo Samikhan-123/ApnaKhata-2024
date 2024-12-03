@@ -23,10 +23,15 @@ import axios from 'axios';
 import { useAuth } from '../auth/AuthContext';
 import PaginationComponent from '../pages/Pagination';
 
-const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
+const ExpenseCard = ({
+  expenses = [],
+  pagination,
+  onPageChange,
+  onDeleteSuccess,
+}) => {
   const { token } = useAuth();
   const navigate = useNavigate();
-  
+
   // State variables
   const [showReceiptModal, setShowReceiptModal] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState(null);
@@ -37,14 +42,14 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
   const [splitAmount, setSplitAmount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [goToPage, setGoToPage] = useState('');
 
-  const formatCurrency = (amount) => {
-    return new Intl.NumberFormat('en-PK', {
+  const formatCurrency = (amount) =>
+    new Intl.NumberFormat('en-PK', {
       style: 'currency',
       currency: 'PKR',
     }).format(amount || 0);
-  };
 
   // Delete handling
   const handleDeleteClick = useCallback((expense) => {
@@ -55,18 +60,21 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
   const handleDelete = async () => {
     try {
       setError('');
+      setLoading(true);
       await axios.delete(`/api/expenses/${selectedExpense._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       setShowDeleteModal(false);
-      // Trigger refetch in parent component
-      if (onPageChange) {
-        onPageChange(pagination.currentPage);
-      }
+      setLoading(false);
+      setSuccess('Expense deleted successfully');
+      if (onDeleteSuccess) onDeleteSuccess(); // Trigger parent callback to refresh data
     } catch (err) {
       setError(err.response?.data?.message || 'Failed to delete expense');
+      setLoading(false);
     }
   };
+
+  const clearSuccess = () => setSuccess('');
 
   // Receipt handling
   const handleViewReceipt = async (receipt) => {
@@ -145,6 +153,18 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
         setGoToPage={setGoToPage}
       />
 
+      {/* Success and Error Alerts */}
+      {success && (
+        <Alert variant="success" dismissible onClose={clearSuccess}>
+          {success}
+        </Alert>
+      )}
+      {error && (
+        <Alert variant="danger" dismissible onClose={() => setError('')}>
+          {error}
+        </Alert>
+      )}
+
       {/* Expense Cards */}
       <div className="flex-grow-1">
         <Row className="g-3">
@@ -155,7 +175,9 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
                   <Card.Header className="bg-light">
                     <div className="d-flex justify-content-between align-items-center">
                       <span>
-                        {`${index + 1}. ${expense.category || 'Category not specified'}`}
+                        {`${index + 1}. ${
+                          expense.category || 'Category not specified'
+                        }`}
                       </span>
                       <Badge bg="success">
                         {formatCurrency(expense.amount)}
@@ -181,12 +203,6 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
                         ? expense.tags.join(', ')
                         : 'No tags'}
                     </Card.Text>
-                    {expense.notes && (
-                      <Card.Text>
-                        <strong>Notes: </strong>
-                        {expense.notes}
-                      </Card.Text>
-                    )}
                   </Card.Body>
                   <Card.Footer className="bg-light">
                     <div className="d-flex justify-content-between align-items-center">
@@ -206,7 +222,9 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
                           variant="primary"
                           size="sm"
                           className="me-2"
-                          onClick={() => navigate(`/edit-expense/${expense._id}`)}
+                          onClick={() =>
+                            navigate(`/edit-expense/${expense._id}`)
+                          }
                         >
                           <FaEdit />
                         </Button>
@@ -239,25 +257,6 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
         setGoToPage={setGoToPage}
       />
 
-      {/* Split Calculator Button */}
-      <div
-        style={{
-          position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 1000,
-        }}
-      >
-        <Button
-          variant="primary"
-          size="lg"
-          className="rounded-circle shadow"
-          onClick={() => setShowSplitModal(true)}
-        >
-          <FaCalculator />
-        </Button>
-      </div>
-
       {/* Receipt Modal */}
       <Modal
         show={showReceiptModal}
@@ -270,10 +269,11 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
         </Modal.Header>
         <Modal.Body>
           {loading ? (
-            <div className="text-center py-4">
-              <Spinner animation="border" variant="primary" />
-              <p className="mt-2">Loading receipt...</p>
-            </div>
+            <Spinner
+              animation="border"
+              variant="primary"
+              className="d-block mx-auto"
+            />
           ) : error ? (
             <Alert variant="danger">{error}</Alert>
           ) : selectedReceipt?.url ? (
@@ -281,14 +281,13 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
               <img
                 src={selectedReceipt.url}
                 alt="Receipt"
-                style={{ width: '100%', height: 'auto' }}
+                style={{ width: '100%' }}
               />
             ) : (
               <iframe
                 src={selectedReceipt.url}
                 title="Receipt"
                 style={{ width: '100%', height: '500px' }}
-                sandbox="allow-same-origin"
               />
             )
           ) : (
@@ -299,14 +298,14 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
           <Button
             variant="outline-primary"
             onClick={handleDownloadReceipt}
-            disabled={!selectedReceipt?.url || loading}
+            disabled={!selectedReceipt?.url}
           >
             <FaFileDownload /> Download
           </Button>
           <Button
             variant="outline-secondary"
             onClick={handlePrintReceipt}
-            disabled={!selectedReceipt?.url || loading}
+            disabled={!selectedReceipt?.url}
           >
             <FaPrint /> Print
           </Button>
@@ -316,70 +315,32 @@ const ExpenseCard = ({ expenses = [], pagination, onPageChange }) => {
         </Modal.Footer>
       </Modal>
 
-      {/* Split Calculator Modal */}
-      <Modal
-        show={showSplitModal}
-        onHide={() => setShowSplitModal(false)}
-        centered
-      >
-        <Modal.Header closeButton>
-          <Modal.Title>Split Calculator</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <h5>Total Expenses: {formatCurrency(expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0))}</h5>
-          <Form.Group className="mb-3">
-            <Form.Label>Number of Participants</Form.Label>
-            <Form.Control
-              type="number"
-              min="1"
-              value={participants}
-              onChange={(e) => setParticipants(Math.max(1, Number(e.target.value) || 1))}
-            />
-          </Form.Group>
-          <h5>Split Amount: {formatCurrency(splitAmount)}</h5>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button
-            variant="primary"
-            onClick={calculateSplit}
-            disabled={!expenses.length}
-          >
-            Calculate
-          </Button>
-          <Button variant="secondary" onClick={() => setShowSplitModal(false)}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
+      {/* Delete Modal */}
       <Modal
         show={showDeleteModal}
         onHide={() => setShowDeleteModal(false)}
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
+          <Modal.Title>Confirm Deletion</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          Are you sure you want to delete this expense?
-          {selectedExpense && (
-            <div className="mt-3">
-              <strong>{selectedExpense.category}</strong>
-              <br />
-              Amount: {formatCurrency(selectedExpense.amount)}
-            </div>
+          {loading ? (
+            <Spinner
+              animation="border"
+              variant="primary"
+              className="d-block mx-auto"
+            />
+          ) : (
+            <p>Are you sure you want to delete this expense?</p>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="secondary"
-            onClick={() => setShowDeleteModal(false)}
-          >
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete
+          <Button variant="danger" onClick={handleDelete} disabled={loading}>
+            {loading ? 'Deleting...' : 'Delete'}
           </Button>
         </Modal.Footer>
       </Modal>

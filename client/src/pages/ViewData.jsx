@@ -116,6 +116,11 @@ const ViewData = () => {
     setPagination((prev) => ({ ...prev, currentPage: newPage }));
   }, []);
 
+  const handleDeleteSuccess = useCallback(() => {
+    fetchExpensesData();
+    setSuccess('Expense deleted successfully');
+  }, [fetchExpensesData]);
+
   // Loading state
   if (loading) {
     return (
@@ -221,10 +226,7 @@ const ViewData = () => {
               expenses={expenses}
               pagination={pagination}
               onPageChange={handlePageChange}
-              onDeleteSuccess={() => {
-                fetchExpensesData();
-                setSuccess('Expense deleted successfully');
-              }}
+              onDeleteSuccess={handleDeleteSuccess}
             />
           </Tab>
           <Tab eventKey="analytics" title="Analytics">

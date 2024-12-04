@@ -13,8 +13,11 @@ const connectDB = async () => {
     //   colors.grey(process.env.MONGODB_URI)
     // ); 
     const connectMe = await mongoose.connect(process.env.MONGODB_URI, {
-      serverSelectionTimeoutMS: 5000, // Wait for 5 seconds before timing out
-      socketTimeoutMS: 45000, // Close sockets after 45 seconds of inactivity 
+      useNewUrlParser: true,
+      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 30000, // Timeout after 30s
+      socketTimeoutMS: 45000, // Close sockets after 45s
+      family: 4,
     });
 
     console.log(

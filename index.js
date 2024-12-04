@@ -44,21 +44,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Static files (for production)
-if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, 'dist')));
-  app.get('*', (req, res) => {
-    console.log('Serving index.html for request:', req.originalUrl);
-    res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-  });
-}
-
-// Serve uploads (receipts)
-app.use(
-  '/uploads/receipts',
-  express.static(path.join(__dirname, 'uploads', 'receipts'))
-);
-
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
@@ -77,7 +62,25 @@ app.use('/', (req, res) => {
 app.use('/api/*', (req, res, next) => {
   next(createError(404, 'Route not found'));
 });
+// Serve static files and handle client routing AFTER API routes
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files
+  app.use(express.static(path.join(__dirname, 'dist')));
 
+  // Handle client-side routing - should come AFTER API routes
+  app.get('*', (req, res) => {
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    }
+  });
+} 
+
+// Serve uploads (receipts)
+app.use(
+  '/uploads/receipts',
+  express.static(path.join(__dirname, 'uploads', 'receipts'))
+);
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Error:', err);

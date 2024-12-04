@@ -9,6 +9,8 @@ import {
   Col,
   Card,
   Spinner,
+  Toast,
+  ToastContainer,
 } from 'react-bootstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -44,6 +46,16 @@ const PostExpenses = () => {
     'Bank Transfer',
     'Other',
   ];
+  // Toast State
+  const [toast, setToast] = useState({
+    show: false,
+    message: '',
+    type: 'success',
+  });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .required('Description is required')
@@ -116,6 +128,7 @@ const PostExpenses = () => {
         });
 
         setSuccess('Expense added successfully!');
+        showToast('Expense added successfully');
 
         // toast.success('Expense added successfully!');
         setTimeout(() => navigate('/expenses'), 1500);
@@ -339,6 +352,20 @@ const PostExpenses = () => {
           </Col>
         </Row>
       </Container>
+      {/* Toast Notifications */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={toast.show}
+          onClose={() => setToast((prev) => ({ ...prev, show: false }))}
+          delay={3000}
+          autohide
+          bg={toast.type}
+        >
+          <Toast.Body className={toast.type === 'success' ? 'text-white' : ''}>
+            {toast.message}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </Layout>
   );
 };

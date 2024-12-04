@@ -25,10 +25,10 @@ const ExpenseCard = ({
   pagination,
   onPageChange,
   onDeleteSuccess,
-  token
+  token,
 }) => {
   const navigate = useNavigate();
-  
+
   // State for modals and UI
   const [modalState, setModalState] = useState({
     showReceipt: false,
@@ -36,7 +36,7 @@ const ExpenseCard = ({
     selectedExpense: null,
     selectedReceipt: null,
   });
-  
+
   // Track delete operation state
   const [deleteState, setDeleteState] = useState({
     loading: false,
@@ -55,7 +55,7 @@ const ExpenseCard = ({
 
   // Handle delete operation
   const handleDeleteClick = (expense) => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       showDelete: true,
       selectedExpense: expense,
@@ -64,7 +64,7 @@ const ExpenseCard = ({
 
   const handleDelete = async () => {
     if (deletingRef.current) return;
-    
+
     const expenseToDelete = modalState.selectedExpense;
     if (!expenseToDelete?._id) return;
     deletingRef.current = true;
@@ -74,7 +74,7 @@ const ExpenseCard = ({
         headers: { Authorization: `Bearer ${token}` },
       });
       // Close modal first for better UX
-      setModalState(prev => ({
+      setModalState((prev) => ({
         ...prev,
         showDelete: false,
         selectedExpense: null,
@@ -88,12 +88,12 @@ const ExpenseCard = ({
       });
     } finally {
       deletingRef.current = false;
-      setDeleteState(prev => ({ ...prev, loading: false }));
+      setDeleteState((prev) => ({ ...prev, loading: false }));
     }
   };
 
   const resetDeleteState = () => {
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       showDelete: false,
       selectedExpense: null,
@@ -103,7 +103,7 @@ const ExpenseCard = ({
 
   const handleViewReceipt = async (receipt) => {
     if (!receipt) return;
-    setDeleteState(prev => ({ ...prev, loading: true, error: null }));
+    setDeleteState((prev) => ({ ...prev, loading: true, error: null }));
     try {
       const response = await axios.get(
         `/api/expenses/receipt/${receipt.filename}`,
@@ -114,7 +114,7 @@ const ExpenseCard = ({
       );
       const blob = new Blob([response.data], { type: receipt.mimetype });
       const receiptUrl = URL.createObjectURL(blob);
-      setModalState(prev => ({
+      setModalState((prev) => ({
         ...prev,
         selectedReceipt: {
           url: receiptUrl,
@@ -126,9 +126,12 @@ const ExpenseCard = ({
       }));
     } catch (error) {
       console.error('Error fetching receipt:', error);
-      setDeleteState(prev => ({ ...prev, error: 'Failed to load receipt. Please try again later.' }));
+      setDeleteState((prev) => ({
+        ...prev,
+        error: 'Failed to load receipt. Please try again later.',
+      }));
     } finally {
-      setDeleteState(prev => ({ ...prev, loading: false }));
+      setDeleteState((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -136,12 +139,12 @@ const ExpenseCard = ({
     if (modalState.selectedReceipt?.url) {
       URL.revokeObjectURL(modalState.selectedReceipt.url);
     }
-    setModalState(prev => ({
+    setModalState((prev) => ({
       ...prev,
       selectedReceipt: null,
       showReceipt: false,
     }));
-    setDeleteState(prev => ({ ...prev, error: null }));
+    setDeleteState((prev) => ({ ...prev, error: null }));
   };
 
   const handleDownloadReceipt = () => {
@@ -169,10 +172,14 @@ const ExpenseCard = ({
         pagination={pagination}
         onPageChange={onPageChange}
       />
-      
+
       {/* Success and Error Alerts */}
       {deleteState.error && (
-        <Alert variant="danger" dismissible onClose={() => setDeleteState(prev => ({ ...prev, error: null }))}>
+        <Alert
+          variant="danger"
+          dismissible
+          onClose={() => setDeleteState((prev) => ({ ...prev, error: null }))}
+        >
           {deleteState.error}
         </Alert>
       )}
@@ -322,11 +329,7 @@ const ExpenseCard = ({
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal
-        show={modalState.showDelete}
-        onHide={resetDeleteState}
-        centered
-      >
+      <Modal show={modalState.showDelete} onHide={resetDeleteState} centered>
         <Modal.Header closeButton>
           <Modal.Title>Delete Expense</Modal.Title>
         </Modal.Header>
@@ -343,7 +346,14 @@ const ExpenseCard = ({
                 Are you sure you want to delete this expense? This action cannot
                 be undone.
               </p>
-              {deleteState.error && <Alert variant="danger">{deleteState.error}</Alert>}
+              <p>
+                Category: {modalState.selectedExpense?.category}
+                <br />
+                Amount: {modalState.selectedExpense?.amount}
+              </p>
+              {deleteState.error && (
+                <Alert variant="danger">{deleteState.error}</Alert>
+              )}
             </>
           )}
         </Modal.Body>

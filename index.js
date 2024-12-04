@@ -14,7 +14,6 @@ const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 // Load environment variables
 dotenv.config();
 
@@ -31,27 +30,30 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === 'production'
-        ? [process.env.FRONTEND_URL].filter(Boolean)
+        ? process.env.FRONTEND_URL // Ensure this is set correctly in production
         : '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
+
+// Prevent embedding the page in an iframe (Security)
 app.use((req, res, next) => {
-  res.setHeader('X-Frame-Options', 'DENY'); // Prevent embedding the page in an iframe
- 
+  res.setHeader('X-Frame-Options', 'DENY');
   next();
 });
-// Static files (for production) 
+
+// Static files (for production)
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
   app.get('*', (req, res) => {
+    console.log('Serving index.html for request:', req.originalUrl);
     res.sendFile(path.join(__dirname, 'dist', 'index.html'));
   });
 }
 
-// Serve uploads with headers
+// Serve uploads (receipts)
 app.use(
   '/uploads/receipts',
   express.static(path.join(__dirname, 'uploads', 'receipts'))
@@ -95,6 +97,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(

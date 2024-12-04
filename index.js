@@ -23,7 +23,21 @@ connectedDB();
 // Middleware
 app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.urlencoded({ extended: true, limit: '20mb' }));
+
+// Serve static files and handle client routing BEFORE API routes
+if (process.env.NODE_ENV === 'production') {
+  // Serve static files
+  app.use(express.static(path.join(__dirname, 'dist')));
+
+  // Handle client-side routing - should come BEFORE API routes
+  app.get('*', (req, res) => {
+    // Only serve index.html for non-API routes
+    if (!req.path.startsWith('/api/')) {
+      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+    }
+  });
+}  
 
 // CORS configuration
 app.use(
@@ -37,19 +51,6 @@ app.use(
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
-// Serve static files and handle client routing AFTER API routes
-if (process.env.NODE_ENV === 'production') {
-  // Serve static files
-  app.use(express.static(path.join(__dirname, 'dist')));
-
-  // Handle client-side routing - should come AFTER API routes
-  app.get('*', (req, res) => {
-    // Only serve index.html for non-API routes
-    if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    }
-  });
-}  
 
 // Prevent embedding the page in an iframe (Security)
 app.use((req, res, next) => {

@@ -9,6 +9,8 @@ import {
   Card,
   Tabs,
   Tab,
+  Toast,
+  ToastContainer,
 } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -53,6 +55,13 @@ const ViewData = () => {
     tags: '',
   });
 
+  // Toast State
+  const [toast, setToast] = useState({ show: false, message: '', type: 'success' });
+
+  const showToast = (message, type = 'success') => {
+    setToast({ show: true, message, type });
+  };
+
   // Fetch Expenses
   const fetchExpensesData = useCallback(async () => {
     try {
@@ -89,7 +98,6 @@ const ViewData = () => {
         totalRecords: expensesResponse.data?.pagination?.totalRecords || 0,
         currentPage: expensesResponse.data?.pagination?.currentPage || 1,
       }));
-
       setAllExpenses(allExpensesResponse.data?.expenses || []);
       setTotalAmount(allExpensesResponse.data?.totalAmount || 0);
     } catch (err) {
@@ -116,10 +124,20 @@ const ViewData = () => {
     setPagination((prev) => ({ ...prev, currentPage: newPage }));
   }, []);
 
-  const handleDeleteSuccess = useCallback(() => {
-    fetchExpensesData();
-    setSuccess('Expense deleted successfully');
-  }, [fetchExpensesData]);
+  const handleDeleteSuccess = useCallback((deletedId) => {
+    // Optimistically update both expenses lists
+    setExpenses((prev) => prev.filter((exp) => exp._id !== deletedId));
+    setAllExpenses((prev) => prev.filter((exp) => exp._id !== deletedId));
+
+    // Recalculate total amount
+    setAllExpenses((prev) => {
+      const newTotal = prev.reduce((sum, exp) => sum + (exp.amount || 0), 0);
+      setTotalAmount(newTotal);
+      return prev;
+    });
+
+    showToast('Expense deleted successfully');
+  }, []);
 
   // Loading state
   if (loading) {
@@ -227,6 +245,7 @@ const ViewData = () => {
               pagination={pagination}
               onPageChange={handlePageChange}
               onDeleteSuccess={handleDeleteSuccess}
+              token={token} // Pass token directly to avoid context call
             />
           </Tab>
           <Tab eventKey="analytics" title="Analytics">
@@ -234,6 +253,21 @@ const ViewData = () => {
           </Tab>
         </Tabs>
       </Container>
+
+      {/* Toast Notifications */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={toast.show}
+          onClose={() => setToast((prev) => ({ ...prev, show: false }))}
+          delay={3000}
+          autohide
+          bg={toast.type}
+        >
+          <Toast.Body className={toast.type === 'success' ? 'text-white' : ''}>
+            {toast.message}
+          </Toast.Body>
+        </Toast>
+      </ToastContainer>
     </Layout>
   );
 };

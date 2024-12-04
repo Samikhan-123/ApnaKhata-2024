@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   Button,
   Modal,
@@ -7,7 +7,6 @@ import {
   Card,
   Col,
   Row,
-  Form,
   Spinner,
 } from 'react-bootstrap';
 import {
@@ -15,12 +14,10 @@ import {
   FaTrash,
   FaEye,
   FaFileDownload,
-  FaCalculator,
   FaPrint,
 } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useAuth } from '../auth/AuthContext';
 import PaginationComponent from '../pages/Pagination';
 
 const ExpenseCard = ({
@@ -28,60 +25,85 @@ const ExpenseCard = ({
   pagination,
   onPageChange,
   onDeleteSuccess,
+  token
 }) => {
-  const { token } = useAuth();
   const navigate = useNavigate();
+  
+  // State for modals and UI
+  const [modalState, setModalState] = useState({
+    showReceipt: false,
+    showDelete: false,
+    selectedExpense: null,
+    selectedReceipt: null,
+  });
+  
+  // Track delete operation state
+  const [deleteState, setDeleteState] = useState({
+    loading: false,
+    error: null,
+  });
 
-  // State variables
-  const [showReceiptModal, setShowReceiptModal] = useState(false);
-  const [selectedReceipt, setSelectedReceipt] = useState(null);
-  const [showSplitModal, setShowSplitModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedExpense, setSelectedExpense] = useState(null);
-  const [participants, setParticipants] = useState(1);
-  const [splitAmount, setSplitAmount] = useState(0);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [goToPage, setGoToPage] = useState('');
+  // Use ref to prevent race conditions during delete
+  const deletingRef = useRef(false);
 
+  // Function to format currency
   const formatCurrency = (amount) =>
     new Intl.NumberFormat('en-PK', {
       style: 'currency',
       currency: 'PKR',
-    }).format(amount || 0);
+    }).format(amount); // Corrected this line
 
-  // Delete handling
-  const handleDeleteClick = useCallback((expense) => {
-    setSelectedExpense(expense);
-    setShowDeleteModal(true);
-  }, []);
+  // Handle delete operation
+  const handleDeleteClick = (expense) => {
+    setModalState(prev => ({
+      ...prev,
+      showDelete: true,
+      selectedExpense: expense,
+    }));
+  };
 
   const handleDelete = async () => {
+    if (deletingRef.current) return;
+    
+    const expenseToDelete = modalState.selectedExpense;
+    if (!expenseToDelete?._id) return;
+    deletingRef.current = true;
+    setDeleteState({ loading: true, error: null });
     try {
-      setError('');
-      setLoading(true);
-      await axios.delete(`/api/expenses/${selectedExpense._id}`, {
+      await axios.delete(`/api/expenses/${expenseToDelete._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      setShowDeleteModal(false);
-      setLoading(false);
-      setSuccess('Expense deleted successfully');
-      if (onDeleteSuccess) onDeleteSuccess(); // Trigger parent callback to refresh data
+      // Close modal first for better UX
+      setModalState(prev => ({
+        ...prev,
+        showDelete: false,
+        selectedExpense: null,
+      }));
+      // Notify parent component
+      onDeleteSuccess(expenseToDelete._id);
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to delete expense');
-      setLoading(false);
+      setDeleteState({
+        loading: false,
+        error: err.response?.data?.message || 'Failed to delete expense',
+      });
+    } finally {
+      deletingRef.current = false;
+      setDeleteState(prev => ({ ...prev, loading: false }));
     }
   };
 
-  const clearSuccess = () => setSuccess('');
+  const resetDeleteState = () => {
+    setModalState(prev => ({
+      ...prev,
+      showDelete: false,
+      selectedExpense: null,
+    }));
+    setDeleteState({ loading: false, error: null });
+  };
 
-  // Receipt handling
   const handleViewReceipt = async (receipt) => {
     if (!receipt) return;
-    setLoading(true);
-    setError('');
-
+    setDeleteState(prev => ({ ...prev, loading: true, error: null }));
     try {
       const response = await axios.get(
         `/api/expenses/receipt/${receipt.filename}`,
@@ -90,39 +112,42 @@ const ExpenseCard = ({
           responseType: 'blob',
         }
       );
-
       const blob = new Blob([response.data], { type: receipt.mimetype });
       const receiptUrl = URL.createObjectURL(blob);
-
-      setSelectedReceipt({
-        url: receiptUrl,
-        contentType: receipt.mimetype,
-        filename: receipt.filename,
-        blob: blob,
-      });
-
-      setShowReceiptModal(true);
+      setModalState(prev => ({
+        ...prev,
+        selectedReceipt: {
+          url: receiptUrl,
+          contentType: receipt.mimetype,
+          filename: receipt.filename,
+          blob: blob,
+        },
+        showReceipt: true,
+      }));
     } catch (error) {
       console.error('Error fetching receipt:', error);
-      setError('Failed to load receipt. Please try again later.');
+      setDeleteState(prev => ({ ...prev, error: 'Failed to load receipt. Please try again later.' }));
     } finally {
-      setLoading(false);
+      setDeleteState(prev => ({ ...prev, loading: false }));
     }
   };
 
   const handleCloseReceiptModal = () => {
-    if (selectedReceipt?.url) {
-      URL.revokeObjectURL(selectedReceipt.url);
+    if (modalState.selectedReceipt?.url) {
+      URL.revokeObjectURL(modalState.selectedReceipt.url);
     }
-    setSelectedReceipt(null);
-    setShowReceiptModal(false);
-    setError('');
+    setModalState(prev => ({
+      ...prev,
+      selectedReceipt: null,
+      showReceipt: false,
+    }));
+    setDeleteState(prev => ({ ...prev, error: null }));
   };
 
   const handleDownloadReceipt = () => {
-    if (!selectedReceipt?.url) return;
+    if (!modalState.selectedReceipt?.url) return;
     const link = document.createElement('a');
-    link.href = selectedReceipt.url;
+    link.href = modalState.selectedReceipt.url;
     link.download = `receipt-${new Date().toLocaleDateString('en-GB')}`;
     document.body.appendChild(link);
     link.click();
@@ -130,17 +155,11 @@ const ExpenseCard = ({
   };
 
   const handlePrintReceipt = () => {
-    if (!selectedReceipt?.url) return;
-    const printWindow = window.open(selectedReceipt.url, '_blank');
+    if (!modalState.selectedReceipt?.url) return;
+    const printWindow = window.open(modalState.selectedReceipt.url, '_blank');
     printWindow.onload = () => {
       printWindow.print();
     };
-  };
-
-  // Split calculator
-  const calculateSplit = () => {
-    const total = expenses.reduce((acc, curr) => acc + (curr.amount || 0), 0);
-    setSplitAmount(participants > 0 ? total / participants : 0);
   };
 
   return (
@@ -149,19 +168,12 @@ const ExpenseCard = ({
       <PaginationComponent
         pagination={pagination}
         onPageChange={onPageChange}
-        goToPage={goToPage}
-        setGoToPage={setGoToPage}
       />
-
+      
       {/* Success and Error Alerts */}
-      {success && (
-        <Alert variant="success" dismissible onClose={clearSuccess}>
-          {success}
-        </Alert>
-      )}
-      {error && (
-        <Alert variant="danger" dismissible onClose={() => setError('')}>
-          {error}
+      {deleteState.error && (
+        <Alert variant="danger" dismissible onClose={() => setDeleteState(prev => ({ ...prev, error: null }))}>
+          {deleteState.error}
         </Alert>
       )}
 
@@ -253,13 +265,11 @@ const ExpenseCard = ({
       <PaginationComponent
         pagination={pagination}
         onPageChange={onPageChange}
-        goToPage={goToPage}
-        setGoToPage={setGoToPage}
       />
 
       {/* Receipt Modal */}
       <Modal
-        show={showReceiptModal}
+        show={modalState.showReceipt}
         onHide={handleCloseReceiptModal}
         centered
         size="lg"
@@ -268,79 +278,85 @@ const ExpenseCard = ({
           <Modal.Title>Receipt</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {loading ? (
+          {deleteState.loading ? (
             <Spinner
               animation="border"
               variant="primary"
               className="d-block mx-auto"
             />
-          ) : error ? (
-            <Alert variant="danger">{error}</Alert>
-          ) : selectedReceipt?.url ? (
-            selectedReceipt.contentType.includes('image') ? (
+          ) : deleteState.error ? (
+            <Alert variant="danger">{deleteState.error}</Alert>
+          ) : modalState.selectedReceipt?.url ? (
+            modalState.selectedReceipt.contentType.includes('image') ? (
               <img
-                src={selectedReceipt.url}
-                alt="Receipt"
-                style={{ width: '100%' }}
+                src={modalState.selectedReceipt.url}
+                alt="receipt"
+                className="img-fluid"
               />
             ) : (
-              <iframe
-                src={selectedReceipt.url}
-                title="Receipt"
-                style={{ width: '100%', height: '500px' }}
-              />
+              <div className="d-flex justify-content-center">
+                <Button
+                  variant="outline-primary"
+                  onClick={handleDownloadReceipt}
+                >
+                  Download Receipt
+                </Button>
+                <Button
+                  variant="outline-success"
+                  className="ms-2"
+                  onClick={handlePrintReceipt}
+                >
+                  Print Receipt
+                </Button>
+              </div>
             )
           ) : (
-            <Alert variant="info">No receipt available</Alert>
+            <Alert variant="info">No receipt available.</Alert>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button
-            variant="outline-primary"
-            onClick={handleDownloadReceipt}
-            disabled={!selectedReceipt?.url}
-          >
-            <FaFileDownload /> Download
-          </Button>
-          <Button
-            variant="outline-secondary"
-            onClick={handlePrintReceipt}
-            disabled={!selectedReceipt?.url}
-          >
-            <FaPrint /> Print
-          </Button>
           <Button variant="secondary" onClick={handleCloseReceiptModal}>
             Close
           </Button>
         </Modal.Footer>
       </Modal>
 
-      {/* Delete Modal */}
+      {/* Delete Confirmation Modal */}
       <Modal
-        show={showDeleteModal}
-        onHide={() => setShowDeleteModal(false)}
+        show={modalState.showDelete}
+        onHide={resetDeleteState}
         centered
       >
         <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
+          <Modal.Title>Delete Expense</Modal.Title>
         </Modal.Header>
         <Modal.Body>
-          {loading ? (
+          {deleteState.loading ? (
             <Spinner
               animation="border"
               variant="primary"
               className="d-block mx-auto"
             />
           ) : (
-            <p>Are you sure you want to delete this expense?</p>
+            <>
+              <p>
+                Are you sure you want to delete this expense? This action cannot
+                be undone.
+              </p>
+              {deleteState.error && <Alert variant="danger">{deleteState.error}</Alert>}
+            </>
           )}
         </Modal.Body>
         <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+          <Button variant="secondary" onClick={resetDeleteState}>
             Cancel
           </Button>
-          <Button variant="danger" onClick={handleDelete} disabled={loading}>
-            {loading ? 'Deleting...' : 'Delete'}
+          <Button
+            variant="danger"
+            onClick={handleDelete}
+            disabled={deleteState.loading}
+          >
+            {deleteState.loading ? 'Deleting...' : 'Delete'}
           </Button>
         </Modal.Footer>
       </Modal>

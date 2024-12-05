@@ -204,22 +204,33 @@ export const addExpense = async (req, res) => {
       notes,
     } = req.body;
 
-   
-
     // Parse tags if provided as a string
     const parsedTags =
       typeof tags === 'string'
         ? tags.split(',').map((tag) => tag.trim())
         : tags || [];
 
-    // Prepare receipt details
-    const receipt = req.file
-      ? {
-          filename: req.file.filename,
-          path: req.file.path,
-          mimetype: req.file.mimetype,
-        }
-      : null;
+    // Prepare receipt details with error handling for size and mimetype
+    let receipt = null;
+    if (req.file) {
+      if (req.file.size > 1024 * 1024 * 5) { // 5MB
+        return res.status(400).json({
+          success: false,
+          message: 'Receipt file size exceeds the maximum limit of 5MB',
+        });
+      }
+      if (!['image/jpeg', 'image/png', 'application/pdf'].includes(req.file.mimetype)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Unsupported receipt file format',
+        });
+      }
+      receipt = {
+        filename: req.file.filename,
+        path: req.file.path,
+        mimetype: req.file.mimetype,
+      };
+    }
 
     // Create a new expense
     const newExpense = new Expense({
@@ -232,7 +243,6 @@ export const addExpense = async (req, res) => {
       tags: parsedTags,
       notes,
       receipt,
-   
     });
 
     await newExpense.save();

@@ -77,7 +77,7 @@ app.use('/api/*', (req, res, next) => {
 // Serve uploads (receipts) 
 app.use(
   '/uploads/receipts',
-  express.static(path.join(__dirname, 'uploads', 'receipts'))
+  express.static(path.join(__dirname, 'uploads', 'receipts')) 
 );
 // Error handling middleware
 app.use((err, req, res, next) => {

@@ -151,6 +151,7 @@ const ExpenseCard = ({
     if (!modalState.selectedReceipt?.url) return;
     const link = document.createElement('a');
     link.href = modalState.selectedReceipt.url;
+    // Dynamic filename for the receipt download (includes current date)
     link.download = `receipt-${new Date().toLocaleDateString('en-GB')}`;
     document.body.appendChild(link);
     link.click();
@@ -291,37 +292,37 @@ const ExpenseCard = ({
               variant="primary"
               className="d-block mx-auto"
             />
-          ) : deleteState.error ? (
-            <Alert variant="danger">{deleteState.error}</Alert>
-          ) : modalState.selectedReceipt?.url ? (
-            modalState.selectedReceipt.contentType.includes('image') ? (
-              <img
-                src={modalState.selectedReceipt.url}
-                alt="receipt"
-                className="img-fluid"
-              />
-            ) : (
-              <div className="d-flex justify-content-center">
-                <Button
-                  variant="outline-primary"
-                  onClick={handleDownloadReceipt}
-                >
-                  Download Receipt
-                </Button>
-                <Button
-                  variant="outline-success"
-                  className="ms-2"
-                  onClick={handlePrintReceipt}
-                >
-                  Print Receipt
-                </Button>
+          ) : (
+            modalState.selectedReceipt?.url && (
+              <div className="text-center">
+                <img
+                  src={modalState.selectedReceipt.url}
+                  alt="Receipt"
+                  style={{ maxWidth: '100%', maxHeight: '400px' }}
+                />
               </div>
             )
-          ) : (
-            <Alert variant="info">No receipt available.</Alert>
           )}
         </Modal.Body>
         <Modal.Footer>
+          {modalState.selectedReceipt?.url && (
+            <>
+              <Button
+                variant="secondary"
+                onClick={handlePrintReceipt}
+                disabled={deleteState.loading}
+              >
+                <FaPrint /> Print
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleDownloadReceipt}
+                disabled={deleteState.loading}
+              >
+                <FaFileDownload /> Download
+              </Button>
+            </>
+          )}
           <Button variant="secondary" onClick={handleCloseReceiptModal}>
             Close
           </Button>
@@ -331,32 +332,9 @@ const ExpenseCard = ({
       {/* Delete Confirmation Modal */}
       <Modal show={modalState.showDelete} onHide={resetDeleteState} centered>
         <Modal.Header closeButton>
-          <Modal.Title>Delete Expense</Modal.Title>
+          <Modal.Title>Confirm Deletion</Modal.Title>
         </Modal.Header>
-        <Modal.Body>
-          {deleteState.loading ? (
-            <Spinner
-              animation="border"
-              variant="primary"
-              className="d-block mx-auto"
-            />
-          ) : (
-            <>
-              <p>
-                Are you sure you want to delete this expense? This action cannot
-                be undone.
-              </p>
-              <p>
-                Category: {modalState.selectedExpense?.category}
-                <br />
-                Amount: {modalState.selectedExpense?.amount}
-              </p>
-              {deleteState.error && (
-                <Alert variant="danger">{deleteState.error}</Alert>
-              )}
-            </>
-          )}
-        </Modal.Body>
+        <Modal.Body>Are you sure you want to delete this expense?</Modal.Body>
         <Modal.Footer>
           <Button variant="secondary" onClick={resetDeleteState}>
             Cancel
@@ -366,7 +344,11 @@ const ExpenseCard = ({
             onClick={handleDelete}
             disabled={deleteState.loading}
           >
-            {deleteState.loading ? 'Deleting...' : 'Delete'}
+            {deleteState.loading ? (
+              <Spinner animation="border" size="sm" variant="light" />
+            ) : (
+              'Delete'
+            )}
           </Button>
         </Modal.Footer>
       </Modal>

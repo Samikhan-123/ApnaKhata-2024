@@ -81,7 +81,7 @@ app.use(
 );
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err);
+  console.error('Error:', err); 
 
   // Safely clean up uploaded file if there’s an error
   if (req.file && req.file.path) {

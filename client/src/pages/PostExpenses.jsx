@@ -43,7 +43,6 @@ const PostExpenses = () => {
     'Debit Card',
     'JazzCash',
     'EasyPaisa',
-    'Bank Transfer',
     'Other',
   ];
   // Toast State

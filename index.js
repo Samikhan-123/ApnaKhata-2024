@@ -31,13 +31,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
 
   // Handle client-side routing - should come BEFORE API routes
-  app.get('*', (req, res) => {
-    // Only serve index.html for non-API routes
-    if (!req.path.startsWith('/api/')) {
-      res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-    }
-  });
-}  
+}
 
 // CORS configuration
 app.use(
@@ -61,24 +55,26 @@ app.use((req, res, next) => {
 // API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/expenses', expenseRoutes);
-
-// API health check
-app.get('/api/health', (req, res) => {
-  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+app.use('*', (req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
 // Root route for server status
 app.use('/', (req, res) => {
   res.status(200).json({ message: 'careful this is server' });
 });
+// API health check
+app.get('/api/health', (req, res) => {
+  res.status(200).json({ status: 'ok', environment: process.env.NODE_ENV });
+});
+
 
 // 404 handler for API routes (catch-all for unhandled routes)
 app.use('/api/*', (req, res, next) => {
   next(createError(404, 'Route not found'));
 });
 
-
-// Serve uploads (receipts)
+// Serve uploads (receipts) 
 app.use(
   '/uploads/receipts',
   express.static(path.join(__dirname, 'uploads', 'receipts'))

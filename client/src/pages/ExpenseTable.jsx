@@ -223,6 +223,10 @@ const ExpenseCard = ({
                         ? expense.tags.join(', ')
                         : 'No tags'}
                     </Card.Text>
+                  <Card.Text>
+                    <strong>Notes: </strong>
+                    {expense.notes || 'null'}
+                  </Card.Text>
                   </Card.Body>
                   <Card.Footer className="bg-light">
                     <div className="d-flex justify-content-between align-items-center">

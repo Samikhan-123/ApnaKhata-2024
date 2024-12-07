@@ -8,8 +8,8 @@ export const createTransporter = async () => {
     const oauth2Client = new google.auth.OAuth2(
       process.env.CLIENT_ID,
       process.env.CLIENT_SECRET,
-      process.env.GOOGLE_REFRESH_TOKEN,
-      'https://developers.google.com/oauthplayground' // or your own redirect URL
+      // process.env.GOOGLE_REFRESH_TOKEN,
+      'https://developers.google.com/oauthplayground' // or your own redirect URL 
     );
     // Set refresh token from environment variable
     oauth2Client.setCredentials({
@@ -41,7 +41,7 @@ export const createTransporter = async () => {
   } catch (error) {
     console.error('Error creating transporter config:', error);
     throw new Error(
-      'Transporter configuration failed. Ensure OAuth and environment variables are correctly set.'
+      'Transporter configuration failed. Ensure OAuth and environment variables are correctly set.' 
     );
   }
 };
@@ -74,26 +74,26 @@ export const sendEmail = async (options) => {
       // If the maximum retry attempts are reached, throw error
       if (attempt > maxRetries) {
         console.error(
-          'Maximum retry attempts reached. Email could not be sent.'
+          `Attempt ${attempt} failed: Maximum retry attempts reached. Email could not be sent.`
         );
         // throw new Error('Email sending failed after retries');
       }
 
       // If retrying, wait 1 second before trying again
-      console.log('Retrying in 1 second...');
+      console.log('Retrying in 1 second...'); 
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 };
 
-// (async () => {
-//   try {
-//     await sendEmail({
-//       email: 'samikhan7816@gmail.com',
-//       subject: 'Test Email',
-//       html: '<h1>This is a test email</h1>',
-//     });
-//   } catch (error) {
-//     console.error('Error sending test email:', error);
-//   }
-// })();
+(async () => {
+  try {
+    await sendEmail({
+      email: 'samikhan7816@gmail.com',
+      subject: 'Test Email',
+      html: '<h1>This is a test email</h1>',
+    });
+  } catch (error) {
+    console.error('Error sending test email:', error);
+  }
+})();

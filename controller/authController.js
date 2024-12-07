@@ -90,7 +90,6 @@ export const register = async (req, res) => {
   }
 };
 
-
 // Login Controller (Local Users)
 export const login = async (req, res) => {
   try {
@@ -170,12 +169,10 @@ export const getProfileWithExpenses = async (req, res) => {
     }).select('amount date description');
 
     // Return user info including isGoogleUser
-    res
-      .status(200)
-      .json({
-        user: { ...user.toObject(), isGoogleUser: user.isGoogleUser },
-        expenses,
-      });
+    res.status(200).json({
+      user: { ...user.toObject(), isGoogleUser: user.isGoogleUser },
+      expenses,
+    });
   } catch (error) {
     console.error('Error fetching profile with expenses:', error);
     res.status(500).json({
@@ -241,7 +238,9 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    const resetUrl = process.env.CLIENT_URL ? `${process.env.CLIENT_URL}/reset-password/${resetToken}` : `http://localhost:5173/reset-password/${resetToken}`;
+    const resetUrl = process.env.CLIENT_URL
+      ? `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+      : `http://localhost:5173/reset-password/${resetToken}`;
     const formatDate = (date) => {
       return new Intl.DateTimeFormat('en-GB', {
         weekday: 'long',
@@ -298,8 +297,9 @@ export const forgotPassword = async (req, res) => {
       subject: 'Password Reset Request',
       html: message,
     });
-    console.log(`Forgot Email sent to ${user.email}`);
+    // console.log(`Forgot Email sent to ${user.email}`);
     res.status(200).json({
+      success: true,
       message:
         'If a user with that email exists, a password reset link has been sent.',
     });
@@ -313,8 +313,7 @@ export const forgotPassword = async (req, res) => {
     }
 
     res.status(500).json({
-      message:
-        'An error occurred while processing your request, server error.',
+      message: 'An error occurred while processing your request, server error.',
     });
   }
 };

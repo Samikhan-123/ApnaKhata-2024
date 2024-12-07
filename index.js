@@ -16,12 +16,12 @@ const __dirname = path.dirname(__filename);
 
 // Load environment variables
 dotenv.config();
-
+ 
 // Connect to database
 connectedDB();
 
-// Middleware
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
+// Middleware 
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'dev' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 

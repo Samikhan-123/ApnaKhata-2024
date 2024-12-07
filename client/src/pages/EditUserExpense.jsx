@@ -9,6 +9,7 @@ import {
   Col,
   Card,
   Spinner,
+
 } from 'react-bootstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -16,6 +17,7 @@ import axios from 'axios';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Layout from '../components/Layout';
+import { toast } from 'react-toastify'; // Import toast from react-toastify
 
 const EditExpense = () => {
   const { id } = useParams();
@@ -27,6 +29,7 @@ const EditExpense = () => {
   const [success, setSuccess] = useState('');
   const [currentReceipt, setCurrentReceipt] = useState(''); // Store receipt URL or filename
 
+  
   const categories = [
     'Food & Dining',
     'Shopping',
@@ -105,10 +108,10 @@ const EditExpense = () => {
           },
         });
 
-        setSuccess('Expense updated successfully!');
+        toast.success('Expense updated successfully!'); // Use toast for success message
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
-        setError(err.response?.data?.message || 'Failed to update expense');
+        toast.error(err.response?.data?.message || 'Failed to update expense'); // Use toast for error message
       } finally {
         setLoading(false);
       }
@@ -144,7 +147,7 @@ const EditExpense = () => {
           setCurrentReceipt(expense.receipt?.url || ''); // Set the receipt file or URL
         }
       } catch (err) {
-        setError(err.response?.data?.message || 'something went wrong');
+        toast.error(err.response?.data?.message || 'Something went wrong'); // Use toast for error message
       } finally {
         setLoading(false);
       }
@@ -153,18 +156,18 @@ const EditExpense = () => {
     fetchExpense();
   }, [id, token]);
 
-  if (loading) {
-    return (
-      <Layout title="Edit Expense - ApnaKhata">
-        <Container className="d-flex justify-content-center align-items-center">
-          <div className="text-center py-5 min-vh-100">
-            <Spinner animation="border" variant="primary" />
-            <p>Loading data...</p>
-          </div>
-        </Container>
-      </Layout>
-    );
-  }
+  // if (loading) {
+  //   return (
+  //     <Layout title="Edit Expense - ApnaKhata">
+  //       <Container className="d-flex justify-content-center align-items-center">
+  //         <div className="text-center py-5 min-vh-100">
+  //           <Spinner animation="border" variant="primary" />
+  //           <p>Loading data...</p>
+  //         </div>
+  //       </Container>
+  //     </Layout>
+  //   );
+  // }
 
   return (
     <Layout title="Edit Expense - ApnaKhata">
@@ -368,6 +371,7 @@ const EditExpense = () => {
           </Col>
         </Row>
       </Container>
+      
     </Layout>
   );
 };

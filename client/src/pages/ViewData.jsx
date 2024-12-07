@@ -9,8 +9,7 @@ import {
   Card,
   Tabs,
   Tab,
-  Toast,
-  ToastContainer,
+ 
 } from 'react-bootstrap';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
@@ -21,6 +20,7 @@ import Layout from '../components/Layout';
 import ExpenseCard from '../pages/ExpenseTable';
 import Filters from '../pages/Filters';
 import Analytics from '../pages/Analytics';
+import { toast } from 'react-toastify'; // Import toast from react-toastify
 
 const ViewData = () => {
   const navigate = useNavigate();
@@ -55,16 +55,6 @@ const ViewData = () => {
     tags: '',
   });
 
-  // Toast State
-  const [toast, setToast] = useState({
-    show: false,
-    message: '',
-    type: 'success',
-  });
-
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-  };
 
   // Fetch Expenses
   const fetchExpensesData = useCallback(async () => {
@@ -109,6 +99,7 @@ const ViewData = () => {
       setError(err.response?.data?.message || 'Failed to fetch expenses');
       setExpenses([]);
       setAllExpenses([]);
+      toast.error('Failed to fetch expenses'); // Display toast error message
     } finally {
       setLoading(false);
     }
@@ -132,6 +123,7 @@ const ViewData = () => {
     // Optimistically update both expenses lists
     setExpenses((prev) => prev.filter((exp) => exp._id !== deletedId));
     setAllExpenses((prev) => prev.filter((exp) => exp._id !== deletedId));
+    toast.success('Expense deleted successfully!'); // Display toast success message
 
     // Recalculate total amount
     setAllExpenses((prev) => {
@@ -139,8 +131,6 @@ const ViewData = () => {
       setTotalAmount(newTotal);
       return prev;
     });
-
-    showToast('Expense deleted successfully');
   }, []);
 
   // Loading state
@@ -219,24 +209,28 @@ const ViewData = () => {
         {/* Summary Card */}
         <Card className="mb-4">
           <Card.Body>
-            <div className="d-flex justify-content-between align-items-center">
-              <div>
-                <Card.Title className="mb-0">
-                  Total Expenses (All Time)
-                </Card.Title>
-                <h3 className="mt-2">
-                  {new Intl.NumberFormat('en-PK', {
-                    style: 'currency',
-                    currency: 'PKR',
-                  }).format(totalAmount)}
-                </h3>
-              </div>
-              <div className="text-end">
-                <Card.Text className="text-muted mb-0">
-                  Total Records (All Time)
-                </Card.Text>
-                <h4 className="mt-2">{allExpenses.length}</h4>
-              </div>
+            <div className="table-responsive">
+              <table className="table table-bordered table-striped table-hover">
+                <thead>
+                  <tr>
+                    <th scope="col">Category</th>
+                    <th scope="col">Value</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>Total Expenses (All Time)</td>
+                    <td>{new Intl.NumberFormat('en-PK', {
+                      style: 'currency',
+                      currency: 'PKR',
+                    }).format(totalAmount)}</td>
+                  </tr>
+                  <tr>
+                    <td>Total Records (All Time)</td>
+                    <td>{allExpenses.length}</td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </Card.Body>
         </Card>
@@ -258,20 +252,6 @@ const ViewData = () => {
         </Tabs>
       </Container>
 
-      {/* Toast Notifications */}
-      <ToastContainer position="bottom-end" className="p-3">
-        <Toast
-          show={toast.show}
-          onClose={() => setToast((prev) => ({ ...prev, show: false }))}
-          delay={3000}
-          autohide
-          bg={toast.type}
-        >
-          <Toast.Body className={toast.type === 'success' ? 'text-white' : ''}>
-            {toast.message}
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
     </Layout>
   );
 };

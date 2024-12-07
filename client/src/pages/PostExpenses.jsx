@@ -9,8 +9,6 @@ import {
   Col,
   Card,
   Spinner,
-  Toast,
-  ToastContainer,
 } from 'react-bootstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -18,6 +16,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import Layout from '../components/Layout';
+import { toast } from 'react-toastify'; // Import toastify
 const PostExpenses = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -45,16 +44,7 @@ const PostExpenses = () => {
     'EasyPaisa',
     'Other',
   ];
-  // Toast State
-  const [toast, setToast] = useState({
-    show: false,
-    message: '',
-    type: 'success',
-  });
 
-  const showToast = (message, type = 'success') => {
-    setToast({ show: true, message, type });
-  };
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .required('Description is required')
@@ -127,13 +117,12 @@ const PostExpenses = () => {
         });
 
         setSuccess('Expense added successfully!');
-        showToast('Expense added successfully');
+        toast.success('Expense added successfully!'); // Show toast success message
 
-        // toast.success('Expense added successfully!');
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
         setError(err.response?.data?.message || 'Failed to add expense');
-        // toast.error('Failed to add expense');
+        toast.error('Failed to add expense'); // Show toast error message
       } finally {
         setLoading(false);
       }
@@ -351,20 +340,6 @@ const PostExpenses = () => {
           </Col>
         </Row>
       </Container>
-      {/* Toast Notifications */}
-      <ToastContainer position="top-end" className="p-3">
-        <Toast
-          show={toast.show}
-          onClose={() => setToast((prev) => ({ ...prev, show: false }))}
-          delay={3000}
-          autohide
-          bg={toast.type}
-        >
-          <Toast.Body className={toast.type === 'success' ? 'text-white' : ''}>
-            {toast.message}
-          </Toast.Body>
-        </Toast>
-      </ToastContainer>
     </Layout>
   );
 };

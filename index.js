@@ -38,7 +38,7 @@ app.use(
   cors({
     origin:
       process.env.NODE_ENV === 'production'
-        ? process.env.FRONTEND_URL // Ensure this is set correctly in production
+        ? process.env.FRONTEND_URL || 'http://localhost:5173' // Ensure this is set correctly in production
         : '*',
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
@@ -54,7 +54,7 @@ app.use((req, res, next) => {
 
 // API Routes
 app.use('/api/auth', authRoutes);
-app.use('/api/expenses', expenseRoutes);
+app.use('/api/expenses', expenseRoutes); 
 app.use('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
@@ -81,14 +81,17 @@ app.use(
 );
 // Error handling middleware
 app.use((err, req, res, next) => {
-  console.error('Error:', err); 
-
   // Safely clean up uploaded file if there’s an error
   if (req.file && req.file.path) {
     fs.unlink(req.file.path, (unlinkError) => {
-      if (unlinkError) console.error('Error deleting file:', unlinkError);
+      if (unlinkError) res.status(500).json({ message: 'Error deleting file' });
     });
   }
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message,
+  });
 
   const statusCode = err.status || 500;
   res.status(statusCode).json({
@@ -102,7 +105,8 @@ app.use((err, req, res, next) => {
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(
-    `Server running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`
+    `Server running in ${process.env.NODE_ENV || "development"} mode on port ${PORT}`
+      .underline.brightBlue
   );
 });
 

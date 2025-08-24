@@ -1,0 +1,132 @@
+.custom-navbar {
+  background: var(--header-color);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.3);
+  padding: 0.2rem 1rem;
+  min-height: 76px;
+}
+
+.logo-text {
+  font-size: 1.8rem;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+.no-caret .dropdown-toggle::after {
+  display: none !important; /* removes Bootstrap's > arrow */
+}
+
+.navbar-collapse-custom {
+  background: #3e0703;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-content {
+  padding: 1rem;
+}
+
+.mobile-nav-item {
+  padding: 1rem !important;
+  border-radius: 8px;
+  margin: 0.25rem 0;
+  transition: all 0.3s ease;
+  color: white !important;
+  display: flex;
+  align-items: center;
+}
+
+.mobile-nav-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.mobile-nav-item.active {
+  background: rgba(255, 255, 255, 0.2);
+  font-weight: 600;
+}
+
+.mobile-user-section {
+  padding: 1.5rem 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 1rem;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  color: white;
+}
+
+.user-info h6 {
+  margin: 0;
+  color: white;
+}
+
+.user-info small {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.logout-btn {
+  color: aliceblue;
+  width: 20%;
+  padding: 0.75rem;
+  border: 1px solid #fff;
+}
+
+/* Desktop styles */
+@media (min-width: 992px) {
+  .navbar-collapse-custom {
+    position: static;
+    background: transparent;
+    border-top: none;
+  }
+
+  .nav-link {
+    color: white !important;
+    padding: 0.5rem 1rem;
+    border-radius: 6px;
+    transition: all 0.3s ease;
+  }
+
+  .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+  }
+
+  .nav-link.active {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+/* Mobile styles */
+@media (max-width: 991px) {
+  .custom-navbar {
+    padding: 0.5rem;
+  }
+
+  .logo-text {
+    font-size: 1.5rem;
+  }
+
+  .navbar-collapse-custom {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Small mobile devices */
+@media (max-width: 576px) {
+  .logo-text {
+    font-size: 1.3rem;
+  }
+
+  .mobile-nav-content {
+    padding: 0.75rem;
+  }
+
+  .mobile-nav-item {
+    padding: 0.75rem !important;
+  }
+}

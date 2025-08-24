@@ -83,7 +83,7 @@ export const register = async (req, res) => {
 
     res.status(201).json({ message: 'User registered successfully.' });
   } catch (error) {
-    console.error('Error during registration:', error.message);
+    // console.error('Error during registration:', error.message);
     res
       .status(500)
       .json({ message: 'Error registering user', error: error.message });
@@ -149,7 +149,7 @@ export const login = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.error('Login error:', error);
+    // console.error('Login error:', error);
     res.status(500).json({
       success: false,
       message: 'Error logging in.',
@@ -174,7 +174,7 @@ export const getProfileWithExpenses = async (req, res) => {
       expenses,
     });
   } catch (error) {
-    console.error('Error fetching profile with expenses:', error);
+    // console.error('Error fetching profile with expenses:', error);
     res.status(500).json({
       message: 'Error fetching profile',
       error: error.message,
@@ -188,7 +188,7 @@ export const getAllUsers = async (req, res) => {
     const users = await User.find().select('-password');
     res.status(200).json(users);
   } catch (error) {
-    console.error('Error fetching users:', error);
+    // console.error('Error fetching users:', error);
     res
       .status(500)
       .json({ message: 'Error fetching users', error: error.message });
@@ -238,8 +238,8 @@ export const forgotPassword = async (req, res) => {
 
     await user.save();
 
-    const resetUrl = process.env.CLIENT_URL
-      ? `${process.env.CLIENT_URL}/reset-password/${resetToken}`
+    const resetUrl = process.env.FRONTEND_URL
+      ? `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
       : `http://localhost:5173/reset-password/${resetToken}`;
     const formatDate = (date) => {
       return new Intl.DateTimeFormat('en-GB', {
@@ -304,7 +304,7 @@ export const forgotPassword = async (req, res) => {
         'If a user with that email exists, a password reset link has been sent.',
     });
   } catch (error) {
-    console.error('Error in forgotPassword:', error);
+    // console.error('Error in forgotPassword:', error);
 
     if (user) {
       user.resetPasswordToken = undefined;
@@ -428,11 +428,11 @@ export const resetPassword = async (req, res) => {
         subject: 'Password Reset Confirmation',
         html: message,
       });
-      console.log(`Reset Email sent to ${user.email}`);
+      // console.log(`Reset Email sent to ${user.email}`);
     } catch (error) {
-      console.error(
-        `Failed to send confirmation email to ${user.email}: ${error.message}`
-      );
+      // console.error(
+      //   `Failed to send confirmation email to ${user.email}: ${error.message}`
+      // );
       // Note: We're not returning here, as the password reset was successful even if the email failed
     }
 
@@ -441,7 +441,7 @@ export const resetPassword = async (req, res) => {
       message: 'Your password has been reset successfully.',
     });
   } catch (error) {
-    console.error('Password reset error:', error);
+    // console.error('Password reset error:', error);
     res.status(500).json({
       success: false,
       message: 'An error occurred while resetting the password.',

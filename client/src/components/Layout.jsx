@@ -7,7 +7,7 @@ const defaultProps = {
   title: 'ApnaKhata - Track Your Expenses',
   description: 'ApnaKhata - An accounting and expense tracking app for personal and family use.',
   keywords: 'apnaKhata, accounting, expense tracking, budget, family finance, personal finance, expenditure, expenses, budgeting, login, register, reset password',
-  author: 'SK Relationship',
+  author: 'SK',
 };
 
 const Layout = ({

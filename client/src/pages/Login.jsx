@@ -1,5 +1,3 @@
-/* eslint-disable no-unused-vars */
-// LoginPage.js
 import React, { useState } from "react";
 import { Button, Form, Col, Row, Breadcrumb, Alert } from "react-bootstrap";
 import { useNavigate, NavLink } from "react-router-dom";
@@ -7,8 +5,7 @@ import { useAuth } from "../auth/AuthContext";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import axios from "axios";
 import Layout from "../components/Layout";
-import toast from "react-hot-toast";
-import "./styles/Login.css";
+import "./styles/forms.css"; // Import the unified CSS
 
 const LoginPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
@@ -17,7 +14,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const { login, user } = useAuth(); // Use login and user from AuthContext
+  const { login, user } = useAuth();
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
@@ -35,11 +32,9 @@ const LoginPage = () => {
 
       if (response.data.success) {
         const { user: loggedInUser, token } = response.data;
-        login(loggedInUser, token); // Set user and token in context
+        login(loggedInUser, token);
         setShowSuccessAlert(true);
-        // toast.success("Login successful!");
 
-        // Redirect after login
         setTimeout(() => {
           navigate("/expenses");
         }, 1000);
@@ -48,9 +43,8 @@ const LoginPage = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "ohh! something went wrong with server"
+        err.response?.data?.message || "Something went wrong with server"
       );
-      // toast.error(err.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -64,41 +58,36 @@ const LoginPage = () => {
 
       if (response.data.success) {
         const { user: googleUser, token } = response.data;
-        login(googleUser, token); // Set user and token from Google login
-        // toast.success("Google login successful!");
+        login(googleUser, token);
         navigate("/expenses");
       } else {
         setError(response.data.message || "Google login failed");
-        // toast.error(response.data.message || "Google login failed");
       }
     } catch (err) {
-      console.error("Google login error:", err);
       setError(
         err.response?.data?.message || "An error occurred during Google login"
       );
-      // toast.error(err.response?.data?.message || "Google login failed");
     }
   };
 
   return (
     <Layout title="Login - ApnaKhata">
       <div className="login-page">
-        <Row className=" justify-content-center align-items-center min-vh-100 ">
-          <Col
-            lg={6}
-            md={8}
-            sm={10}
-            xs={10}
-            className="bg-light rounded shadow-sm p-4"
-          >
-            <Breadcrumb className="mb-3">
+        <Row className="justify-content-center align-items-center min-vh-100">
+          <Col lg={6} md={8} sm={10} xs={10} className="glass-form-container">
+            <Breadcrumb className="glass-breadcrumb mb-3">
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Login</Breadcrumb.Item>
             </Breadcrumb>
-            <h2 className="text-center mb-4">Login</h2> 
+            <h2 className="text-center mb-4">Login</h2>
 
             {error && (
-              <Alert variant="danger" dismissible onClose={() => setError("")}>
+              <Alert
+                variant="danger"
+                dismissible
+                onClose={() => setError("")}
+                className="glass-alert"
+              >
                 {error}
               </Alert>
             )}
@@ -108,12 +97,13 @@ const LoginPage = () => {
                 variant="success"
                 dismissible
                 onClose={() => setShowSuccessAlert(false)}
+                className="glass-alert"
               >
                 Login successful...
               </Alert>
             )}
 
-            <Form onSubmit={handleSubmit}>
+            <Form onSubmit={handleSubmit} className="glass-form">
               <Form.Group className="mb-3" controlId="formBasicEmail">
                 <Form.Label>Email address</Form.Label>
                 <Form.Control
@@ -127,7 +117,7 @@ const LoginPage = () => {
 
               <Form.Group className="mb-3" controlId="formBasicPassword">
                 <Form.Label>Password</Form.Label>
-                <div className="input-group">
+                <div className="glass-input-group">
                   <Form.Control
                     type={passwordShown ? "text" : "password"}
                     placeholder="Password"
@@ -138,9 +128,6 @@ const LoginPage = () => {
                   <Button
                     variant="outline-secondary"
                     onClick={togglePasswordVisibility}
-                    aria-label={
-                      passwordShown ? "Hide password" : "Show password"
-                    }
                   >
                     {passwordShown ? "Hide" : "Show"}
                   </Button>
@@ -148,26 +135,22 @@ const LoginPage = () => {
               </Form.Group>
 
               <div className="mb-3 text-end">
-                <NavLink to="/forgot-password" className="text-primary">
+                <NavLink to="/forgot-password" className="glass-link">
                   Forgot Password?
                 </NavLink>
               </div>
 
               <Button
-                variant="primary"
                 type="submit"
-                className="w-100"
+                className="w-100 glass-btn"
                 disabled={loading}
               >
                 {loading ? "Logging in..." : "Login"}
               </Button>
             </Form>
 
-            {/* Separator line with text */}
-            <div className="my-3 text-center">
-              <hr />
-              <span className="text-muted">or</span>
-              <hr />
+            <div className="glass-separator">
+              <span>or</span>
             </div>
 
             {!user && (
@@ -175,11 +158,10 @@ const LoginPage = () => {
                 clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
               >
                 <GoogleLogin
-                  className="w-100 google-button"
+                  className="w-100 glass-google-btn"
                   onSuccess={handleGoogleLogin}
                   onError={() => {
                     setError("Google login failed");
-                    // toast.error("Google login failed");
                   }}
                 />
               </GoogleOAuthProvider>
@@ -188,7 +170,7 @@ const LoginPage = () => {
             <div className="text-center mt-3">
               <p>
                 Not registered?
-                <NavLink to="/register" className="text-primary">
+                <NavLink to="/register" className="glass-link ms-1">
                   Register here
                 </NavLink>
               </p>

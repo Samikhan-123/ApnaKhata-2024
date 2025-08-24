@@ -26,9 +26,9 @@ export const validateExpense = (req, res, next) => {
     if (isNaN(dateObj.getTime())) {
       errors.push('Invalid date format');
     }
-    // if (dateObj > new Date()) {
-    //   errors.push('Date cannot be in the future');
-    // }
+    if (dateObj > new Date()) {
+      errors.push('Date cannot be in the future');
+    }
 
     // Validate category
     const validCategories = [
@@ -147,7 +147,7 @@ export const validatePaymentMethods = [
   'Cash',
   'Credit Card',
   'Debit Card',
-  'UPI',
-  'Net Banking',
+  'JazzCash',
+  'EasyPaisa',
   'Other',
 ];

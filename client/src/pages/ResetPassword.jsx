@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Button,
   Form,
@@ -8,24 +8,25 @@ import {
   Alert,
   ListGroup,
   ProgressBar,
-} from 'react-bootstrap';
-import { useNavigate, useParams, NavLink } from 'react-router-dom';
-import axios from 'axios';
-import Layout from '../components/Layout';
+} from "react-bootstrap";
+import { useNavigate, useParams, NavLink } from "react-router-dom";
+import axios from "axios";
+import Layout from "../components/Layout";
+import "./styles/forms.css"; // Import the unified CSS
 
 const ResetPasswordPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [error, setError] = useState("");
   const [unmetRequirements, setUnmetRequirements] = useState([]);
-  const [successMessage, setSuccessMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
   const [passwordStrength, setPasswordStrength] = useState({
-    strength: '',
+    strength: "",
     progress: 0,
-    variant: '',
-    message: '',
+    variant: "",
+    message: "",
   });
 
   const navigate = useNavigate();
@@ -33,7 +34,6 @@ const ResetPasswordPage = () => {
 
   const togglePasswordVisibility = () => setPasswordShown(!passwordShown);
 
-  // Password strength logic using if-else statements
   const checkPasswordStrength = (password) => {
     let strength = 0;
 
@@ -43,37 +43,32 @@ const ResetPasswordPage = () => {
     if (/[0-9]/.test(password)) strength += 1;
     if (/[^A-Za-z0-9]/.test(password)) strength += 1;
 
-    let strengthLabel = '';
+    let strengthLabel = "";
     let progress = 0;
-    let variant = '';
+    let variant = "";
     const message =
-      'Note : Password should contain at least one uppercase letter, one lowercase letter, one number, and one special character (e.g., !@#$%^&*).';
+      "Password should contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
 
     if (strength === 0 || strength === 1) {
-      strengthLabel = 'Weak';
+      strengthLabel = "Weak";
       progress = 20;
-      variant = 'danger';
-      message;
+      variant = "danger";
     } else if (strength === 2) {
-      strengthLabel = 'Fair';
+      strengthLabel = "Fair";
       progress = 40;
-      variant = 'warning';
-      message;
+      variant = "warning";
     } else if (strength === 3) {
-      strengthLabel = 'Good';
+      strengthLabel = "Good";
       progress = 60;
-      variant = 'info';
-      message;
+      variant = "info";
     } else if (strength === 4) {
-      strengthLabel = 'Strong';
+      strengthLabel = "Strong";
       progress = 80;
-      variant = 'primary';
-      message;
+      variant = "primary";
     } else if (strength === 5) {
-      strengthLabel = 'Very Strong';
+      strengthLabel = "Very Strong";
       progress = 100;
-      variant = 'success';
-      message;
+      variant = "success";
     }
 
     return { strength: strengthLabel, progress, variant, message };
@@ -89,12 +84,12 @@ const ResetPasswordPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
     setUnmetRequirements([]);
-    setSuccessMessage('');
+    setSuccessMessage("");
 
     if (password !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError("Passwords do not match.");
       setLoading(false);
       return;
     }
@@ -106,10 +101,9 @@ const ResetPasswordPage = () => {
       );
       if (response.data.success) {
         setSuccessMessage(
-          'Password successfully reset! Redirecting to login...'
+          "Password successfully reset! Redirecting to login..."
         );
-        // Redirect to login after a short delay
-        setTimeout(() => navigate('/login'), 2000);
+        setTimeout(() => navigate("/login"), 2000);
       } else {
         setError(response.data.message);
         if (response.data.requirements) {
@@ -119,7 +113,7 @@ const ResetPasswordPage = () => {
     } catch (err) {
       setError(
         err.response?.data?.message ||
-          'An error occurred while resetting your password.'
+          "An error occurred while resetting your password."
       );
     } finally {
       setLoading(false);
@@ -130,23 +124,34 @@ const ResetPasswordPage = () => {
     <Layout title="Reset Password - ApnaKhata">
       <div className="container vw-100 vh-100 mt-1">
         <Row className="justify-content-center p-4">
-          <Col className="p-4 mt-4 bg-light rounded shadow-sm" lg={6} xs={12}>
-            <Breadcrumb className="mt-3">
+          <Col className="glass-form-container" lg={6} xs={12}>
+            <Breadcrumb className="glass-breadcrumb">
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Reset Password</Breadcrumb.Item>
             </Breadcrumb>
             <h2 className="text-center mb-4">Reset Password</h2>
 
             {error && (
-              <Alert variant="danger" dismissible onClose={() => setError('')}>
+              <Alert
+                variant="danger"
+                dismissible
+                onClose={() => setError("")}
+                className="glass-alert"
+              >
                 {error}
                 {unmetRequirements.length > 0 && (
                   <>
                     <br />
                     <strong>Please address the following requirements:</strong>
-                    <ListGroup variant="flush" className="mt-2">
+                    <ListGroup
+                      variant="flush"
+                      className="glass-list-group mt-2"
+                    >
                       {unmetRequirements.map((req, index) => (
-                        <ListGroup.Item key={index} className="px-0">
+                        <ListGroup.Item
+                          key={index}
+                          className="glass-list-group-item px-0"
+                        >
                           • {req}
                         </ListGroup.Item>
                       ))}
@@ -160,18 +165,19 @@ const ResetPasswordPage = () => {
               <Alert
                 variant="success"
                 dismissible
-                onClose={() => setSuccessMessage('')}
+                onClose={() => setSuccessMessage("")}
+                className="glass-alert"
               >
                 {successMessage}
               </Alert>
             )}
 
-            <Form onSubmit={handleSubmit}>
+            <Form onSubmit={handleSubmit} className="glass-form">
               <Form.Group className="mb-3">
                 <Form.Label>New Password</Form.Label>
-                <div className="input-group">
+                <div className="glass-input-group">
                   <Form.Control
-                    type={passwordShown ? 'text' : 'password'}
+                    type={passwordShown ? "text" : "password"}
                     placeholder="Enter new password"
                     value={password}
                     onChange={handlePasswordChange}
@@ -181,27 +187,31 @@ const ResetPasswordPage = () => {
                     variant="outline-secondary"
                     onClick={togglePasswordVisibility}
                   >
-                    {passwordShown ? 'Hide' : 'Show'}
+                    {passwordShown ? "Hide" : "Show"}
                   </Button>
                 </div>
               </Form.Group>
 
-              {/* Password Strength Indicator */}
               {password && (
-                <ProgressBar
-                  striped
-                  variant={passwordStrength.variant}
-                  now={passwordStrength.progress}
-                  label={passwordStrength.strength}
-                  className="mb-3"
-                />
+                <>
+                  <div className="password-strength-text mb-2">
+                    {passwordStrength.message}
+                  </div>
+                  <ProgressBar
+                    striped
+                    variant={passwordStrength.variant}
+                    now={passwordStrength.progress}
+                    label={passwordStrength.strength}
+                    className="glass-progress mb-3"
+                  />
+                </>
               )}
 
               <Form.Group className="mb-3">
                 <Form.Label>Confirm New Password</Form.Label>
-                <div className="input-group">
+                <div className="glass-input-group">
                   <Form.Control
-                    type={passwordShown ? 'text' : 'password'}
+                    type={passwordShown ? "text" : "password"}
                     placeholder="Confirm new password"
                     value={confirmPassword}
                     onChange={(e) => setConfirmPassword(e.target.value)}
@@ -211,7 +221,7 @@ const ResetPasswordPage = () => {
                     variant="outline-secondary"
                     onClick={togglePasswordVisibility}
                   >
-                    {passwordShown ? 'Hide' : 'Show'}
+                    {passwordShown ? "Hide" : "Show"}
                   </Button>
                 </div>
               </Form.Group>
@@ -219,17 +229,17 @@ const ResetPasswordPage = () => {
               <Button
                 variant="primary"
                 type="submit"
-                className="w-100"
+                className="w-100 glass-btn"
                 disabled={loading}
               >
-                {loading ? 'Resetting Password...' : 'Reset Password'}
+                {loading ? "Resetting Password..." : "Reset Password"}
               </Button>
             </Form>
 
             <div className="text-center mt-3">
               <p>
-                Remembered your password?{' '}
-                <NavLink to="/login" className="text-primary ms-1">
+                Remembered your password?{" "}
+                <NavLink to="/login" className="glass-link ms-1">
                   Login here
                 </NavLink>
               </p>

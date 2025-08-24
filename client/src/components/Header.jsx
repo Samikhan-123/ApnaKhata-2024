@@ -1,163 +1,241 @@
-/* eslint-disable no-unused-vars */
-import React, { useState } from 'react';
-import { NavLink, useNavigate } from 'react-router-dom';
-import { NavDropdown, Navbar, Container } from 'react-bootstrap';
-import './styles/headerStyle.css';
-import { useAuth } from '../auth/AuthContext';
-import { toast } from 'react-toastify';
+import React, { useState } from "react";
+import { NavLink, useNavigate } from "react-router-dom";
+import { NavDropdown, Navbar, Container, Button, Nav } from "react-bootstrap";
+import { useAuth } from "../auth/AuthContext";
+import { toast } from "react-toastify";
+import {
+  FaHome,
+  FaPlusCircle,
+  FaMoneyBillWave,
+  FaUserCircle,
+  FaSignOutAlt,
+  FaBars,
+  FaTimes,
+} from "react-icons/fa";
+import "../components/styles/Header.css";
 
 const Header = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth(); // Destructure user and logout from context
-  const [isOpen, setIsOpen] = useState(false); // State to manage menu toggle
+  const { user, logout } = useAuth();
+  const [isOpen, setIsOpen] = useState(false);
 
   const handleLogout = () => {
-    const confirmLogout = window.confirm('Are you sure you want to logout?');
+    const confirmLogout = window.confirm("Are you sure you want to logout?");
     if (confirmLogout) {
-      logout(); // Call logout to clear the user's session
-      navigate('/login'); // Redirect to login page after logout
-      toast.success('Logout Successfully');
+      logout();
+      navigate("/login");
+      toast.success("Logged out successfully");
     }
   };
 
-  const handleLinkClick = () => {
-    setIsOpen(false); // Close the menu when a link is clicked
-  };
+  const handleLinkClick = () => setIsOpen(false);
 
   return (
     <>
       <Navbar
         expand="lg"
-         className="custom-navbar "
+        className="custom-navbar mb-"
         fixed="top"
-        
+        variant="dark"
       >
         <Container fluid>
-          {/* Logo */}
-          <NavLink className="navbar-brand fw-bold" to="/expenses">
-            <span style={{ color: '#3498db', letterSpacing: '3px' }}>Apna</span>
-            <span style={{ color: '#2ecc71', letterSpacing: '3px' }}>
-              Khata
-            </span>
+          {/* Logo/Brand */}
+          <NavLink
+            className="navbar-brand"
+            to="/expenses"
+            onClick={handleLinkClick}
+          >
+            <div className="logo-container">
+              <img
+                src="./ApnaKhata.png"
+                alt="Logo"
+                style={{ height: "66px", width: "66px", paddingBottom: "10px" }}
+              />
+              <span className="logo-text">
+                <span className="text-gradient">Apna</span>
+                <span className="text-light">Khata</span>
+              </span>
+            </div>
           </NavLink>
 
-          {/* Toggler */}
+          {/* Mobile Toggle Button */}
           <Navbar.Toggle
             aria-controls="navbarNav"
             onClick={() => setIsOpen(!isOpen)}
-            style={{
-              backgroundColor: '#3498db',
-              color: 'white',
-              border: 'none',
-              padding: '0.5rem 1rem',
-              boxShadow: '0 2px 5px rgba(0, 0, 0, 0.3)',
-            }}
+            className="border-0"
           >
-            {isOpen ? '✖' : '☰'}
+            {isOpen ? <FaTimes size={24} /> : <FaBars size={24} />}
           </Navbar.Toggle>
 
-          {/* Navbar Collapse */}
-          <Navbar.Collapse
-            id="navbarNav"
-            in={isOpen}
-            className={`justify-content-center ${isOpen ? 'show' : ''}`}
-          >
-            <ul className="navbar-nav">
-              {!user ? (
+          {/* Navigation Menu */}
+          <Navbar.Collapse in={isOpen} className="navbar-collapse-custom">
+            <Nav className="ms-auto">
+              {user ? (
+                // Authenticated User Menu
                 <>
-                  {/* Guest Links */}
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
-                      to="/"
-                      end
-                      onClick={handleLinkClick}
-                    >
+                  {/* Desktop Navigation */}
+                  <div className="d-none d-lg-flex align-items-center gap-3">
+                    <Nav.Link as={NavLink} to="/" end onClick={handleLinkClick}>
+                      <FaHome className="me-2" />
                       Home
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
-                      to="/register"
-                      onClick={handleLinkClick}
-                    >
-                      Register
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
-                      to="/login"
-                      onClick={handleLinkClick}
-                    >
-                      Login
-                    </NavLink>
-                  </li>
-                </>
-              ) : (
-                <>
-                  {/* Authenticated Links */}
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
-                      to="/"
-                      end
-                      onClick={handleLinkClick}
-                    >
-                      Home
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
                       to="/create"
                       onClick={handleLinkClick}
                     >
+                      <FaPlusCircle className="me-2" />
                       Create
-                    </NavLink>
-                  </li>
-                  <li className="nav-item">
-                    <NavLink
-                      className="nav-link text-light"
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
                       to="/expenses"
                       onClick={handleLinkClick}
                     >
+                      <FaMoneyBillWave className="me-2" />
                       Expenses
-                    </NavLink>
-                  </li>
-                  {/* Dropdown for User Menu */}
-                  <li className="nav-item">
+                    </Nav.Link>
+
                     <NavDropdown
                       title={
-                        <span className="username">
-                          👤 {user.name || 'User'}
-                        </span>
+                        <div className="d-flex align-items-center">
+                          <FaUserCircle className="me-2" />
+                          <span>{user.name || "User"}</span>
+                        </div>
                       }
-                      id="basic-nav-dropdown"
+                      className="no-caret"
+                      id="user-dropdown"
+                      align="end"
                     >
-                      {/* <NavDropdown.Item
-                        as={NavLink}
-                        to="/profile"
-                        onClick={handleLinkClick}
+                      <NavDropdown.Item
+                        onClick={handleLogout}
+                        className="text-danger"
                       >
-                        Profile
-                      </NavDropdown.Item>
-                      <NavDropdown.Divider /> */}
-                      <NavDropdown.Item onClick={handleLogout}>
+                        <FaSignOutAlt className="me-2" />
                         Logout
                       </NavDropdown.Item>
                     </NavDropdown>
-                  </li>
+                  </div>
+
+                  {/* Mobile Navigation */}
+                  <div className="d-lg-none mobile-nav-content">
+                    <Nav.Link
+                      as={NavLink}
+                      to="/"
+                      end
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaHome className="me-2" />
+                      Home
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/create"
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaPlusCircle className="me-2" />
+                      Create Expense
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/expenses"
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaMoneyBillWave className="me-2" />
+                      Expenses
+                    </Nav.Link>
+
+                    <div className="mobile-user-section">
+                      <div className="user-info">
+                        <FaUserCircle size={20} />
+                        <div>
+                          <h6>{user.name || "User"}</h6>
+                          <small>{user.email}</small>
+                        </div>
+                      </div>
+                      <Button
+                        variant="outline-danger"
+                        size="sm"
+                        onClick={handleLogout}
+                        className="logout-btn"
+                      >
+                        <FaSignOutAlt className="me-2" />
+                        Logout
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                // Guest User Menu
+                <>
+                  {/* Desktop Navigation */}
+                  <div className="d-none d-lg-flex align-items-center gap-2">
+                    <Nav.Link as={NavLink} to="/" end onClick={handleLinkClick}>
+                      Home
+                    </Nav.Link>
+                    <Button
+                      variant="outline-light"
+                      size="sm"
+                      as={NavLink}
+                      to="/login"
+                    >
+                      Login
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      as={NavLink}
+                      to="/register"
+                    >
+                      Register
+                    </Button>
+                  </div>
+
+                  {/* Mobile Navigation */}
+                  <div className="d-lg-none mobile-nav-content">
+                    <Nav.Link
+                      as={NavLink}
+                      to="/"
+                      end
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaHome className="me-2" />
+                      Home
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/login"
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaSignOutAlt className="me-2" />
+                      Login
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/register"
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaUserCircle className="me-2" />
+                      Register
+                    </Nav.Link>
+                  </div>
                 </>
               )}
-            </ul>
+            </Nav>
           </Navbar.Collapse>
         </Container>
       </Navbar>
 
-      {/* Padding to avoid content overlapping */}
-      <div style={{ paddingBottom: '3.5rem'}}></div>
+      {/* Content padding */}
+      <div style={{ paddingTop: "76px" }}></div>
+
+      
     </>
   );
 };

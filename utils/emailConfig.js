@@ -1,5 +1,5 @@
-import { google } from 'googleapis';
-import nodemailer from 'nodemailer';
+import { google } from "googleapis";
+import nodemailer from "nodemailer";
 
 // Function to create a new transporter
 export const createTransporter = async () => {
@@ -9,7 +9,7 @@ export const createTransporter = async () => {
       process.env.CLIENT_ID,
       process.env.CLIENT_SECRET,
       // process.env.GOOGLE_REFRESH_TOKEN,
-      'https://developers.google.com/oauthplayground' // or your own redirect URL 
+      process.env.GOOGLE_REDIRECT_URI
     );
     // Set refresh token from environment variable
     oauth2Client.setCredentials({
@@ -22,15 +22,15 @@ export const createTransporter = async () => {
 
     if (!token) {
       throw new Error(
-        'Access token not generated. Check refresh token and OAuth credentials.'
+        "Access token not generated. Check refresh token and OAuth credentials"
       );
     }
 
     // Return the nodemailer transporter config with OAuth2 credentials
     return {
-      service: 'gmail',
+      service: "gmail",
       auth: {
-        type: 'OAuth2',
+        type: "OAuth2",
         user: process.env.EMAIL_USER,
         clientId: process.env.CLIENT_ID,
         clientSecret: process.env.CLIENT_SECRET,
@@ -39,10 +39,8 @@ export const createTransporter = async () => {
       },
     };
   } catch (error) {
-    console.error('Error creating transporter config:', error);
-    throw new Error(
-      'Transporter configuration failed. Ensure OAuth and environment variables are correctly set.' 
-    );
+    // console.error('Error creating transporter config:', error);
+    throw error;
   }
 };
 
@@ -58,42 +56,30 @@ export const sendEmail = async (options) => {
 
       const mailOptions = {
         from: `ApnaKhata <${process.env.EMAIL_USER}>`,
-        to: options.email, 
+        to: options.email,
         subject: options.subject,
         html: options.html,
       };
 
       // Attempt to send the email
       await transporter.sendMail(mailOptions);
-      console.log('Email sent successfully:', options.email);
+      console.log("Email sent successfully:", options.email);
       return; // Exit after successful email send
     } catch (error) {
       attempt++;
-      console.error(`Attempt ${attempt} failed:`, error);
+      // console.error(`Attempt ${attempt} failed:`, error);
 
       // If the maximum retry attempts are reached, throw error
       if (attempt > maxRetries) {
-        console.error(
+        throw new Error(
           `Attempt ${attempt} failed: Maximum retry attempts reached. Email could not be sent.`
         );
-        // throw new Error('Email sending failed after retries');
       }
 
       // If retrying, wait 1 second before trying again
-      console.log('Retrying in 1 second...'); 
+      console.log("Retrying in 1 second...");
       await new Promise((resolve) => setTimeout(resolve, 1000));
     }
   }
 };
 
-(async () => {
-  try {
-    await sendEmail({
-      email: 'samikhan7816@gmail.com',
-      subject: 'Test Email',
-      html: '<h1>This is a test email</h1>',
-    });
-  } catch (error) {
-    console.error('Error sending test email:', error);
-  }
-})();

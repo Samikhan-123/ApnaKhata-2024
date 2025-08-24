@@ -54,19 +54,20 @@ const EditExpense = () => {
 
   const validationSchema = Yup.object().shape({
     description: Yup.string()
-      .required('Description is required')
-      .max(100, 'Description cannot exceed 100 characters'),
+      .required("Description is required")
+      .min(5, "Description must be at least 5 characters long")
+      .max(100, "Description cannot exceed 100 characters"),
     amount: Yup.number()
-      .required('Amount is required')
-      .min(0, 'Amount must be a positive number'),
-    date: Yup.date().nullable().required('Date is required'),
-    category: Yup.string().required('Category is required'),
-    paymentMethod: Yup.string().required('Payment method is required'),
+      .required("Amount is required")
+      .min(0, "Amount must be a positive number"),
+    date: Yup.date().nullable().required("Date is required"),
+    category: Yup.string().required("Category is required"),
+    paymentMethod: Yup.string().required("Payment method is required"),
     tags: Yup.string()
-      .required('Tags are required')
+      .required("Tags are required")
       .matches(
         /^[a-zA-Z0-9,\s]*$/,
-        'Tags can only contain letters, numbers, and commas'
+        "Tags can only contain letters, numbers, and commas"
       )
       .nullable(),
     notes: Yup.string().nullable(), // Optional field
@@ -107,11 +108,13 @@ const EditExpense = () => {
             'Content-Type': 'multipart/form-data',
           },
         });
+        setSuccess('Expense updated successfully!');
 
         toast.success('Expense updated successfully!'); // Use toast for success message
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to update expense'); // Use toast for error message
+        setError(err.response?.data?.message || 'Failed to update expense');
       } finally {
         setLoading(false);
       }
@@ -148,6 +151,7 @@ const EditExpense = () => {
         }
       } catch (err) {
         toast.error(err.response?.data?.message || 'Something went wrong'); // Use toast for error message
+        setError(err.response?.data?.message || 'Something went wrong');
       } finally {
         setLoading(false);
       }
@@ -310,7 +314,7 @@ const EditExpense = () => {
                         </a>
                       </div>
                     )} */}
-                    <p> current receipt: your old file</p>
+                    <p className='text-muted'> If a new receipt is uploaded, it will replace the current one.</p>
                     <Form.Control
                       type="file"
                       onChange={(e) =>
@@ -355,7 +359,7 @@ const EditExpense = () => {
                   </Form.Group>
 
                   <div className="d-grid gap-2">
-                    <Button variant="primary" type="submit" disabled={loading}>
+                    <Button style={{ backgroundColor: 'var(--submit-btn-color)', border: 'none' }} type="submit" disabled={loading}>
                       {loading ? 'Saving...' : 'Save Changes'}
                     </Button>
                     <Button

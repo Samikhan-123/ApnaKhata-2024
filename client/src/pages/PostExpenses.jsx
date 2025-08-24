@@ -48,6 +48,7 @@ const PostExpenses = () => {
   const validationSchema = Yup.object().shape({
     description: Yup.string()
       .required('Description is required')
+      .min(5, 'Description must be at least 5 characters long')
       .max(100, 'Description cannot exceed 100 characters'),
     amount: Yup.number()
       .required('Amount is required')
@@ -61,24 +62,25 @@ const PostExpenses = () => {
       .oneOf(paymentMethods, 'Invalid payment method'),
     tags: Yup.string()
       .required('Tags are required')
+      .min(2, 'Tags must be at least 2 characters long')
+      .max(30, 'Tags cannot exceed 30 characters')
       .matches(
         /^[a-zA-Z0-9,\s]*$/,
         'Tags can only contain letters, numbers, and commas'
       )
       .nullable(),
-    notes: Yup.string().nullable(),
+    
     receipt: Yup.mixed()
       .nullable()
       .test('fileSize', 'File size too large', (value) => {
         if (!value) return true;
-        return value.size <= 5 * 1024 * 1024; // 5MB limit
+        return value.size <= 1 * 1024 * 1024; // 1MB limit
       })
       .test('fileType', 'Unsupported file type', (value) => {
         if (!value) return true;
         return [
           'image/jpeg',
           'image/png',
-          'image/gif',
           'application/pdf',
         ].includes(value.type);
       }),
@@ -91,7 +93,6 @@ const PostExpenses = () => {
       category: '',
       paymentMethod: '',
       tags: '',
-      notes: '',
       receipt: null,
     },
     validationSchema,
@@ -121,8 +122,9 @@ const PostExpenses = () => {
 
         setTimeout(() => navigate('/expenses'), 1500);
       } catch (err) {
+        toast.error(err.response?.data?.message || 'Failed to add expense'); // Show toast error message
+
         setError(err.response?.data?.message || 'Failed to add expense');
-        toast.error('Failed to add expense'); // Show toast error message
       } finally {
         setLoading(false);
       }
@@ -293,20 +295,10 @@ const PostExpenses = () => {
                       {formik.errors.tags}
                     </Form.Control.Feedback>
                   </Form.Group>
-                  {/* Notes */}
-                  <Form.Group className="mb-3">
-                    <Form.Label>Notes (optional)</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      name="notes"
-                      value={formik.values.notes}
-                      onChange={formik.handleChange}
-                      placeholder="Add any notes (optional)"
-                    />
-                  </Form.Group>
-                  <div className="d-grid gap-2">
+                  
+                  <div className="d-grid gap-2 py-4">
                     <Button
-                      variant="primary"
+                      style={{ backgroundColor: "var(--submit-btn-color)" , borderColor: "var(--home-primary-color)"}}
                       type="submit"
                       disabled={loading || !formik.isValid}
                     >
@@ -320,15 +312,15 @@ const PostExpenses = () => {
                             aria-hidden="true"
                             className="me-2"
                           />
-                          Adding...
+                          Submitting...
                         </>
                       ) : (
-                        'Add Expense'
+                        'Submit Expense'
                       )}
                     </Button>
                     <Button
                       variant="outline-secondary"
-                      onClick={() => navigate('/expenses')}
+                      onClick={() => navigate(-1)}
                       disabled={loading}
                     >
                       Cancel

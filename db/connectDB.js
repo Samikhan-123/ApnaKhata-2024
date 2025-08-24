@@ -13,10 +13,8 @@ const connectDB = async () => {
     //   colors.grey(process.env.MONGODB_URI)
     // ); 
     const connectMe = await mongoose.connect(process.env.MONGODB_URI, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
       serverSelectionTimeoutMS: 30000, // Timeout after 30s
-      socketTimeoutMS: 45000, // Close sockets after 45s
+      socketTimeoutMS: 35000, // Close sockets after 35s
       family: 4,
     });
 
@@ -26,7 +24,12 @@ const connectDB = async () => {
     );
   } catch (error) {
     console.error(`Error connecting to MongoDB: ${error.message}`.bgRed.white);
-    process.exit(1); // Exit the process with failure 
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+      error: process.env.NODE_ENV === 'development' ? error : undefined,
+    });
+    // process.exit(1); // Exit the process with failure
   }
 };
 

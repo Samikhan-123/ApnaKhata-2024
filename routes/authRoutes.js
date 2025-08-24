@@ -16,7 +16,7 @@ router.get('/users',authenticate, getAllUsers);
 router.post('/google-login', googleLogin);
 
 // Profile Routes
-router.get('/profile/:id',authenticate, getProfileWithExpenses);
+// router.get('/profile/:id',authenticate, getProfileWithExpenses);
 
 // router.get('/profile', authenticate, getProfile);
 // @route   POST /api/auth/forgot-password

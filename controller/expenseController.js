@@ -1,228 +1,259 @@
-import mongoose from 'mongoose';
-import Expense from '../model/expenseSchema.js';
-import { sendEmail } from '../utils/emailConfig.js';
-import path from 'path';
-import fs from 'fs';
-import mime from 'mime-types';
-import { fileURLToPath } from 'url';
+import mongoose from "mongoose";
+import Expense from "../model/expenseSchema.js";
+import { sendEmail } from "../utils/emailConfig.js";
+import path from "path";
+import fs from "fs";
+import mime from "mime-types";
+import { fileURLToPath } from "url";
+// import { create } from "domain";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 // Helper function to check if a string is a valid date
-const isValidDate = (dateString) => {
-  const date = new Date(dateString);
-  return date instanceof Date && !isNaN(date);
-};
+// const isValidDate = (dateString) => {
+//   const date = new Date(dateString);
+//   return date instanceof Date && !isNaN(date);
+// };
 
-// Get all expenses
+// Get all expenses with pagination and filtering
 export const getExpenses = async (req, res) => {
   try {
+    // Extract query parameters with defaults
     const {
+      page = 1,
+      limit = 12,
+      category,
+      paymentMethod,
       startDate,
       endDate,
-      category,
+      searchTerm,
       minAmount,
       maxAmount,
-      paymentMethod,
       tags,
-      search,
-      page = 1,
-      itemsPerPage = 20, // Default: 20 items per page
     } = req.query;
 
+    // Build the base query for filtered results
     let query = { user: req.user._id };
 
-    // Date filters
+    // Apply filters if provided
+    if (category && category !== "all") {
+      query.category = category;
+    }
+
+    if (paymentMethod && paymentMethod !== "all") {
+      query.paymentMethod = paymentMethod;
+    }
+
+    // Date range filter
     if (startDate || endDate) {
       query.date = {};
       if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) query.date.$lte = new Date(endDate);
-    }
-
-    // Category filter
-    if (category && category !== 'all') query.category = category;
-
-    // Payment method filter
-    if (paymentMethod && paymentMethod !== 'all')
-      query.paymentMethod = paymentMethod;
-
-    // Amount filters
-    if (minAmount) query.amount = { $gte: Number(minAmount) };
-    if (maxAmount) query.amount = { ...query.amount, $lte: Number(maxAmount) };
-
-    // Tags filter 
-    if (tags && tags.trim()) {
-      const tagArray = tags
-        .split(',')
-        .map((tag) => tag.trim())
-        .filter((tag) => tag);
-      if (tagArray.length > 0) {
-        query.tags = { $in: tagArray.map((tag) => new RegExp(tag, 'i')) };
+      if (endDate) {
+        const end = new Date(endDate);
+        end.setHours(23, 59, 59, 999); // End of the day
+        query.date.$lte = end;
       }
     }
 
-    // Search functionality
-    if (search) {
-      const searchRegex = new RegExp(search, 'i');
+    // Amount range filter
+    if (minAmount || maxAmount) {
+      query.amount = {};
+      if (minAmount) query.amount.$gte = Number(minAmount);
+      if (maxAmount) query.amount.$lte = Number(maxAmount);
+    }
+
+    // Search term filter (search in description and tags)
+    if (searchTerm) {
       query.$or = [
-        { description: searchRegex },
-        { category: searchRegex },
-        { paymentMethod: searchRegex },
-        { tags: searchRegex },
-        ...(isValidDate(search)
-          ? [
-              {
-                date: {
-                  $gte: new Date(search),
-                  $lt: new Date(
-                    new Date(search).setDate(new Date(search).getDate() + 1)
-                  ),
-                },
-              },
-            ]
-          : []),
+        { description: { $regex: searchTerm, $options: "i" } },
+        { tags: { $in: [new RegExp(searchTerm, "i")] } },
       ];
     }
 
-    const sortOptions = { date: -1 }; // Descending order by date
+    // Tags filter
+    if (tags) {
+      const tagArray = tags.split(",").map((tag) => tag.trim());
+      query.tags = { $in: tagArray.map((tag) => new RegExp(tag, "i")) };
+    }
 
-    const expenses = await Expense.find(query)
-      .sort(sortOptions)
-      .skip((page - 1) * itemsPerPage)
-      .limit(Number(itemsPerPage));
+    // Calculate pagination values
+    const pageNum = Math.max(1, Number(page));
+    const limitNum = Math.max(1, Number(limit));
+    const skip = (pageNum - 1) * limitNum;
 
-    const totalRecords = await Expense.countDocuments(query);
+    // Execute queries in parallel for better performance
+    const [
+      expenses,
+      totalRecords,
+      filteredTotalRecords,
+      totalAmountResult,
+      filteredTotalAmountResult,
+    ] = await Promise.all([
+      // Get paginated expenses with filters
+      Expense.find(query)
+        .sort({ date: -1, createdAt: -1 })
+        .skip(skip)
+        .limit(limitNum),
 
+      // Get total records (ALL records, no filters)
+      Expense.countDocuments({ user: req.user._id }),
+
+      // Get filtered records count
+      Expense.countDocuments(query),
+
+      // Get total amount (ALL expenses, no filters)
+      Expense.aggregate([
+        { $match: { user: req.user._id } },
+        { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+      ]),
+
+      // Get filtered total amount
+      Expense.aggregate([
+        { $match: query },
+        { $group: { _id: null, filteredTotalAmount: { $sum: "$amount" } } },
+      ]),
+    ]);
+
+    // Calculate total pages
+    const totalPages = Math.ceil(filteredTotalRecords / limitNum);
+
+    // Handle cases where no expenses match the query
+    const totalAmount =
+      totalAmountResult.length > 0 ? totalAmountResult[0].totalAmount : 0;
+    const filteredTotalAmount =
+      filteredTotalAmountResult.length > 0
+        ? filteredTotalAmountResult[0].filteredTotalAmount
+        : 0;
+
+    // Prepare response
     res.status(200).json({
       expenses,
+      totalRecords, // Total records (all time, no filters)
+      totalAmount, // Total amount (all time, no filters)
+      filteredTotalRecords, // Records matching current filters
+      filteredTotalAmount, // Amount matching current filters
       pagination: {
-        totalRecords,
-        currentPage: Number(page),
-        totalPages: Math.ceil(totalRecords / itemsPerPage),
-        itemsPerPage: Number(itemsPerPage),
-        hasNextPage: page * itemsPerPage < totalRecords,
-        hasPreviousPage: page > 1
+        currentPage: pageNum,
+        totalPages,
+        itemsPerPage: limitNum,
+        hasNextPage: pageNum < totalPages,
+        hasPreviousPage: pageNum > 1,
       },
       success: true,
-      message: 'Expenses fetched successfully',
+      message: "Expenses fetched successfully",
     });
   } catch (error) {
-    console.error('Error fetching expenses:', error);
+    // console.error("Error fetching expenses:", error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching expenses',
+      message: "some error occurred",
       error: error.message,
     });
   }
 };
-
-
 // Get receipt by filename
 export const getReceipt = async (req, res) => {
   try {
     const { filename } = req.params;
-    const filePath = path.join(process.cwd(), 'uploads', 'receipts', filename);
+    const filePath = path.join(process.cwd(), "uploads", "receipts", filename);
 
     // Check if file exists
     if (!fs.existsSync(filePath)) {
       return res.status(404).json({
         success: false,
-        message: 'Receipt not found'
+        message: "Receipt not found",
       });
     }
 
     // Get file mime type
-    const mimeType = mime.lookup(filePath) || 'application/octet-stream';
-    
+    const mimeType = mime.lookup(filePath) || "application/octet-stream";
+
     // Set headers
-    res.setHeader('Content-Type', mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
+    res.setHeader("Content-Type", mimeType);
+    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
 
     // Stream the file
     const fileStream = fs.createReadStream(filePath);
     fileStream.pipe(res);
-
   } catch (error) {
-    console.error('Error fetching receipt:', error);
+    // console.error("Error fetching receipt:", error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching receipt',
-      error: error.message
+      message: "some error occurred",
+      error: error.message,
     });
   }
 };
 
 // Get all expenses without filters
-export const getAllExpenses = async (req, res) => {
-  try {
-    const expenses = await Expense.find({ user: req.user._id })
-      .sort({ date: -1 })
-      .select('-__v'); // Exclude version key
+// export const getAllExpenses = async (req, res) => {
+//   try {
+//     const expenses = await Expense.find({ user: req.user._id })
+//       .sort({ createdAt: -1 });
 
-    // Calculate total amount
-    const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
+//     // Calculate total amount
+//     const totalAmount = expenses.reduce(
+//       (sum, expense) => sum + expense.amount,
+//       0
+//     );
 
-    // Transform receipt URLs if they exist
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const transformedExpenses = expenses.map(expense => {
-      const expObj = expense.toObject();
-      if (expObj.receipt) {
-        expObj.receipt.url = `${baseUrl}/api/expenses/receipt/${expObj.receipt.filename}`;
-      }
-      return expObj;
-    });
+//     // Transform receipt URLs if they exist
+//     const baseUrl = `${req.protocol}://${req.get("host")}`;
+//     const transformedExpenses = expenses.map((expense) => {
+//       const expObj = expense.toObject();
+//       if (expObj.receipt) {
+//         expObj.receipt.url = `${baseUrl}/api/expenses/receipt/${expObj.receipt.filename}`;
+//       }
+//       return expObj;
+//     });
 
-    res.status(200).json({
-      success: true,
-      count: expenses.length,
-      totalAmount,
-      expenses: transformedExpenses,
-      message: 'Expenses fetched successfully'
-    });
-
-  } catch (error) {
-    console.error('Error fetching all expenses:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error fetching expenses',
-      error: error.message
-    });
-  }
-};
-
+//     res.status(200).json({
+//       success: true,
+//       count: expenses.length,
+//       totalAmount,
+//       expenses: transformedExpenses,
+//       message: "Expenses fetched successfully",
+//     });
+//   } catch (error) {
+//     console.error("Error fetching all expenses:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "some error occurred",
+//       error: error.message,
+//     });
+//   }
+// };
 
 // Add expense
 export const addExpense = async (req, res) => {
   try {
-    const {
-      description,
-      amount,
-      date,
-      category,
-      paymentMethod,
-      tags,
-      notes,
-    } = req.body;
+    const { description, amount, date, category, paymentMethod, tags } =
+      req.body;
 
     // Parse tags if provided as a string
     const parsedTags =
-      typeof tags === 'string'
-        ? tags.split(',').map((tag) => tag.trim())
+      typeof tags === "string"
+        ? tags.split(",").map((tag) => tag.trim())
         : tags || [];
 
     // Prepare receipt details with error handling for size and mimetype
     let receipt = null;
     if (req.file) {
-      if (req.file.size > 1024 * 1024 * 5) { // 5MB
+      if (req.file.size > 1024 * 1024 * 1) {
+        // 1MB
         return res.status(400).json({
           success: false,
-          message: 'Receipt file size exceeds the maximum limit of 5MB',
+          message: "Receipt file size exceeds the maximum limit of 1MB, max allowed size is 1MB",
         });
       }
-      if (!['image/jpeg', 'image/png', 'application/pdf'].includes(req.file.mimetype)) {
+      if (
+        !["image/jpeg", "image/png", "application/pdf"].includes(
+          req.file.mimetype
+        )
+      ) {
         return res.status(400).json({
           success: false,
-          message: 'Unsupported receipt file format',
+          message: "Unsupported receipt file format",
         });
       }
       receipt = {
@@ -241,7 +272,6 @@ export const addExpense = async (req, res) => {
       category,
       paymentMethod,
       tags: parsedTags,
-      notes,
       receipt,
     });
 
@@ -258,19 +288,19 @@ export const addExpense = async (req, res) => {
           <h3 style="color: #34495e; margin-bottom: 15px;">Expense Summary:</h3>
           <ul style="list-style: none; padding: 0; line-height: 1.6;">
             <li><strong>Description:</strong> ${description}</li>
-            <li><strong>Amount:</strong> ${new Intl.NumberFormat('en-PK', {
-              style: 'currency',
-              currency: 'PKR',
+            <li><strong>Amount:</strong> ${new Intl.NumberFormat("en-PK", {
+              style: "currency",
+              currency: "PKR",
             }).format(amount)}</li>
             <li><strong>Category:</strong> ${category}</li>
             <li><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</li>
             <li><strong>Payment Method:</strong> ${paymentMethod}</li>
             ${
               parsedTags.length > 0
-                ? `<li><strong>Tags:</strong> ${parsedTags.join(', ')}</li>`
-                : ''
+                ? `<li><strong>Tags:</strong> ${parsedTags.join(", ")}</li>`
+                : ""
             }
-            ${notes ? `<li><strong>Notes:</strong> ${notes}</li>` : ''}
+            
           
 
           </ul>
@@ -283,7 +313,7 @@ export const addExpense = async (req, res) => {
             <p style="color: #7f8c8d; font-size: 0.9em;">📎 A receipt has been uploaded with this expense.</p>
           </div>
           `
-            : ''
+            : ""
         }
         <br />
         <p>
@@ -301,21 +331,21 @@ export const addExpense = async (req, res) => {
     // Send notification email
     await sendEmail({
       email: req.user.email,
-      subject: '📌 New Expense Added - ApnaKhata',
+      subject: "📌 New Expense Added - ApnaKhata",
       html: emailHtml,
     });
 
     // Respond with success
     res.status(201).json({
       success: true,
-      message: 'Expense added successfully',
+      message: "Expense added successfully",
       expense: newExpense,
     });
   } catch (error) {
-    console.error('Error adding expense:', error);
+    // console.error("Error adding expense:", error);
     res.status(500).json({
       success: false,
-      message: 'Error adding expense',
+      message: "Error adding expense",
       error: error.message,
       details: {
         body: req.body,
@@ -336,14 +366,14 @@ export const getExpenseById = async (req, res) => {
     if (!expense) {
       return res.status(404).json({
         success: false,
-        message: 'Expense not found',
+        message: "Expense not found",
       });
     }
 
     // Add receipt URL if exists
     const expenseObj = expense.toObject();
     if (expenseObj.receipt) {
-      expenseObj.receipt.url = `${req.protocol}://${req.get('host')}/uploads/receipts/${expenseObj.receipt.filename}`;
+      expenseObj.receipt.url = `${req.protocol}://${req.get("host")}/uploads/receipts/${expenseObj.receipt.filename}`;
     }
 
     res.status(200).json({
@@ -351,10 +381,10 @@ export const getExpenseById = async (req, res) => {
       expense: expenseObj,
     });
   } catch (error) {
-    console.error('Error fetching expense:', error);
+    // console.error("Error fetching expense:", error);
     res.status(500).json({
       success: false,
-      message: 'Error fetching expense',
+      message: "Error fetching expense",
     });
   }
 };
@@ -381,28 +411,28 @@ export const updateExpense = async (req, res) => {
     if (!expense) {
       return res.status(404).json({
         success: false,
-        message: 'Expense not found',
+        message: "Expense not found",
       });
     }
 
     // Parse recurring details only if it's a string and isRecurring is true
     let parsedRecurringDetails = null;
-    if (isRecurring === true || isRecurring === 'true') {
+    if (isRecurring === true || isRecurring === "true") {
       try {
         parsedRecurringDetails =
-          typeof recurringDetails === 'string'
+          typeof recurringDetails === "string"
             ? JSON.parse(recurringDetails)
             : recurringDetails;
       } catch (parseError) {
-        console.error('Error parsing recurring details:', parseError);
+        // console.error("Error parsing recurring details:", parseError);
         parsedRecurringDetails = recurringDetails;
       }
     }
 
     // Parse tags if they're provided as a string
     const parsedTags =
-      typeof tags === 'string'
-        ? tags.split(',').map((tag) => tag.trim())
+      typeof tags === "string"
+        ? tags.split(",").map((tag) => tag.trim())
         : tags || [];
 
     // Update fields
@@ -413,7 +443,7 @@ export const updateExpense = async (req, res) => {
     expense.paymentMethod = paymentMethod;
     expense.tags = parsedTags;
     expense.notes = notes;
-    expense.isRecurring = isRecurring === true || isRecurring === 'true';
+    expense.isRecurring = isRecurring === true || isRecurring === "true";
     expense.recurringDetails = parsedRecurringDetails;
 
     if (req.file) {
@@ -427,14 +457,14 @@ export const updateExpense = async (req, res) => {
     await expense.save();
     res.status(200).json({
       success: true,
-      message: 'Expense updated successfully',
+      message: "Expense updated successfully",
       expense,
     });
   } catch (error) {
-    console.error('Error updating expense:', error);
+    // console.error("Error updating expense:", error);
     res.status(500).json({
       success: false,
-      message: 'Error updating expense',
+      message: "Error updating expense",
       error: error.message,
       details: {
         body: req.body,
@@ -448,18 +478,17 @@ export const updateExpense = async (req, res) => {
 export const deleteExpense = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log('id', id);
     if (!id) {
       return res.status(400).json({
         success: false,
-        message: 'Expense ID is required',
+        message: "Expense ID is required",
       });
     }
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
-        message: 'Invalid expense ID format',
+        message: "Invalid expense ID format",
       });
     }
 
@@ -471,7 +500,7 @@ export const deleteExpense = async (req, res) => {
     if (!expense) {
       return res.status(404).json({
         success: false,
-        message: 'Expense not found',
+        message: "Expense not found",
       });
     }
     // Delete associated receipt file if exists
@@ -480,7 +509,7 @@ export const deleteExpense = async (req, res) => {
       try {
         await fs.promises.unlink(filePath);
       } catch (err) {
-        console.error('Error deleting receipt file:', err);
+        // console.error("Error deleting receipt file:", err);
       }
     }
 
@@ -488,165 +517,165 @@ export const deleteExpense = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'Expense successfully deleted',
+      message: "Expense successfully deleted",
     });
   } catch (error) {
-    console.error('Error deleting expense:', error);
+    // console.error("Error deleting expense:", error);
     res.status(500).json({
       success: false,
-      message: 'Error deleting expense',
+      message: "Error deleting expense",
     });
   }
 };
 
 // Get expense statistics
-export const getExpenseStats = async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    const query = { user: req.user._id };
+// export const getExpenseStats = async (req, res) => {
+//   try {
+//     const { startDate, endDate } = req.query;
+//     const query = { user: req.user._id };
 
-    if (startDate) query.date = { $gte: new Date(startDate) };
-    if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
+//     if (startDate) query.date = { $gte: new Date(startDate) };
+//     if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
 
-    const stats = await Expense.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: null,
-          totalAmount: { $sum: '$amount' },
-          averageAmount: { $avg: '$amount' },
-          maxAmount: { $max: '$amount' },
-          minAmount: { $min: '$amount' },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+//     const stats = await Expense.aggregate([
+//       { $match: query },
+//       {
+//         $group: {
+//           _id: null,
+//           totalAmount: { $sum: "$amount" },
+//           averageAmount: { $avg: "$amount" },
+//           maxAmount: { $max: "$amount" },
+//           minAmount: { $min: "$amount" },
+//           count: { $sum: 1 },
+//         },
+//       },
+//     ]);
 
-    const categoryStats = await Expense.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$category',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+//     const categoryStats = await Expense.aggregate([
+//       { $match: query },
+//       {
+//         $group: {
+//           _id: "$category",
+//           total: { $sum: "$amount" },
+//           count: { $sum: 1 },
+//         },
+//       },
+//     ]);
 
-    const paymentMethodStats = await Expense.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$paymentMethod',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-        },
-      },
-    ]);
+//     const paymentMethodStats = await Expense.aggregate([
+//       { $match: query },
+//       {
+//         $group: {
+//           _id: "$paymentMethod",
+//           total: { $sum: "$amount" },
+//           count: { $sum: 1 },
+//         },
+//       },
+//     ]);
 
-    res.status(200).json({
-      success: true,
-      stats: stats[0] || {},
-      categoryStats,
-      paymentMethodStats,
-    });
-  } catch (error) {
-    console.error('Error getting expense stats:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error getting expense statistics',
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       stats: stats[0] || {},
+//       categoryStats,
+//       paymentMethodStats,
+//     });
+//   } catch (error) {
+//     console.error("Error getting expense stats:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error getting expense statistics",
+//     });
+//   }
+// };
 
 // Get expenses by category
-export const getExpensesByCategory = async (req, res) => {
-  try {
-    const { startDate, endDate } = req.query;
-    const query = { user: req.user._id };
+// export const getExpensesByCategory = async (req, res) => {
+//   try {
+//     const { startDate, endDate } = req.query;
+//     const query = { user: req.user._id };
 
-    if (startDate) query.date = { $gte: new Date(startDate) };
-    if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
+//     if (startDate) query.date = { $gte: new Date(startDate) };
+//     if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
 
-    const expenses = await Expense.aggregate([
-      { $match: query },
-      {
-        $group: {
-          _id: '$category',
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-          expenses: { $push: '$$ROOT' },
-        },
-      },
-      { $sort: { total: -1 } },
-    ]);
+//     const expenses = await Expense.aggregate([
+//       { $match: query },
+//       {
+//         $group: {
+//           _id: "$category",
+//           total: { $sum: "$amount" },
+//           count: { $sum: 1 },
+//           expenses: { $push: "$$ROOT" },
+//         },
+//       },
+//       { $sort: { total: -1 } },
+//     ]);
 
-    res.status(200).json({
-      success: true,
-      expenses,
-    });
-  } catch (error) {
-    console.error('Error getting expenses by category:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error getting expenses by category',
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       expenses,
+//     });
+//   } catch (error) {
+//     console.error("Error getting expenses by category:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error getting expenses by category",
+//     });
+//   }
+// };
 
 // Get monthly expenses
-export const getMonthlyExpenses = async (req, res) => {
-  try {
-    const { year = new Date().getFullYear() } = req.query;
+// export const getMonthlyExpenses = async (req, res) => {
+//   try {
+//     const { year = new Date().getFullYear() } = req.query;
 
-    const expenses = await Expense.aggregate([
-      {
-        $match: {
-          user: req.user._id,
-          date: {
-            $gte: new Date(`${year}-01-01`),
-            $lte: new Date(`${year}-12-31`),
-          },
-        },
-      },
-      {
-        $group: {
-          _id: { $month: '$date' },
-          total: { $sum: '$amount' },
-          count: { $sum: 1 },
-          expenses: { $push: '$$ROOT' },
-        },
-      },
-      {
-        $project: {
-          month: '$_id',
-          total: 1,
-          count: 1,
-          expenses: 1,
-          _id: 0,
-        },
-      },
-      { $sort: { month: 1 } },
-    ]);
+//     const expenses = await Expense.aggregate([
+//       {
+//         $match: {
+//           user: req.user._id,
+//           date: {
+//             $gte: new Date(`${year}-01-01`),
+//             $lte: new Date(`${year}-12-31`),
+//           },
+//         },
+//       },
+//       {
+//         $group: {
+//           _id: { $month: "$date" },
+//           total: { $sum: "$amount" },
+//           count: { $sum: 1 },
+//           expenses: { $push: "$$ROOT" },
+//         },
+//       },
+//       {
+//         $project: {
+//           month: "$_id",
+//           total: 1,
+//           count: 1,
+//           expenses: 1,
+//           _id: 0,
+//         },
+//       },
+//       { $sort: { month: 1 } },
+//     ]);
 
-    res.status(200).json({
-      success: true,
-      year,
-      expenses,
-    });
-  } catch (error) {
-    console.error('Error getting monthly expenses:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error getting monthly expenses',
-    });
-  }
-};
+//     res.status(200).json({
+//       success: true,
+//       year,
+//       expenses,
+//     });
+//   } catch (error) {
+//     console.error("Error getting monthly expenses:", error);
+//     res.status(500).json({
+//       success: false,
+//       message: "Error getting monthly expenses",
+//     });
+//   }
+// };
 
 // // Helper function to get file URL
 // export const getFileUrl = (req, filename) => {
 //   if (!filename) return null;
-//   const uploadDir = process.env.NODE_ENV === 'production' 
+//   const uploadDir = process.env.NODE_ENV === 'production'
 //     ? '/tmp/uploads/receipts'
 //     : 'uploads/receipts';
 //   return `${req.protocol}://${req.get('host')}/${uploadDir}/${filename}`;
@@ -658,7 +687,7 @@ export default {
   getExpenseById,
   updateExpense,
   deleteExpense,
-  getExpenseStats,
-  getExpensesByCategory,
-  getMonthlyExpenses,
+  // getExpenseStats,
+  // getExpensesByCategory,
+  // getMonthlyExpenses,
 };

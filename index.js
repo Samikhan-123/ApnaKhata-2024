@@ -21,7 +21,7 @@ dotenv.config();
 connectedDB();
 
 // Middleware 
-app.use(morgan(process.env.NODE_ENV === 'production' ? 'dev' : 'dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '20mb' }));
 
@@ -49,8 +49,6 @@ app.use(
 // Security headers
 app.use((req, res, next) => {
   res.setHeader('X-Frame-Options', 'DENY');
-  res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
 

@@ -138,9 +138,7 @@ const ResetPasswordPage = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         isInvalid={touched.password && !!errors.password}
-                        required
-                        autoComplete="new-password"
-                        style={{ flex: 1 }}
+                    
                       />
                     </div>
                     <Form.Control.Feedback type="invalid">
@@ -174,9 +172,7 @@ const ResetPasswordPage = () => {
                         isInvalid={
                           touched.confirmPassword && !!errors.confirmPassword
                         }
-                        required
-                        autoComplete="new-password"
-                        style={{ flex: 1 }}
+                      
                       />
                     </div>
                     <Form.Control.Feedback type="invalid">

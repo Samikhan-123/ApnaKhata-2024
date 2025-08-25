@@ -1,7 +1,7 @@
 import express from 'express';
 import { register, login, getAllUsers, resetPassword, forgotPassword, getProfileWithExpenses } from '../controller/authController.js';
 import { authenticate } from '../utils/jwtUtills.js';
-import { resetPasswordLimiter } from '../utils/rateLimitToMail.js';
+// import { resetPasswordLimiter } from '../utils/rateLimitToMail.js';
 import { googleLogin } from '../utils/googleLoginAuth.js';
 
 const router = express.Router();
@@ -23,7 +23,7 @@ router.post('/google-login', googleLogin);
 // @desc    Forgot password 
 // @access  Public
 router.post(
-    '/forgot-password',resetPasswordLimiter,forgotPassword);
+    '/forgot-password',forgotPassword);
   
   // @route   POST /api/auth/reset-password/:resetToken
   // @desc    Reset password

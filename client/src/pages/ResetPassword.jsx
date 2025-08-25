@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Formik } from "formik";
+import * as Yup from "yup";
 import {
   Button,
   Form,
@@ -6,8 +8,7 @@ import {
   Row,
   Breadcrumb,
   Alert,
-  ListGroup,
-  ProgressBar,
+ 
 } from "react-bootstrap";
 import { useNavigate, useParams, NavLink } from "react-router-dom";
 import axios from "axios";
@@ -16,109 +17,28 @@ import "./styles/forms.css"; // Import the unified CSS
 
 const ResetPasswordPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
-  const [unmetRequirements, setUnmetRequirements] = useState([]);
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState({
-    strength: "",
-    progress: 0,
-    variant: "",
-    message: "",
-  });
 
   const navigate = useNavigate();
   const { resetToken } = useParams();
 
-  const togglePasswordVisibility = () => setPasswordShown(!passwordShown);
+  const togglePasswordVisibility = () => setPasswordShown((prev) => !prev);
 
-  const checkPasswordStrength = (password) => {
-    let strength = 0;
-
-    if (password.length >= 8) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-
-    let strengthLabel = "";
-    let progress = 0;
-    let variant = "";
-    const message =
-      "Password should contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
-
-    if (strength === 0 || strength === 1) {
-      strengthLabel = "Weak";
-      progress = 20;
-      variant = "danger";
-    } else if (strength === 2) {
-      strengthLabel = "Fair";
-      progress = 40;
-      variant = "warning";
-    } else if (strength === 3) {
-      strengthLabel = "Good";
-      progress = 60;
-      variant = "info";
-    } else if (strength === 4) {
-      strengthLabel = "Strong";
-      progress = 80;
-      variant = "primary";
-    } else if (strength === 5) {
-      strengthLabel = "Very Strong";
-      progress = 100;
-      variant = "success";
-    }
-
-    return { strength: strengthLabel, progress, variant, message };
-  };
-
-  const handlePasswordChange = (e) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
-    const strengthInfo = checkPasswordStrength(newPassword);
-    setPasswordStrength(strengthInfo);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setUnmetRequirements([]);
-    setSuccessMessage("");
-
-    if (password !== confirmPassword) {
-      setError("Passwords do not match.");
-      setLoading(false);
-      return;
-    }
-
-    try {
-      const response = await axios.post(
-        `/api/auth/reset-password/${resetToken}`,
-        { password, confirmPassword }
-      );
-      if (response.data.success) {
-        setSuccessMessage(
-          "Password successfully reset! Redirecting to login..."
-        );
-        setTimeout(() => navigate("/login"), 2000);
-      } else {
-        setError(response.data.message);
-        if (response.data.requirements) {
-          setUnmetRequirements(response.data.requirements);
-        }
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.message ||
-          "An error occurred while resetting your password."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Yup validation schema
+  const validationSchema = Yup.object().shape({
+    password: Yup.string()
+      .min(8, "Password must be at least 8 characters")
+      .matches(/[A-Z]/, "Must contain an uppercase letter")
+      .matches(/[a-z]/, "Must contain a lowercase letter")
+      .matches(/[0-9]/, "Must contain a number")
+      .matches(/[^A-Za-z0-9]/, "Must contain a special character")
+      .required("Password is required"),
+    confirmPassword: Yup.string()
+      .oneOf([Yup.ref("password"), null], "Passwords must match")
+      .required("Confirm password is required"),
+  });
 
   return (
     <Layout title="Reset Password - ApnaKhata">
@@ -139,25 +59,6 @@ const ResetPasswordPage = () => {
                 className="glass-alert"
               >
                 {error}
-                {unmetRequirements.length > 0 && (
-                  <>
-                    <br />
-                    <strong>Please address the following requirements:</strong>
-                    <ListGroup
-                      variant="flush"
-                      className="glass-list-group mt-2"
-                    >
-                      {unmetRequirements.map((req, index) => (
-                        <ListGroup.Item
-                          key={index}
-                          className="glass-list-group-item px-0"
-                        >
-                          • {req}
-                        </ListGroup.Item>
-                      ))}
-                    </ListGroup>
-                  </>
-                )}
               </Alert>
             )}
 
@@ -172,69 +73,131 @@ const ResetPasswordPage = () => {
               </Alert>
             )}
 
-            <Form onSubmit={handleSubmit} className="glass-form">
-              <Form.Group className="mb-3">
-                <Form.Label>New Password</Form.Label>
-                <div className="glass-input-group">
-                  <Form.Control
-                    type={passwordShown ? "text" : "password"}
-                    placeholder="Enter new password"
-                    value={password}
-                    onChange={handlePasswordChange}
-                    required
-                  />
-                  <Button
-                    variant="outline-secondary"
-                    onClick={togglePasswordVisibility}
-                  >
-                    {passwordShown ? "Hide" : "Show"}
-                  </Button>
-                </div>
-              </Form.Group>
+            <Formik
+              initialValues={{ password: "", confirmPassword: "" }}
+              validationSchema={validationSchema}
+              onSubmit={async (values, { setSubmitting }) => {
+                setLoading(true);
+                setError("");
+                setSuccessMessage("");
+                try {
+                  const response = await axios.post(
+                    `/api/auth/reset-password/${resetToken}`,
+                    values
+                  );
+                  if (response.data.success) {
+                    setSuccessMessage(
+                      "Password successfully reset! Redirecting to login..."
+                    );
+                    setTimeout(() => navigate("/login"), 2000);
+                  } else {
+                    setError(response.data.message);
+                  }
+                } catch (err) {
+                  setError(
+                    err.response?.data?.message ||
+                      "An error occurred while resetting your password."
+                  );
+                } finally {
+                  setLoading(false);
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {({
+                values,
+                errors,
+                touched,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                isSubmitting,
+              }) => (
+                <Form onSubmit={handleSubmit} className="glass-form">
+                  <Form.Group className="mb-3">
+                    <Form.Label>New Password</Form.Label>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <Button
+                        variant={
+                          passwordShown ? "secondary" : "outline-secondary"
+                        }
+                        onClick={togglePasswordVisibility}
+                        type="button"
+                        aria-label={
+                          passwordShown ? "Hide password" : "Show password"
+                        }
+                        style={{ marginRight: "8px", minWidth: "70px" }}
+                      >
+                        {passwordShown ? "Hide" : "Show"}
+                      </Button>
+                      <Form.Control
+                        type={passwordShown ? "text" : "password"}
+                        name="password"
+                        placeholder="Enter new password"
+                        value={values.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        isInvalid={touched.password && !!errors.password}
+                        required
+                        autoComplete="new-password"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                    <Form.Control.Feedback type="invalid">
+                      {errors.password}
+                    </Form.Control.Feedback>
+                  </Form.Group>
 
-              {password && (
-                <>
-                  <div className="password-strength-text mb-2">
-                    {passwordStrength.message}
-                  </div>
-                  <ProgressBar
-                    striped
-                    variant={passwordStrength.variant}
-                    now={passwordStrength.progress}
-                    label={passwordStrength.strength}
-                    className="glass-progress mb-3"
-                  />
-                </>
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirm New Password</Form.Label>
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <Button
+                        variant={
+                          passwordShown ? "secondary" : "outline-secondary"
+                        }
+                        onClick={togglePasswordVisibility}
+                        type="button"
+                        aria-label={
+                          passwordShown ? "Hide password" : "Show password"
+                        }
+                        style={{ marginRight: "8px", minWidth: "70px" }}
+                      >
+                        {passwordShown ? "Hide" : "Show"}
+                      </Button>
+                      <Form.Control
+                        type={passwordShown ? "text" : "password"}
+                        name="confirmPassword"
+                        placeholder="Confirm new password"
+                        value={values.confirmPassword}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        isInvalid={
+                          touched.confirmPassword && !!errors.confirmPassword
+                        }
+                        required
+                        autoComplete="new-password"
+                        style={{ flex: 1 }}
+                      />
+                    </div>
+                    <Form.Control.Feedback type="invalid">
+                      {errors.confirmPassword}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <Button
+                    style={{
+                      backgroundColor: "var(--submit-btn-color)",
+                      border: "none",
+                    }}
+                    type="submit"
+                    className="w-100 glass-btn"
+                    disabled={loading || isSubmitting}
+                  >
+                    {loading ? "Resetting Password..." : "Reset Password"}
+                  </Button>
+                </Form>
               )}
-
-              <Form.Group className="mb-3">
-                <Form.Label>Confirm New Password</Form.Label>
-                <div className="glass-input-group">
-                  <Form.Control
-                    type={passwordShown ? "text" : "password"}
-                    placeholder="Confirm new password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    required
-                  />
-                  <Button
-                    variant="outline-secondary"
-                    onClick={togglePasswordVisibility}
-                  >
-                    {passwordShown ? "Hide" : "Show"}
-                  </Button>
-                </div>
-              </Form.Group>
-
-              <Button
-                variant="primary"
-                type="submit"
-                className="w-100 glass-btn"
-                disabled={loading}
-              >
-                {loading ? "Resetting Password..." : "Reset Password"}
-              </Button>
-            </Form>
+            </Formik>
 
             <div className="text-center mt-3">
               <p>
@@ -252,3 +215,4 @@ const ResetPasswordPage = () => {
 };
 
 export default ResetPasswordPage;
+

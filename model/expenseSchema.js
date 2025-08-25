@@ -4,7 +4,7 @@ const expenseSchema = new mongoose.Schema(
   {
     user: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     description: {
@@ -26,55 +26,50 @@ const expenseSchema = new mongoose.Schema(
       type: String,
       required: true,
       enum: [
-        'Food & Dining',
-        'Shopping',
-        'Transportation',
-        'Bills & Utilities',
-        'Entertainment',
-        'Health & Fitness',
-        'Travel',
-        'Education',
-        'Personal Care',
-        'Others',
+        "Food & Dining",
+        "Shopping",
+        "Transportation",
+        "Bills & Utilities",
+        "Entertainment",
+        "Health & Fitness",
+        "Travel",
+        "Education",
+        "Personal Care",
+        "Others",
       ],
     },
     paymentMethod: {
       type: String,
       required: true,
       enum: [
-        'Cash',
-        'Credit Card',
-        'Debit Card',
-        'JazzCash',
-        'EasyPaisa',
-        'Other',
+        "Cash",
+        "Credit Card",
+        "Debit Card",
+        "JazzCash",
+        "EasyPaisa",
+        "Other",
       ],
     },
     receipt: {
+      fileId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Receipt",
+      },
       filename: String,
-      path: String,
-      mimetype: String,
+      contentType: String,
+      originalName: String,
     },
     tags: {
       type: [String],
       required: true,
     },
-    notes: {
-      type: String,
-      required: false,
-    },
+    
   },
   { timestamps: true }
 );
 
-// // Important: Keep this toJSON method to ensure consistent ID field
-// expenseSchema.methods.toJSON = function () {
-//   const obj = this.toObject();
-//   obj.id = obj._id.toString();
-//   delete obj._id;
-//   delete obj.__v;
-//   return obj;
-// };
+expenseSchema.index({ date: -1 });
+
 
 const Expense = mongoose.model('Expense', expenseSchema);
 export default Expense;

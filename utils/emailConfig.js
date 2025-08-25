@@ -39,8 +39,7 @@ export const createTransporter = async () => {
       },
     };
   } catch (error) {
-    // console.error('Error creating transporter config:', error);
-    throw error;
+    console.error('Error creating transporter config:', error);
   }
 };
 
@@ -71,9 +70,13 @@ export const sendEmail = async (options) => {
 
       // If the maximum retry attempts are reached, throw error
       if (attempt > maxRetries) {
-        throw new Error(
+       console.error(
           `Attempt ${attempt} failed: Maximum retry attempts reached. Email could not be sent.`
         );
+        res.status(500).json({
+          success: false,
+          message: "Email could not be sent after multiple attempts.",
+        });
       }
 
       // If retrying, wait 1 second before trying again

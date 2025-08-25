@@ -5,15 +5,15 @@ import path from "path";
 import fs from "fs";
 import mime from "mime-types";
 import { fileURLToPath } from "url";
-// import { create } from "domain";
+import {
+  uploadToGridFS,
+  deleteFromGridFS,
+  getFileFromGridFS,
+  getFileInfoFromGridFS,
+} from "../middleware/mutler.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-// Helper function to check if a string is a valid date
-// const isValidDate = (dateString) => {
-//   const date = new Date(dateString);
-//   return date instanceof Date && !isNaN(date);
-// };
 
 // Get all expenses with pagination and filtering
 export const getExpenses = async (req, res) => {
@@ -151,32 +151,38 @@ export const getExpenses = async (req, res) => {
     });
   }
 };
-// Get receipt by filename
+
+
+// Get receipt by fileId
 export const getReceipt = async (req, res) => {
   try {
-    const { filename } = req.params;
-    const filePath = path.join(process.cwd(), "uploads", "receipts", filename);
-
-    // Check if file exists
-    if (!fs.existsSync(filePath)) {
+    const { fileId } = req.params;
+    
+    // Get file info to check if it exists
+    const fileInfo = await getFileInfoFromGridFS(fileId);
+    if (!fileInfo) {
       return res.status(404).json({
         success: false,
         message: "Receipt not found",
       });
     }
 
-    // Get file mime type
-    const mimeType = mime.lookup(filePath) || "application/octet-stream";
-
     // Set headers
-    res.setHeader("Content-Type", mimeType);
-    res.setHeader("Content-Disposition", `inline; filename="${filename}"`);
+    res.setHeader("Content-Type", fileInfo.contentType || "application/octet-stream");
+    res.setHeader("Content-Disposition", `inline; filename="${fileInfo.filename}"`);
 
     // Stream the file
-    const fileStream = fs.createReadStream(filePath);
-    fileStream.pipe(res);
+    const downloadStream = getFileFromGridFS(fileId);
+    downloadStream.pipe(res);
+    
+    downloadStream.on('error', (error) => {
+      console.error('Error streaming file:', error);
+      res.status(500).json({
+        success: false,
+        message: "Error streaming file",
+      });
+    });
   } catch (error) {
-    // console.error("Error fetching receipt:", error);
     res.status(500).json({
       success: false,
       message: "some error occurred",
@@ -224,11 +230,12 @@ export const getReceipt = async (req, res) => {
 //   }
 // };
 
+
 // Add expense
+// Add expense (updated)
 export const addExpense = async (req, res) => {
   try {
-    const { description, amount, date, category, paymentMethod, tags } =
-      req.body;
+    const { description, amount, date, category, paymentMethod, tags } = req.body;
 
     // Parse tags if provided as a string
     const parsedTags =
@@ -236,31 +243,25 @@ export const addExpense = async (req, res) => {
         ? tags.split(",").map((tag) => tag.trim())
         : tags || [];
 
-    // Prepare receipt details with error handling for size and mimetype
+    // Upload file to GridFS if exists
     let receipt = null;
     if (req.file) {
       if (req.file.size > 1024 * 1024 * 1) {
-        // 1MB
         return res.status(400).json({
           success: false,
           message: "Receipt file size exceeds the maximum limit of 1MB, max allowed size is 1MB",
         });
       }
-      if (
-        !["image/jpeg", "image/png", "application/pdf"].includes(
-          req.file.mimetype
-        )
-      ) {
+      
+      if (!["image/jpeg", "image/png", "application/pdf"].includes(req.file.mimetype)) {
         return res.status(400).json({
           success: false,
           message: "Unsupported receipt file format",
         });
       }
-      receipt = {
-        filename: req.file.filename,
-        path: req.file.path,
-        mimetype: req.file.mimetype,
-      };
+      
+      // Upload to GridFS
+      receipt = await uploadToGridFS(req.file);
     }
 
     // Create a new expense
@@ -300,9 +301,7 @@ export const addExpense = async (req, res) => {
                 ? `<li><strong>Tags:</strong> ${parsedTags.join(", ")}</li>`
                 : ""
             }
-            
-          
-
+            <li><strong>Receipt:</strong> ${receipt ? "uploaded successfully" : "No receipt uploaded"}</li>
           </ul>
         </div>
 
@@ -372,8 +371,8 @@ export const getExpenseById = async (req, res) => {
 
     // Add receipt URL if exists
     const expenseObj = expense.toObject();
-    if (expenseObj.receipt) {
-      expenseObj.receipt.url = `${req.protocol}://${req.get("host")}/uploads/receipts/${expenseObj.receipt.filename}`;
+    if (expenseObj.receipt && expenseObj.receipt.fileId) {
+      expenseObj.receipt.url = `${req.protocol}://${req.get("host")}/api/expenses/receipt/${expenseObj.receipt.fileId}`;
     }
 
     res.status(200).json({
@@ -381,7 +380,6 @@ export const getExpenseById = async (req, res) => {
       expense: expenseObj,
     });
   } catch (error) {
-    // console.error("Error fetching expense:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching expense",
@@ -389,6 +387,7 @@ export const getExpenseById = async (req, res) => {
   }
 };
 // Update expense
+// Update expense (updated)
 export const updateExpense = async (req, res) => {
   try {
     const {
@@ -415,7 +414,7 @@ export const updateExpense = async (req, res) => {
       });
     }
 
-    // Parse recurring details only if it's a string and isRecurring is true
+    // Parse recurring details
     let parsedRecurringDetails = null;
     if (isRecurring === true || isRecurring === "true") {
       try {
@@ -424,12 +423,11 @@ export const updateExpense = async (req, res) => {
             ? JSON.parse(recurringDetails)
             : recurringDetails;
       } catch (parseError) {
-        // console.error("Error parsing recurring details:", parseError);
         parsedRecurringDetails = recurringDetails;
       }
     }
 
-    // Parse tags if they're provided as a string
+    // Parse tags
     const parsedTags =
       typeof tags === "string"
         ? tags.split(",").map((tag) => tag.trim())
@@ -446,12 +444,15 @@ export const updateExpense = async (req, res) => {
     expense.isRecurring = isRecurring === true || isRecurring === "true";
     expense.recurringDetails = parsedRecurringDetails;
 
+    // Handle file upload if a new file is provided
     if (req.file) {
-      expense.receipt = {
-        filename: req.file.filename,
-        path: req.file.path,
-        mimetype: req.file.mimetype,
-      };
+      // Delete old file if exists
+      if (expense.receipt && expense.receipt.fileId) {
+        await deleteFromGridFS(expense.receipt.fileId);
+      }
+      
+      // Upload new file to GridFS
+      expense.receipt = await uploadToGridFS(req.file);
     }
 
     await expense.save();
@@ -461,7 +462,6 @@ export const updateExpense = async (req, res) => {
       expense,
     });
   } catch (error) {
-    // console.error("Error updating expense:", error);
     res.status(500).json({
       success: false,
       message: "Error updating expense",
@@ -473,6 +473,7 @@ export const updateExpense = async (req, res) => {
     });
   }
 };
+
 
 // Delete expense
 export const deleteExpense = async (req, res) => {
@@ -503,14 +504,10 @@ export const deleteExpense = async (req, res) => {
         message: "Expense not found",
       });
     }
-    // Delete associated receipt file if exists
-    if (expense.receipt?.filename) {
-      const filePath = `uploads/receipts/${expense.receipt.filename}`;
-      try {
-        await fs.promises.unlink(filePath);
-      } catch (err) {
-        // console.error("Error deleting receipt file:", err);
-      }
+    
+    // Delete associated receipt file from GridFS if exists
+    if (expense.receipt?.fileId) {
+      await deleteFromGridFS(expense.receipt.fileId);
     }
 
     await expense.deleteOne();
@@ -520,13 +517,13 @@ export const deleteExpense = async (req, res) => {
       message: "Expense successfully deleted",
     });
   } catch (error) {
-    // console.error("Error deleting expense:", error);
     res.status(500).json({
       success: false,
       message: "Error deleting expense",
     });
   }
 };
+
 
 // Get expense statistics
 // export const getExpenseStats = async (req, res) => {

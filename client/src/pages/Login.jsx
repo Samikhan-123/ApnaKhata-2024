@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { Button, Form, Col, Row, Breadcrumb, Alert } from "react-bootstrap";
+import { Formik } from "formik";
+import * as Yup from "yup";
+import {
+  Button,
+  Form,
+  Col,
+  Row,
+  Breadcrumb,
+  Alert,
+  InputGroup,
+} from "react-bootstrap";
 import { useNavigate, NavLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
@@ -7,10 +17,8 @@ import axios from "axios";
 import Layout from "../components/Layout";
 import "./styles/forms.css"; // Import the unified CSS
 
-const LoginPage = () => {
+ const LoginPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
@@ -18,37 +26,16 @@ const LoginPage = () => {
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
-    setPasswordShown(!passwordShown);
+    setPasswordShown((prev) => !prev);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setError("");
-    setShowSuccessAlert(false);
-
-    try {
-      const response = await axios.post("/api/auth/login", { email, password });
-
-      if (response.data.success) {
-        const { user: loggedInUser, token } = response.data;
-        login(loggedInUser, token);
-        setShowSuccessAlert(true);
-
-        setTimeout(() => {
-          navigate("/expenses");
-        }, 1000);
-      } else {
-        setError(response.data.message || "Invalid credentials");
-      }
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Something went wrong with server"
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Yup validation schema
+  const validationSchema = Yup.object().shape({
+    email: Yup.string()
+      .email("Invalid email address")
+      .required("Email is required"),
+    password: Yup.string().required("Password is required"),
+  });
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
@@ -65,7 +52,8 @@ const LoginPage = () => {
       }
     } catch (err) {
       setError(
-        err.response?.data?.message || "An error occurred during Google login"
+        err.response?.data?.message ||
+          "An error occurred during Google login"
       );
     }
   };
@@ -73,7 +61,7 @@ const LoginPage = () => {
   return (
     <Layout title="Login - ApnaKhata">
       <div className="login-page">
-        <Row className="justify-content-center align-items-center min-vh-100">
+        <Row className="w-100 justify-content-center align-items-center min-vh-100">
           <Col lg={6} md={8} sm={10} xs={10} className="glass-form-container">
             <Breadcrumb className="glass-breadcrumb mb-3">
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
@@ -103,51 +91,114 @@ const LoginPage = () => {
               </Alert>
             )}
 
-            <Form onSubmit={handleSubmit} className="glass-form">
-              <Form.Group className="mb-3" controlId="formBasicEmail">
-                <Form.Label>Email address</Form.Label>
-                <Form.Control
-                  type="email"
-                  placeholder="Enter email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </Form.Group>
+            <Formik
+              initialValues={{ email: "", password: "" }}
+              validationSchema={validationSchema}
+              onSubmit={async (values, { setSubmitting, resetForm }) => {
+                setLoading(true);
+                setError("");
+                setShowSuccessAlert(false);
+                try {
+                  const response = await axios.post("/api/auth/login", values);
+                  if (response.data.success) {
+                    const { user: loggedInUser, token } = response.data;
+                    login(loggedInUser, token);
+                    setShowSuccessAlert(true);
+                    setTimeout(() => {
+                      navigate("/expenses");
+                    }, 1000);
+                  } else {
+                    setError(response.data.message || "Invalid credentials");
+                  }
+                } catch (err) {
+                  setError(
+                    err.response?.data?.message ||
+                      "Something went wrong with server"
+                  );
+                } finally {
+                  setLoading(false);
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {({
+                values,
+                errors,
+                touched,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                isSubmitting,
+              }) => (
+                <Form onSubmit={handleSubmit} className="glass-form">
+                  <Form.Group className="mb-3" controlId="formBasicEmail">
+                    <Form.Label>Email address</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      placeholder="Enter email"
+                      value={values.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={touched.email && !!errors.email}
+                      required
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.email}
+                    </Form.Control.Feedback>
+                  </Form.Group>
 
-              <Form.Group className="mb-3" controlId="formBasicPassword">
-                <Form.Label>Password</Form.Label>
-                <div className="glass-input-group">
-                  <Form.Control
-                    type={passwordShown ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    required
-                  />
+                  <Form.Group className="mb-3" controlId="formBasicPassword">
+                    <Form.Label>Password</Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        type={passwordShown ? "text" : "password"}
+                        name="password"
+                        placeholder="Password"
+                        value={values.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        isInvalid={touched.password && !!errors.password}
+                      />
+                      <Button
+                        variant={
+                          passwordShown ? "secondary" : "outline-secondary"
+                        }
+                        onClick={togglePasswordVisibility}
+                        type="button"
+                        aria-label={
+                          passwordShown ? "Hide password" : "Show password"
+                        }
+                        style={{ marginLeft: "8px", minWidth: "70px" }}
+                      >
+                        {passwordShown ? "Hide" : "Show"}
+                      </Button>
+                    </InputGroup>
+                    <Form.Control.Feedback type="invalid">
+                      {errors.password}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <div className="mb-3 text-end">
+                    <NavLink to="/forgot-password" className="glass-link">
+                      Forgot Password?
+                    </NavLink>
+                  </div>
+
                   <Button
-                    variant="outline-secondary"
-                    onClick={togglePasswordVisibility}
+                    type="submit"
+                    className="w-100 glass-btn"
+                    disabled={loading || isSubmitting}
+                    style={{
+                      backgroundColor: "var(--submit-btn-color)",
+                      border: "none",
+                    }}
                   >
-                    {passwordShown ? "Hide" : "Show"}
+                    {loading ? "Logging in..." : "Login"}
                   </Button>
-                </div>
-              </Form.Group>
-
-              <div className="mb-3 text-end">
-                <NavLink to="/forgot-password" className="glass-link">
-                  Forgot Password?
-                </NavLink>
-              </div>
-
-              <Button
-                type="submit"
-                className="w-100 glass-btn"
-                disabled={loading}
-              >
-                {loading ? "Logging in..." : "Login"}
-              </Button>
-            </Form>
+                </Form>
+              )}
+            </Formik>
 
             <div className="glass-separator">
               <span>or</span>
@@ -183,3 +234,4 @@ const LoginPage = () => {
 };
 
 export default LoginPage;
+

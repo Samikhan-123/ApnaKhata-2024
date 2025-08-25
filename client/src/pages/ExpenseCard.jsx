@@ -1,4 +1,4 @@
-// ExpenseCard.jsx - Cleaned and optimized
+// ExpenseCard.jsx - Updated receipt handling
 import React, { useState, useRef } from "react";
 import {
   Button,
@@ -24,7 +24,8 @@ import {
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
-import "../pages/styles/ExpenseCard.css"; 
+import "../pages/styles/ExpenseCard.css";
+
 const ExpenseCard = ({
   expenses = [],
   pagination = {},
@@ -119,29 +120,30 @@ const ExpenseCard = ({
     setDeleteState({ loading: false, error: null });
   };
 
+  // UPDATED: Handle view receipt with fileId instead of filename
   const handleViewReceipt = async (receipt) => {
-    if (!receipt) return;
+    if (!receipt || !receipt.fileId) return;
 
     setDeleteState((prev) => ({ ...prev, loading: true, error: null }));
 
     try {
       const response = await axios.get(
-        `/api/expenses/receipt/${receipt.filename}`,
+        `/api/expenses/receipt/${receipt.fileId}`, // Use fileId instead of filename
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
         }
       );
 
-      const blob = new Blob([response.data], { type: receipt.mimetype });
+      const blob = new Blob([response.data], { type: receipt.contentType });
       const receiptUrl = URL.createObjectURL(blob);
 
       setModalState((prev) => ({
         ...prev,
         selectedReceipt: {
           url: receiptUrl,
-          contentType: receipt.mimetype,
-          filename: receipt.filename,
+          contentType: receipt.contentType,
+          originalName: receipt.originalName || `receipt-${receipt.fileId}`,
           blob: blob,
         },
         showReceipt: true,
@@ -170,12 +172,15 @@ const ExpenseCard = ({
     setDeleteState((prev) => ({ ...prev, error: null }));
   };
 
+  // UPDATED: Use original filename for download
   const handleDownloadReceipt = () => {
     if (!modalState.selectedReceipt?.url) return;
 
     const link = document.createElement("a");
     link.href = modalState.selectedReceipt.url;
-    link.download = `receipt-${new Date().toLocaleDateString("en-GB")}`;
+    link.download =
+      modalState.selectedReceipt.originalName ||
+      `receipt-${new Date().toLocaleDateString("en-GB")}`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -302,14 +307,21 @@ const ExpenseCard = ({
 
                 <Card.Footer className="expense-card-footer">
                   <div className="d-flex justify-content-between align-items-center">
-                    {expense.receipt ? (
+                    {expense.receipt && expense.receipt.fileId ? (
                       <Button
                         variant="outline-primary"
                         size="sm"
                         className="receipt-btn"
                         onClick={() => handleViewReceipt(expense.receipt)}
+                        title={expense.receipt.originalName || "View receipt"}
                       >
-                        <FaEye className="me-1" /> Receipt
+                        <FaEye className="me-1" />
+                        {expense.receipt.originalName
+                          ? expense.receipt.originalName.length > 15
+                            ? expense.receipt.originalName.substring(0, 12) +
+                              "..."
+                            : expense.receipt.originalName
+                          : "Receipt"}
                       </Button>
                     ) : (
                       <Badge
@@ -371,7 +383,8 @@ const ExpenseCard = ({
         <Modal.Header closeButton className="modal-header-custom">
           <Modal.Title>
             <FaReceipt className="me-2" />
-            Receipt Preview
+            Receipt Preview -{" "}
+            {modalState.selectedReceipt?.originalName || "Receipt"}
           </Modal.Title>
         </Modal.Header>
         <Modal.Body className="text-center p-4">
@@ -383,11 +396,29 @@ const ExpenseCard = ({
           ) : (
             modalState.selectedReceipt?.url && (
               <div className="receipt-container">
-                <img
-                  src={modalState.selectedReceipt.url}
-                  alt="Receipt"
-                  className="receipt-image img-fluid rounded"
-                />
+                {modalState.selectedReceipt.contentType?.includes("image") ? (
+                  <img
+                    src={modalState.selectedReceipt.url}
+                    alt="Receipt"
+                    className="receipt-image img-fluid rounded"
+                  />
+                ) : modalState.selectedReceipt.contentType ===
+                  "application/pdf" ? (
+                  <iframe
+                    src={modalState.selectedReceipt.url}
+                    title="Receipt"
+                    className="receipt-iframe"
+                    style={{ width: "100%", height: "500px", border: "none" }}
+                  />
+                ) : (
+                  <div className="unsupported-file-type">
+                    <FaReceipt size={48} className="mb-3" />
+                    <p>File preview not available for this file type.</p>
+                    <Button variant="primary" onClick={handleDownloadReceipt}>
+                      <FaFileDownload className="me-2" /> Download File
+                    </Button>
+                  </div>
+                )}
               </div>
             )
           )}
@@ -464,7 +495,6 @@ const ExpenseCard = ({
           </Button>
         </Modal.Footer>
       </Modal>
-
     </div>
   );
 };

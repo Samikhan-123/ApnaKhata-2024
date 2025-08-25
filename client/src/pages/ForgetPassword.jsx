@@ -79,6 +79,7 @@ const ForgotPasswordPage = () => {
 
               <Button
                 type="submit"
+                style={{ backgroundColor: 'var(--submit-btn-color)', border: 'none' }} 
                 className="w-100 glass-btn"
                 disabled={loading}
               >

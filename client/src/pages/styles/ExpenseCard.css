@@ -1,213 +1,215 @@
-        .expense-card-container {
-          padding: 1rem 0;
-        }
+.expense-card-container {
+  padding: 1rem 0;
+}
 
-        .expense-card {
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          transition: all 0.3s ease;
-          border: none;
-          overflow: hidden;
-          position: relative;
-        }
+.expense-card {
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+  border: none;
+  overflow: hidden;
+  position: relative;
+}
 
-        .expense-card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
-        }
 
-        .expense-card-ribbon {
-          position: absolute;
-          top: 0px;
-          left: -5px;
-          background: transparent;
-          color: white;
-          padding: 5px 12px;
-          font-size: 12px;
-          font-weight: bold;
-          border-radius: 25px;
-          z-index: 1;
-          box-shadow: 0 2px 5px rgba(39, 35, 35, 0.3);
-        }
 
-        .expense-card-header {
-          background: #660b05;
-          color: white;
-          border: none;
-          padding: 1rem;
-        }
+.expense-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+}
 
-        .expense-category-badge {
-          font-size: 0.75rem;
-          padding: 0.5rem 0.75rem;
-          margin-left: 2rem;
-          border-radius: 20px;
-          font-weight: 900;
-        }
+.expense-card-ribbon {
+  position: absolute;
+  top: 0px;
+  left: -5px;
+  background: transparent;
+  color: white;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 25px;
+  z-index: 1;
+  box-shadow: 0 2px 5px rgba(39, 35, 35, 0.3);
+}
 
-        .expense-amount {
-          font-size: 1.25rem;
-          font-weight: 700;
-          color: white;
-        }
+.expense-card-header {
+  background: #660b05;
+  color: white;
+  border: none;
+  padding: 1rem;
+}
 
-        .expense-card-body {
-          padding: 1.25rem;
-          background: #f8f9fa;
-        }
+.expense-category-badge {
+  font-size: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  margin-left: 2rem;
+  border-radius: 20px;
+  font-weight: 900;
+}
 
-        .expense-description h6 {
-          color: #2d3436;
-          font-weight: 600;
-          border-left: 3px solid #667eea;
-          padding-left: 10px;
-        }
+.expense-amount {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: white;
+}
 
-        .expense-details {
-          margin-top: 0.5rem;
-        }
+.expense-card-body {
+  padding: 1.25rem;
+  background: #f8f9fa;
+}
 
-        .expense-detail-item {
-          display: flex;
-          align-items: center;
-          margin-bottom: 0.75rem;
-        }
+.expense-description h6 {
+  color: #2d3436;
+  font-weight: 600;
+  border-left: 3px solid #667eea;
+  padding-left: 10px;
+}
 
-        .detail-icon {
-          color: #667eea;
-          width: 20px;
-          margin-right: 10px;
-          font-size: 0.9rem;
-        }
+.expense-details {
+  margin-top: 0.5rem;
+}
 
-        .detail-value {
-          color: #636e72;
-          font-size: 0.9rem;
-        }
+.expense-detail-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
 
-        .tags-container {
-          display: flex;
-          flex-wrap: wrap;
-          gap: 5px;
-        }
+.detail-icon {
+  color: #667eea;
+  width: 20px;
+  margin-right: 10px;
+  font-size: 0.9rem;
+}
 
-        .tag-badge {
-          font-size: 0.7rem;
-          padding: 0.3rem 0.6rem;
-          border-radius: 12px;
-          border: 1px solid #dee2e6;
-          background: transparent;
-          color: #6c757d;
-        }
+.detail-value {
+  color: #636e72;
+  font-size: 0.9rem;
+}
 
-        .expense-card-footer {
-          background: white;
-          border: none;
-          padding: 1rem;
-          border-top: 1px solid rgba(0, 0, 0, 0.05);
-        }
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
 
-        .receipt-btn,
-        .edit-btn,
-        .delete-btn {
-          border-radius: 8px;
-          padding: 0.35rem 0.75rem;
-          font-size: 0.8rem;
-          transition: all 0.2s ease;
-        }
+.tag-badge {
+  font-size: 0.7rem;
+  padding: 0.3rem 0.6rem;
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+  background: transparent;
+  color: #6c757d;
+}
 
-        .receipt-btn:hover {
-          background: #667eea;
-          border-color: #667eea;
-          transform: scale(1.05);
-        }
+.expense-card-footer {
+  background: white;
+  border: none;
+  padding: 1rem;
+  border-top: 1px solid rgba(0, 0, 0, 0.05);
+}
 
-        .edit-btn:hover {
-          background: #17a2b8;
-          border-color: #17a2b8;
-          transform: scale(1.05);
-        }
+.receipt-btn,
+.edit-btn,
+.delete-btn {
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  transition: all 0.2s ease;
+}
 
-        .delete-btn:hover {
-          background: #dc3545;
-          border-color: #dc3545;
-          transform: scale(1.05);
-        }
+.receipt-btn:hover {
+  background: #667eea;
+  border-color: #667eea;
+  transform: scale(1.05);
+}
 
-        .no-receipt-badge {
-          padding: 0.5rem 0.8rem;
-          border-radius: 8px;
-          font-size: 0.8rem;
-        }
+.edit-btn:hover {
+  background: #17a2b8;
+  border-color: #17a2b8;
+  transform: scale(1.05);
+}
 
-        .no-expenses-placeholder {
-          padding: 3rem 1rem;
-          color: #a0a0a0;
-        }
+.delete-btn:hover {
+  background: #dc3545;
+  border-color: #dc3545;
+  transform: scale(1.05);
+}
 
-        .placeholder-icon {
-          font-size: 4rem;
-          opacity: 0.5;
-        }
+.no-receipt-badge {
+  padding: 0.5rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+}
 
-        .alert-custom {
-          border-radius: 10px;
-          border: none;
-          box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
-        }
+.no-expenses-placeholder {
+  padding: 3rem 1rem;
+  color: #a0a0a0;
+}
 
-        .modal-header-custom {
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          border-bottom: 1px solid rgba(0, 0, 0, 0.1);
-        }
+.placeholder-icon {
+  font-size: 4rem;
+  opacity: 0.5;
+}
 
-        .modal-footer-custom {
-          border-top: 1px solid rgba(0, 0, 0, 0.1);
-          padding: 1rem;
-        }
+.alert-custom {
+  border-radius: 10px;
+  border: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
 
-        .receipt-container {
-          background: #f8f9fa;
-          padding: 1rem;
-          border-radius: 10px;
-        }
+.modal-header-custom {
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
 
-        .receipt-image {
-          max-height: 60vh;
-          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-        }
+.modal-footer-custom {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 1rem;
+}
 
-        .delete-icon {
-          font-size: 3rem;
-          color: #dc3545;
-          opacity: 0.7;
-        }
+.receipt-container {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 10px;
+}
 
-        @media (max-width: 768px) {
-          .expense-card {
-            margin-bottom: 1.5rem;
-          }
+.receipt-image {
+  max-height: 60vh;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+}
 
-          .expense-detail-item {
-            flex-direction: row;
-          }
+.delete-icon {
+  font-size: 3rem;
+  color: #dc3545;
+  opacity: 0.7;
+}
 
-          .tags-container {
-            justify-content: flex-start;
-          }
-        }
+@media (max-width: 768px) {
+  .expense-card {
+    margin-bottom: 1.5rem;
+  }
 
-        @media (max-width: 576px) {
-          .expense-card-header {
-            padding: 0.75rem;
-          }
+  .expense-detail-item {
+    flex-direction: row;
+  }
 
-          .expense-card-body {
-            padding: 1rem;
-          }
+  .tags-container {
+    justify-content: flex-start;
+  }
+}
 
-          .action-buttons {
-            display: flex;
-            gap: 0.5rem;
-          }
-        }
+@media (max-width: 576px) {
+  .expense-card-header {
+    padding: 0.75rem;
+  }
+
+  .expense-card-body {
+    padding: 1rem;
+  }
+
+  .action-buttons {
+    display: flex;
+    gap: 0.5rem;
+  }
+}

@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { Formik } from "formik";
+import * as Yup from "yup";
 import {
   Button,
   Form,
@@ -6,7 +8,7 @@ import {
   Row,
   Breadcrumb,
   Alert,
-  ProgressBar,
+  InputGroup,
 } from "react-bootstrap";
 import axios from "axios";
 import { NavLink, useNavigate } from "react-router-dom";
@@ -16,132 +18,34 @@ import { useAuth } from "../auth/AuthContext";
 import "./styles/forms.css"; // Import the unified CSS
 
 const RegisterPage = () => {
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [passwordShown, setPasswordShown] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
-  const [passwordStrength, setPasswordStrength] = useState({
-    strength: "",
-    progress: 0,
-    variant: "",
-    message: "",
-  });
-
   const navigate = useNavigate();
 
-  const togglePasswordVisibility = () => {
-    setPasswordShown(!passwordShown);
-  };
-
-  const validateForm = () => {
-    if (!name || !email || !password) {
-      setError("Please fill in all required fields.");
-      return false;
-    }
-
-    const nameRegex = /^[a-zA-Z\s]{1,50}$/;
-    if (!nameRegex.test(name)) {
-      setError("Please enter a valid name with alphabets and spaces.");
-      return false;
-    }
-
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-      setError("Please enter a valid email address.");
-      return false;
-    }
-
-    return true;
-  };
-
-  const checkPasswordStrength = (password) => {
-    let strength = 0;
-
-    if (password.length >= 8) strength += 1;
-    if (/[A-Z]/.test(password)) strength += 1;
-    if (/[a-z]/.test(password)) strength += 1;
-    if (/[0-9]/.test(password)) strength += 1;
-    if (/[^A-Za-z0-9]/.test(password)) strength += 1;
-
-    let strengthLabel = "";
-    let progress = 0;
-    let variant = "";
-    const message =
-      "Password should contain at least one uppercase letter, one lowercase letter, one number, and one special character.";
-
-    if (strength === 0 || strength === 1) {
-      strengthLabel = "Weak";
-      progress = 20;
-      variant = "danger";
-    } else if (strength === 2) {
-      strengthLabel = "Fair";
-      progress = 40;
-      variant = "warning";
-    } else if (strength === 3) {
-      strengthLabel = "Good";
-      progress = 60;
-      variant = "info";
-    } else if (strength === 4) {
-      strengthLabel = "Strong";
-      progress = 80;
-      variant = "primary";
-    } else if (strength === 5) {
-      strengthLabel = "Very Strong";
-      progress = 100;
-      variant = "success";
-    }
-
-    return { strength: strengthLabel, progress, variant, message };
-  };
-
-  const handlePasswordChange = (e) => {
-    const newPassword = e.target.value;
-    setPassword(newPassword);
-    const strengthInfo = checkPasswordStrength(newPassword);
-    setPasswordStrength(strengthInfo);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-
-    if (!validateForm()) return;
-
-    setLoading(true);
-    setError("");
-    setSuccess("");
-
-    try {
-      const response = await axios.post("/api/auth/register", {
-        name,
-        email,
-        password,
-      });
-
-      if (response.status === 201) {
-        setSuccess("Registration successful! ");
-        setName("");
-        setEmail("");
-        setPassword("");
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
-      } else {
-        setError("Registration failed. Please try again.");
-      }
-    } catch (error) {
-      setError(
-        error.response?.data?.message ||
-          "An error occurred during registration."
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Yup validation schema
+  const validationSchema = Yup.object().shape({
+    name: Yup.string()
+      .min(3, "Name must be at least 3 characters")
+      .max(15, "Name must be at most 15 characters")
+      .matches(
+        /^[a-zA-Z0-9\s]+$/,
+        "Name can only contain letters, numbers, and spaces"
+      )
+      .required("Name is required"),
+    email: Yup.string()
+      .email("Invalid email address")
+      .required("Email is required"),
+    password: Yup.string()
+      .min(8, "Password must be at least 8 characters")
+      .matches(
+        /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*(),.?":{}|<>\-_/+\-=\[\]]).{8,}$/,
+        "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"
+      )
+      .required("Password is required"),
+  });
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
@@ -166,7 +70,7 @@ const RegisterPage = () => {
   return (
     <Layout title="Register Now - ApnaKhata">
       <div className="register-page">
-        <Row className="justify-content-center align-items-center min-vh-100">
+        <Row className="w-100 justify-content-center align-items-center min-vh-100">
           <Col lg={6} md={8} sm={10} xs={12} className="glass-form-container">
             <Breadcrumb className="glass-breadcrumb mb-3">
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
@@ -195,95 +99,150 @@ const RegisterPage = () => {
               </Alert>
             )}
 
-            <Form onSubmit={handleSubmit} className="glass-form">
-              <Form.Group className="mb-3" controlId="formBasicName">
-                <Form.Label>Name</Form.Label>
-                <Form.Control
-                  type="text"
-                  placeholder="Enter your name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </Form.Group>
+            <Formik
+              initialValues={{ name: "", email: "", password: "" }}
+              validationSchema={validationSchema}
+              onSubmit={async (values, { setSubmitting, resetForm }) => {
+                setLoading(true);
+                setError("");
+                setSuccess("");
+                try {
+                  const response = await axios.post(
+                    "/api/auth/register",
+                    values
+                  );
+                  if (response.status === 201) {
+                    setSuccess("Registration successful! ");
+                    resetForm();
+                    setTimeout(() => {
+                      navigate("/login");
+                    }, 1500);
+                  } else {
+                    setError("Registration failed. Please try again.");
+                  }
+                } catch (error) {
+                  setError(
+                    error.response?.data?.message ||
+                      "An error occurred during registration."
+                  );
+                } finally {
+                  setLoading(false);
+                  setSubmitting(false);
+                }
+              }}
+            >
+              {({
+                values,
+                errors,
+                touched,
+                handleChange,
+                handleBlur,
+                handleSubmit,
+                isSubmitting,
+                setFieldValue,
+              }) => (
+                <Form onSubmit={handleSubmit} className="glass-form">
+                  <Form.Group className="mb-3" controlId="formBasicName">
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="name"
+                      placeholder="Enter your name"
+                      value={values.name}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={touched.name && !!errors.name}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.name}
+                    </Form.Control.Feedback>
+                  </Form.Group>
 
-              <Form.Group className="mb-3" controlId="formBasicEmail">
-                <Form.Label>Email address</Form.Label>
-                <Form.Control
-                  type="email"
-                  placeholder="Enter email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </Form.Group>
+                  <Form.Group className="mb-3" controlId="formBasicEmail">
+                    <Form.Label>Email address</Form.Label>
+                    <Form.Control
+                      type="email"
+                      name="email"
+                      placeholder="Enter email"
+                      value={values.email}
+                      onChange={handleChange}
+                      onBlur={handleBlur}
+                      isInvalid={touched.email && !!errors.email}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {errors.email}
+                    </Form.Control.Feedback>
+                  </Form.Group>
 
-              <Form.Group className="mb-3" controlId="formBasicPassword">
-                <Form.Label>Password</Form.Label>
-                <div className="glass-input-group">
-                  <Form.Control
-                    type={passwordShown ? "text" : "password"}
-                    placeholder="Password"
-                    value={password}
-                    onChange={handlePasswordChange}
-                  />
+                  <Form.Group className="mb-3" controlId="formBasicPassword">
+                    <Form.Label>Password</Form.Label>
+                    <InputGroup>
+                      <Form.Control
+                        type={showPassword ? "text" : "password"}
+                        name="password"
+                        placeholder="Password"
+                        value={values.password}
+                        onChange={handleChange}
+                        onBlur={handleBlur}
+                        isInvalid={touched.password && !!errors.password}
+                      />
+                      <Button
+                        variant={
+                          showPassword ? "secondary" : "outline-secondary"
+                        }
+                        onClick={() => setShowPassword((prev) => !prev)}
+                        type="button"
+                        aria-label={
+                          showPassword ? "Hide password" : "Show password"
+                        }
+                        style={{ marginLeft: "8px", minWidth: "70px" }}
+                      >
+                        {showPassword ? "Hide" : "Show"}
+                      </Button>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.password}
+                      </Form.Control.Feedback>
+                    </InputGroup>
+                  </Form.Group>
+
                   <Button
-                    variant="outline-secondary"
-                    onClick={togglePasswordVisibility}
+                    type="submit"
+                    className="w-100 glass-btn"
+                    disabled={loading || isSubmitting}
+                    style={{ backgroundColor: 'var(--submit-btn-color)', border: 'none' }} 
                   >
-                    {passwordShown ? "Hide" : "Show"}
+                    {loading ? "Registering..." : "Register"}
                   </Button>
-                </div>
-              </Form.Group>
 
-              {password && (
-                <>
-                  <div className="password-strength-text mb-2">
-                    {passwordStrength.message}
+                  <div className="glass-separator">
+                    <span>or</span>
                   </div>
-                  <ProgressBar
-                    striped
-                    variant={passwordStrength.variant}
-                    now={passwordStrength.progress}
-                    label={passwordStrength.strength}
-                    className="glass-progress mb-3"
-                  />
-                </>
+
+                  {!user && (
+                    <GoogleOAuthProvider
+                      clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
+                    >
+                      <GoogleLogin
+                        className="w-100 glass-google-btn"
+                        onSuccess={handleGoogleLogin}
+                        onError={() => {
+                          setError("Google login failed");
+                        }}
+                      />
+                    </GoogleOAuthProvider>
+                  )}
+
+                  <div className="text-center mt-3">
+                    <p>
+                      Already registered?
+                      <NavLink to="/login" className="glass-link ms-1">
+                        Please login here
+                      </NavLink>
+                    </p>
+                  </div>
+                </Form>
               )}
-
-              <Button
-                type="submit"
-                className="w-100 glass-btn"
-                disabled={loading}
-              >
-                {loading ? "Registering..." : "Register"}
-              </Button>
-
-              <div className="glass-separator">
-                <span>or</span>
-              </div>
-
-              {!user && (
-                <GoogleOAuthProvider
-                  clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
-                >
-                  <GoogleLogin
-                    className="w-100 glass-google-btn"
-                    onSuccess={handleGoogleLogin}
-                    onError={() => {
-                      setError("Google login failed");
-                    }}
-                  />
-                </GoogleOAuthProvider>
-              )}
-
-              <div className="text-center mt-3">
-                <p>
-                  Already registered?
-                  <NavLink to="/login" className="glass-link ms-1">
-                    Please login here
-                  </NavLink>
-                </p>
-              </div>
-            </Form>
+            </Formik>
           </Col>
         </Row>
       </div>

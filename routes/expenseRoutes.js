@@ -16,7 +16,7 @@ const router = express.Router();
 // Base route: /api/expenses
 
 // Get receipt by filename
-router.get('/receipt/:filename', authenticate, getReceipt);
+router.get("/receipt/:fileId", authenticate, getReceipt);
 
 // Get all expenses without filters
 // router.get('/all', authenticate, getAllExpenses);

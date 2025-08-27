@@ -149,7 +149,7 @@ const ExpenseCard = ({
         showReceipt: true,
       }));
     } catch (error) {
-      console.error("Error fetching receipt:", error);
+      // console.error("Error fetching receipt:", error);
       setDeleteState((prev) => ({
         ...prev,
         error: "Failed to load receipt. Please try again later.",
@@ -314,14 +314,21 @@ const ExpenseCard = ({
                         className="receipt-btn"
                         onClick={() => handleViewReceipt(expense.receipt)}
                         title={expense.receipt.originalName || "View receipt"}
+                        disabled={deleteState.loading}
                       >
                         <FaEye className="me-1" />
-                        {expense.receipt.originalName
-                          ? expense.receipt.originalName.length > 15
-                            ? expense.receipt.originalName.substring(0, 12) +
-                              "..."
-                            : expense.receipt.originalName
-                          : "Receipt"}
+                        {deleteState.loading ? (
+                          <Spinner animation="border" size="sm" />
+                        ) : expense.receipt.originalName ? (
+                          expense.receipt.originalName.length > 15 ? (
+                            expense.receipt.originalName.substring(0, 12) +
+                            "..."
+                          ) : (
+                            expense.receipt.originalName
+                          )
+                        ) : (
+                          "Receipt"
+                        )}
                       </Button>
                     ) : (
                       <Badge
@@ -408,7 +415,8 @@ const ExpenseCard = ({
                     src={modalState.selectedReceipt.url}
                     title="Receipt"
                     className="receipt-iframe"
-                    style={{ width: "100%", height: "500px", border: "none" }}
+                    size="lg"
+                    style={{ width: "800px", height: "600px" }}
                   />
                 ) : (
                   <div className="unsupported-file-type">
@@ -500,3 +508,4 @@ const ExpenseCard = ({
 };
 
 export default ExpenseCard;
+

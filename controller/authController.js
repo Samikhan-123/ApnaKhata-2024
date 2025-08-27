@@ -225,9 +225,9 @@ export const forgotPassword = async (req, res) => {
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
     user.sendEmailsOnForgetPass = (user.passwordResetAttempts || 0) + 1;
     await user.save();
-    const resetUrl = process.env.FRONTEND_URL
+    const resetUrl = process.env.clientUrl
       ? `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
-      : `http://localhost:5173/reset-password/${resetToken}`;
+      : `http://localhost:5173/reset-password/${resetToken}` ;
     const formatDate = (date) => {
       return new Intl.DateTimeFormat("en-GB", {
         weekday: "long",

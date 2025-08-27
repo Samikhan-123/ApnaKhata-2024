@@ -1,5 +1,5 @@
 /* eslint-disable no-unused-vars */
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   Form,
   Button,
@@ -9,15 +9,14 @@ import {
   Col,
   Card,
   Spinner,
-
-} from 'react-bootstrap';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import axios from 'axios';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useAuth } from '../auth/AuthContext';
-import Layout from '../components/Layout';
-import { toast } from 'react-toastify'; // Import toast from react-toastify
+} from "react-bootstrap";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "../auth/AuthContext";
+import Layout from "../components/Layout";
+import { toast } from "react-toastify"; // Import toast from react-toastify
 
 const EditExpense = () => {
   const { id } = useParams();
@@ -25,31 +24,30 @@ const EditExpense = () => {
   const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [currentReceipt, setCurrentReceipt] = useState(''); // Store receipt URL or filename
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [currentReceipt, setCurrentReceipt] = useState(""); // Store receipt URL or filename
 
-  
   const categories = [
-    'Food & Dining',
-    'Shopping',
-    'Transportation',
-    'Bills & Utilities',
-    'Entertainment',
-    'Health & Fitness',
-    'Travel',
-    'Education',
-    'Personal Care',
-    'Others',
+    "Food & Dining",
+    "Shopping",
+    "Transportation",
+    "Bills & Utilities",
+    "Entertainment",
+    "Health & Fitness",
+    "Travel",
+    "Education",
+    "Personal Care",
+    "Others",
   ];
 
   const paymentMethods = [
-    'Cash',
-    'Credit Card',
-    'Debit Card',
-    'JazzCash',
-    'EasyPaisa',
-    'Other',
+    "Cash",
+    "Credit Card",
+    "Debit Card",
+    "JazzCash",
+    "EasyPaisa",
+    "Other",
   ];
 
   const validationSchema = Yup.object().shape({
@@ -70,31 +68,29 @@ const EditExpense = () => {
         "Tags can only contain letters, numbers, and commas"
       )
       .nullable(),
-    notes: Yup.string().nullable(), // Optional field
     receipt: Yup.mixed().nullable(), // Handle receipt input
   });
 
   const formik = useFormik({
     enableReinitialize: true, // Allow form to reinitialize when initialValues change
     initialValues: {
-      description: '',
-      amount: '',
-      date: '',
-      category: '',
-      paymentMethod: '',
-      tags: '',
-      notes: '',
+      description: "",
+      amount: "",
+      date: "",
+      category: "",
+      paymentMethod: "",
+      tags: "",
       receipt: null, // Initialize receipt as null
     },
     validationSchema,
     onSubmit: async (values) => {
       setLoading(true);
-      setError('');
-      setSuccess('');
+      setError("");
+      setSuccess("");
 
       const submitData = new FormData();
       Object.keys(values).forEach((key) => {
-        if (key === 'receipt' && values.receipt instanceof File) {
+        if (key === "receipt" && values.receipt instanceof File) {
           submitData.append(key, values[key]);
         } else {
           submitData.append(key, values[key]);
@@ -105,16 +101,16 @@ const EditExpense = () => {
         await axios.put(`/api/expenses/${id}`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`,
-            'Content-Type': 'multipart/form-data',
+            "Content-Type": "multipart/form-data",
           },
         });
-        setSuccess('Expense updated successfully!');
+        setSuccess("Expense updated successfully!");
 
-        toast.success('Expense updated successfully!'); // Use toast for success message
-        setTimeout(() => navigate('/expenses'), 1500);
+        toast.success("Expense updated successfully!"); // Use toast for success message
+        setTimeout(() => navigate("/expenses"), 1500);
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Failed to update expense'); // Use toast for error message
-        setError(err.response?.data?.message || 'Failed to update expense');
+        toast.error(err.response?.data?.message || "Failed to update expense"); // Use toast for error message
+        setError(err.response?.data?.message || "Failed to update expense");
       } finally {
         setLoading(false);
       }
@@ -133,25 +129,25 @@ const EditExpense = () => {
 
           // Format date to ISO string for date input
           const formattedDate = expense.date
-            ? new Date(expense.date).toISOString().split('T')[0]
-            : '';
+            ? new Date(expense.date).toISOString().split("T")[0]
+            : "";
 
           formik.setValues({
-            description: expense.description || '',
-            amount: expense.amount || '',
+            description: expense.description || "",
+            amount: expense.amount || "",
             date: formattedDate,
-            category: expense.category || '',
-            paymentMethod: expense.paymentMethod || '',
-            tags: expense.tags?.join(', ') || '',
-            notes: expense.notes || '',
-            receipt: expense.receipt || null, // Keep receipt null for file upload
+            category: expense.category || "",
+            paymentMethod: expense.paymentMethod || "",
+            tags: expense.tags?.join(", ") || "",
+            // notes: expense.notes || '',
+            receipt: expense.receipt?.originalName || null, // Keep receipt null for file upload
           });
 
-          setCurrentReceipt(expense.receipt?.url || ''); // Set the receipt file or URL
+          setCurrentReceipt(expense.receipt?.originalName || ""); // Set the receipt file or URL
         }
       } catch (err) {
-        toast.error(err.response?.data?.message || 'Something went wrong'); // Use toast for error message
-        setError(err.response?.data?.message || 'Something went wrong');
+        toast.error(err.response?.data?.message || "Something went wrong"); // Use toast for error message
+        setError(err.response?.data?.message || "Something went wrong");
       } finally {
         setLoading(false);
       }
@@ -187,7 +183,7 @@ const EditExpense = () => {
                   <Alert
                     variant="danger"
                     dismissible
-                    onClose={() => setError('')}
+                    onClose={() => setError("")}
                   >
                     {error}
                   </Alert>
@@ -196,7 +192,7 @@ const EditExpense = () => {
                   <Alert
                     variant="success"
                     dismissible
-                    onClose={() => setSuccess('')}
+                    onClose={() => setSuccess("")}
                   >
                     {success}
                   </Alert>
@@ -291,9 +287,9 @@ const EditExpense = () => {
                       name="date"
                       value={formik.values.date}
                       onChange={(e) =>
-                        formik.setFieldValue('date', e.target.value || '')
+                        formik.setFieldValue("date", e.target.value || "")
                       }
-                      onBlur={() => formik.setFieldTouched('date', true, true)}
+                      onBlur={() => formik.setFieldTouched("date", true, true)}
                       isInvalid={formik.touched.date && formik.errors.date}
                     />
                     <Form.Control.Feedback type="invalid">
@@ -303,22 +299,20 @@ const EditExpense = () => {
 
                   <Form.Group className="mb-3">
                     <Form.Label>Receipt (optional)</Form.Label>
-                    {/* {currentReceipt && (
+                    {currentReceipt && (
                       <div className="mb-2">
-                        <a
-                          href={currentReceipt}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                        >
-                          {currentReceipt.split('/').pop()}
-                        </a>
+                        current: {currentReceipt || <span>No receipt uploaded</span>}
                       </div>
-                    )} */}
-                    <p className='text-muted'> If a new receipt is uploaded, it will replace the current one.</p>
+                    )}
+                    <p className="text-muted">
+                      
+                      If a new receipt is uploaded, it will replace the current
+                      one.
+                    </p>
                     <Form.Control
                       type="file"
                       onChange={(e) =>
-                        formik.setFieldValue('receipt', e.target.files[0])
+                        formik.setFieldValue("receipt", e.target.files[0])
                       }
                       accept="image/*,.pdf"
                     />
@@ -347,24 +341,20 @@ const EditExpense = () => {
                     </Form.Control.Feedback>
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Notes (optional)</Form.Label>
-                    <Form.Control
-                      as="textarea"
-                      name="notes"
-                      value={formik.values.notes}
-                      onChange={formik.handleChange}
-                      placeholder="Add any notes (optional)"
-                    />
-                  </Form.Group>
-
                   <div className="d-grid gap-2">
-                    <Button style={{ backgroundColor: 'var(--submit-btn-color)', border: 'none' }} type="submit" disabled={loading}>
-                      {loading ? 'Saving...' : 'Save Changes'}
+                    <Button
+                      style={{
+                        backgroundColor: "var(--submit-btn-color)",
+                        border: "none",
+                      }}
+                      type="submit"
+                      disabled={loading}
+                    >
+                      {loading ? "Saving..." : "Save Changes"}
                     </Button>
                     <Button
                       variant="outline-secondary"
-                      onClick={() => navigate('/expenses')}
+                      onClick={() => navigate("/expenses")}
                     >
                       Cancel
                     </Button>
@@ -375,7 +365,6 @@ const EditExpense = () => {
           </Col>
         </Row>
       </Container>
-      
     </Layout>
   );
 };

@@ -8,7 +8,7 @@ import {
   Row,
   Breadcrumb,
   Alert,
- 
+  InputGroup,
 } from "react-bootstrap";
 import { useNavigate, useParams, NavLink } from "react-router-dom";
 import axios from "axios";
@@ -17,6 +17,7 @@ import "./styles/forms.css"; // Import the unified CSS
 
 const ResetPasswordPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
+  const [confirmPasswordShown, setConfirmPasswordShown] = useState(false);
   const [error, setError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
   const [loading, setLoading] = useState(false);
@@ -25,6 +26,8 @@ const ResetPasswordPage = () => {
   const { resetToken } = useParams();
 
   const togglePasswordVisibility = () => setPasswordShown((prev) => !prev);
+  const toggleConfirmPasswordVisibility = () =>
+    setConfirmPasswordShown((prev) => !prev);
 
   // Yup validation schema
   const validationSchema = Yup.object().shape({
@@ -72,11 +75,18 @@ const ResetPasswordPage = () => {
                 {successMessage}
               </Alert>
             )}
+            <Alert className="text-center" variant="info" dismissible>
+              Note: Password must contain at least 8 characters, one uppercase
+              letter, one lowercase letter, one number and one special
+              character.
+            </Alert>
 
             <Formik
               initialValues={{ password: "", confirmPassword: "" }}
               validationSchema={validationSchema}
-              onSubmit={async (values, { setSubmitting }) => {
+              validateOnBlur={true}
+              validateOnChange={true}
+              onSubmit={async (values, { setSubmitting, setFieldTouched }, resetForm) => {
                 setLoading(true);
                 setError("");
                 setSuccessMessage("");
@@ -89,18 +99,27 @@ const ResetPasswordPage = () => {
                     setSuccessMessage(
                       "Password successfully reset! Redirecting to login..."
                     );
-                    setTimeout(() => navigate("/login"), 2000);
+                    resetForm();
+                    // setTimeout(() => navigate("/login"), 2000);
                   } else {
                     setError(response.data.message);
                   }
                 } catch (err) {
-                  setError(
-                    err.response?.data?.message ||
-                      "An error occurred while resetting your password."
-                  );
+                  if (err.response?.data?.error) {
+                    setError(
+                      err.response.data.error.map((err) => err.message).join(", ")
+                    );
+                  } else {
+                    setError(
+                      err.response?.data?.message ||
+                        "An error occurred while resetting your password."
+                    );
+                  }
                 } finally {
                   setLoading(false);
                   setSubmitting(false);
+                  setFieldTouched("password", true);
+                  setFieldTouched("confirmPassword", true);
                 }
               }}
             >
@@ -112,24 +131,13 @@ const ResetPasswordPage = () => {
                 handleBlur,
                 handleSubmit,
                 isSubmitting,
+                isValid,
+                dirty,
               }) => (
-                <Form onSubmit={handleSubmit} className="glass-form">
+                <Form noValidate onSubmit={handleSubmit} className="glass-form">
                   <Form.Group className="mb-3">
                     <Form.Label>New Password</Form.Label>
-                    <div style={{ display: "flex", alignItems: "center" }}>
-                      <Button
-                        variant={
-                          passwordShown ? "secondary" : "outline-secondary"
-                        }
-                        onClick={togglePasswordVisibility}
-                        type="button"
-                        aria-label={
-                          passwordShown ? "Hide password" : "Show password"
-                        }
-                        style={{ marginRight: "8px", minWidth: "70px" }}
-                      >
-                        {passwordShown ? "Hide" : "Show"}
-                      </Button>
+                    <InputGroup>
                       <Form.Control
                         type={passwordShown ? "text" : "password"}
                         name="password"
@@ -138,32 +146,29 @@ const ResetPasswordPage = () => {
                         onChange={handleChange}
                         onBlur={handleBlur}
                         isInvalid={touched.password && !!errors.password}
-                    
+                        required
                       />
-                    </div>
-                    <Form.Control.Feedback type="invalid">
-                      {errors.password}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
-                  <Form.Group className="mb-3">
-                    <Form.Label>Confirm New Password</Form.Label>
-                    <div style={{ display: "flex", alignItems: "center" }}>
                       <Button
-                        variant={
-                          passwordShown ? "secondary" : "outline-secondary"
-                        }
+                        variant="outline-secondary"
                         onClick={togglePasswordVisibility}
                         type="button"
                         aria-label={
                           passwordShown ? "Hide password" : "Show password"
                         }
-                        style={{ marginRight: "8px", minWidth: "70px" }}
                       >
                         {passwordShown ? "Hide" : "Show"}
                       </Button>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.password}
+                      </Form.Control.Feedback>
+                    </InputGroup>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
+                    <Form.Label>Confirm New Password</Form.Label>
+                    <InputGroup>
                       <Form.Control
-                        type={passwordShown ? "text" : "password"}
+                        type={confirmPasswordShown ? "text" : "password"}
                         name="confirmPassword"
                         placeholder="Confirm new password"
                         value={values.confirmPassword}
@@ -172,12 +177,24 @@ const ResetPasswordPage = () => {
                         isInvalid={
                           touched.confirmPassword && !!errors.confirmPassword
                         }
-                      
+                        required
                       />
-                    </div>
-                    <Form.Control.Feedback type="invalid">
-                      {errors.confirmPassword}
-                    </Form.Control.Feedback>
+                      <Button
+                        variant="outline-secondary"
+                        onClick={toggleConfirmPasswordVisibility}
+                        type="button"
+                        aria-label={
+                          confirmPasswordShown
+                            ? "Hide password"
+                            : "Show password"
+                        }
+                      >
+                        {confirmPasswordShown ? "Hide" : "Show"}
+                      </Button>
+                      <Form.Control.Feedback type="invalid">
+                        {errors.confirmPassword}
+                      </Form.Control.Feedback>
+                    </InputGroup>
                   </Form.Group>
 
                   <Button
@@ -187,7 +204,7 @@ const ResetPasswordPage = () => {
                     }}
                     type="submit"
                     className="w-100 glass-btn"
-                    disabled={loading || isSubmitting}
+                    disabled={loading || isSubmitting }
                   >
                     {loading ? "Resetting Password..." : "Reset Password"}
                   </Button>
@@ -211,4 +228,3 @@ const ResetPasswordPage = () => {
 };
 
 export default ResetPasswordPage;
-

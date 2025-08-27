@@ -21,6 +21,7 @@ const ForgotPasswordPage = () => {
       setAlert({
         message: response.data.message || "Reset link sent successfully!",
         type: "success",
+        text: "success"
       });
     } catch (err) {
       if (err.response?.status === 429) {

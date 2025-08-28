@@ -118,9 +118,8 @@ function Home() {
               </h1>
 
               <p className="lead mb-5 fs-4">
-                ApnaKhata helps you track expenses, analyze spending patterns,
-                and achieve your financial goals with powerful AI-driven
-                insights.
+                Track expenses, analyze spending, and achieve your financial goals
+                with ease.
               </p>
 
               {showAlert && (

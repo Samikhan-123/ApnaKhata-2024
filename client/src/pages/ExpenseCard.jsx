@@ -1,5 +1,4 @@
-// ExpenseCard.jsx - Updated receipt handling
-import React, { useState, useRef } from "react";
+import React, { useState } from "react";
 import {
   Button,
   Modal,
@@ -9,18 +8,21 @@ import {
   Col,
   Row,
   Spinner,
+  Toast,
+  ToastContainer,
 } from "react-bootstrap";
 import {
   FaEdit,
   FaTrash,
   FaEye,
   FaFileDownload,
-  FaPrint,
   FaReceipt,
   FaMoneyBillWave,
   FaCalendarAlt,
   FaCreditCard,
   FaTag,
+  FaExternalLinkAlt,
+  FaCheckCircle,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -33,19 +35,27 @@ const ExpenseCard = ({
   token,
 }) => {
   const navigate = useNavigate();
-  const deletingRef = useRef(false);
 
   // State management
-  const [modalState, setModalState] = useState({
-    showReceipt: false,
-    showDelete: false,
-    selectedExpense: null,
-    selectedReceipt: null,
+  const [deleteModal, setDeleteModal] = useState({
+    show: false,
+    expense: null,
   });
 
   const [deleteState, setDeleteState] = useState({
     loading: false,
     error: null,
+  });
+
+  const [receiptState, setReceiptState] = useState({
+    loading: false,
+    error: null,
+  });
+
+  const [toast, setToast] = useState({
+    show: false,
+    message: "",
+    variant: "success",
   });
 
   // Helper functions
@@ -73,62 +83,59 @@ const ExpenseCard = ({
     return categoryColors[category.toLowerCase()] || "secondary";
   };
 
+  // Show toast notification
+  const showToast = (message, variant = "success") => {
+    setToast({ show: true, message, variant });
+  };
+
   // Event handlers
   const handleDeleteClick = (expense) => {
-    setModalState((prev) => ({
-      ...prev,
-      showDelete: true,
-      selectedExpense: expense,
-    }));
+    setDeleteModal({ show: true, expense });
   };
 
   const handleDelete = async () => {
-    if (deletingRef.current || !modalState.selectedExpense?._id) return;
+    if (!deleteModal.expense?._id) return;
 
-    deletingRef.current = true;
     setDeleteState({ loading: true, error: null });
 
     try {
-      await axios.delete(`/api/expenses/${modalState.selectedExpense._id}`, {
+      await axios.delete(`/api/expenses/${deleteModal.expense._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setModalState((prev) => ({
-        ...prev,
-        showDelete: false,
-        selectedExpense: null,
-      }));
+      // Show success toast
+      showToast("Expense deleted successfully!");
 
-      onDeleteSuccess(modalState.selectedExpense._id);
+      // Close modal and reset state
+      setDeleteModal({ show: false, expense: null });
+      setDeleteState({ loading: false, error: null });
+
+      // Notify parent component to remove the expense from UI without reloading
+      if (onDeleteSuccess) {
+        onDeleteSuccess(deleteModal.expense._id);
+      }
     } catch (err) {
       setDeleteState({
         loading: false,
         error: err.response?.data?.message || "Failed to delete expense",
       });
-    } finally {
-      deletingRef.current = false;
-      setDeleteState((prev) => ({ ...prev, loading: false }));
     }
   };
 
   const resetDeleteState = () => {
-    setModalState((prev) => ({
-      ...prev,
-      showDelete: false,
-      selectedExpense: null,
-    }));
+    setDeleteModal({ show: false, expense: null });
     setDeleteState({ loading: false, error: null });
   };
 
-  // UPDATED: Handle view receipt with fileId instead of filename
+  // Handle view receipt - opens image in new tab
   const handleViewReceipt = async (receipt) => {
     if (!receipt || !receipt.fileId) return;
 
-    setDeleteState((prev) => ({ ...prev, loading: true, error: null }));
+    setReceiptState({ loading: true, error: null });
 
     try {
       const response = await axios.get(
-        `/api/expenses/receipt/${receipt.fileId}`, // Use fileId instead of filename
+        `/api/expenses/receipt/${receipt.fileId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -138,61 +145,52 @@ const ExpenseCard = ({
       const blob = new Blob([response.data], { type: receipt.contentType });
       const receiptUrl = URL.createObjectURL(blob);
 
-      setModalState((prev) => ({
-        ...prev,
-        selectedReceipt: {
-          url: receiptUrl,
-          contentType: receipt.contentType,
-          originalName: receipt.originalName || `receipt-${receipt.fileId}`,
-          blob: blob,
-        },
-        showReceipt: true,
-      }));
+      // Open image in new tab for images
+      if (receipt.contentType?.includes("image")) {
+        window.open(receiptUrl, "_blank");
+      } else {
+        // For non-image files, trigger download
+        handleDownloadReceipt(receiptUrl, receipt.originalName);
+      }
     } catch (error) {
-      // console.error("Error fetching receipt:", error);
-      setDeleteState((prev) => ({
-        ...prev,
+      setReceiptState({
         error: "Failed to load receipt. Please try again later.",
-      }));
+      });
     } finally {
-      setDeleteState((prev) => ({ ...prev, loading: false }));
+      setReceiptState((prev) => ({ ...prev, loading: false }));
     }
   };
 
-  const handleCloseReceiptModal = () => {
-    if (modalState.selectedReceipt?.url) {
-      URL.revokeObjectURL(modalState.selectedReceipt.url);
+  // Always download receipt file
+  const handleDownloadReceipt = async (receipt) => {
+    if (!receipt || !receipt.fileId) return;
+    setReceiptState({ loading: true, error: null });
+    try {
+      const response = await axios.get(
+        `/api/expenses/receipt/${receipt.fileId}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          responseType: "blob",
+        }
+      );
+      const blob = new Blob([response.data], { type: receipt.contentType });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download =
+        receipt.originalName ||
+        `receipt-${new Date().toLocaleDateString("en-GB")}`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (error) {
+      setReceiptState({
+        error: "Failed to download receipt. Please try again later.",
+      });
+    } finally {
+      setReceiptState((prev) => ({ ...prev, loading: false }));
     }
-
-    setModalState((prev) => ({
-      ...prev,
-      selectedReceipt: null,
-      showReceipt: false,
-    }));
-    setDeleteState((prev) => ({ ...prev, error: null }));
-  };
-
-  // UPDATED: Use original filename for download
-  const handleDownloadReceipt = () => {
-    if (!modalState.selectedReceipt?.url) return;
-
-    const link = document.createElement("a");
-    link.href = modalState.selectedReceipt.url;
-    link.download =
-      modalState.selectedReceipt.originalName ||
-      `receipt-${new Date().toLocaleDateString("en-GB")}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handlePrintReceipt = () => {
-    if (!modalState.selectedReceipt?.url) return;
-
-    const printWindow = window.open(modalState.selectedReceipt.url, "_blank");
-    printWindow.onload = () => {
-      printWindow.print();
-    };
   };
 
   // Calculate item number for display
@@ -204,6 +202,23 @@ const ExpenseCard = ({
 
   return (
     <div className="expense-card-container">
+      {/* Toast Notification */}
+      <ToastContainer position="top-end" className="p-3">
+        <Toast
+          show={toast.show}
+          onClose={() => setToast({ ...toast, show: false })}
+          delay={3000}
+          autohide
+          bg={toast.variant}
+        >
+          <Toast.Header>
+            <FaCheckCircle className="me-2 text-success" />
+            <strong className="me-auto">Success</strong>
+          </Toast.Header>
+          <Toast.Body className="text-white">{toast.message}</Toast.Body>
+        </Toast>
+      </ToastContainer>
+
       {/* Error Alert */}
       {deleteState.error && (
         <Alert
@@ -308,28 +323,40 @@ const ExpenseCard = ({
                 <Card.Footer className="expense-card-footer">
                   <div className="d-flex justify-content-between align-items-center">
                     {expense.receipt && expense.receipt.fileId ? (
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        className="receipt-btn"
-                        onClick={() => handleViewReceipt(expense.receipt)}
-                        title={expense.receipt.originalName || "View receipt"}
-                        disabled={deleteState.loading}
-                      >
-                        <FaEye className="me-1" />
-                        {deleteState.loading ? (
-                          <Spinner animation="border" size="sm" />
-                        ) : expense.receipt.originalName ? (
-                          expense.receipt.originalName.length > 15 ? (
-                            expense.receipt.originalName.substring(0, 12) +
-                            "..."
+                      <div className="d-flex align-items-center">
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          className="receipt-btn me-2"
+                          onClick={() => handleViewReceipt(expense.receipt)}
+                          title={
+                            expense.receipt.originalName?.length > 20
+                              ? `View receipt (${expense.receipt.originalName.substring(0, 20)}...)`
+                              : `View receipt ${expense.receipt.originalName || ""}`
+                          }
+                          disabled={receiptState.loading}
+                        >
+                          {receiptState.loading ? (
+                            <Spinner animation="border" size="sm" />
                           ) : (
-                            expense.receipt.originalName
-                          )
-                        ) : (
-                          "Receipt"
-                        )}
-                      </Button>
+                            <>
+                              <FaExternalLinkAlt className="me-1" />
+                              {expense.receipt.originalName &&
+                                ` ${expense.receipt.originalName.substring(0, 10)}...`}
+                            </>
+                          )}
+                        </Button>
+                        <Button
+                          variant="outline-secondary"
+                          size="sm"
+                          className="download-btn"
+                          onClick={() => handleDownloadReceipt(expense.receipt)}
+                          title="Download receipt"
+                          disabled={receiptState.loading}
+                        >
+                          <FaFileDownload />
+                        </Button>
+                      </div>
                     ) : (
                       <Badge
                         bg="light"
@@ -379,88 +406,9 @@ const ExpenseCard = ({
         )}
       </Row>
 
-      {/* Receipt Modal */}
-      <Modal
-        show={modalState.showReceipt}
-        onHide={handleCloseReceiptModal}
-        centered
-        size="lg"
-        className="receipt-modal"
-      >
-        <Modal.Header closeButton className="modal-header-custom">
-          <Modal.Title>
-            <FaReceipt className="me-2" />
-            Receipt Preview -{" "}
-            {modalState.selectedReceipt?.originalName || "Receipt"}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body className="text-center p-4">
-          {deleteState.loading ? (
-            <div className="py-4">
-              <Spinner animation="border" variant="primary" className="mb-3" />
-              <p className="text-muted">Loading receipt...</p>
-            </div>
-          ) : (
-            modalState.selectedReceipt?.url && (
-              <div className="receipt-container">
-                {modalState.selectedReceipt.contentType?.includes("image") ? (
-                  <img
-                    src={modalState.selectedReceipt.url}
-                    alt="Receipt"
-                    className="receipt-image img-fluid rounded"
-                  />
-                ) : modalState.selectedReceipt.contentType ===
-                  "application/pdf" ? (
-                  <iframe
-                    src={modalState.selectedReceipt.url}
-                    title="Receipt"
-                    className="receipt-iframe"
-                    size="lg"
-                    style={{ width: "800px", height: "600px" }}
-                  />
-                ) : (
-                  <div className="unsupported-file-type">
-                    <FaReceipt size={48} className="mb-3" />
-                    <p>File preview not available for this file type.</p>
-                    <Button variant="primary" onClick={handleDownloadReceipt}>
-                      <FaFileDownload className="me-2" /> Download File
-                    </Button>
-                  </div>
-                )}
-              </div>
-            )
-          )}
-        </Modal.Body>
-        <Modal.Footer className="modal-footer-custom">
-          {modalState.selectedReceipt?.url && (
-            <>
-              <Button
-                variant="outline-secondary"
-                onClick={handlePrintReceipt}
-                disabled={deleteState.loading}
-                className="d-flex align-items-center"
-              >
-                <FaPrint className="me-2" /> Print
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleDownloadReceipt}
-                disabled={deleteState.loading}
-                className="d-flex align-items-center"
-              >
-                <FaFileDownload className="me-2" /> Download
-              </Button>
-            </>
-          )}
-          <Button variant="outline-dark" onClick={handleCloseReceiptModal}>
-            Close
-          </Button>
-        </Modal.Footer>
-      </Modal>
-
       {/* Delete Confirmation Modal */}
       <Modal
-        show={modalState.showDelete}
+        show={deleteModal.show}
         onHide={resetDeleteState}
         centered
         className="delete-modal"
@@ -508,4 +456,3 @@ const ExpenseCard = ({
 };
 
 export default ExpenseCard;
-

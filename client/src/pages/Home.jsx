@@ -140,8 +140,12 @@ function Home() {
 
               <div className="hero-buttons d-flex flex-wrap gap-3 justify-content-center">
                 <Button
+                  style={{
+                    backgroundColor: "var(--submit-btn-color)",
+                    border: "none",
+                  }}
                   size="lg"
-                  className="btn-dashboard  px-4 py-3 fw-semibold"
+                  className="btn-dashboard  px-4 py-3 fw-semibold shadow-lg"
                   onClick={handleGetStarted}
                 >
                   <FaRocket className="me-2" />

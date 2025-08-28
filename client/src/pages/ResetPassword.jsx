@@ -97,7 +97,7 @@ const ResetPasswordPage = () => {
                   );
                   if (response.data.success) {
                     setSuccessMessage(
-                      "Password successfully reset! Redirecting to login..."
+                      "Password successfully reset! please log in again."
                     );
                     resetForm();
                     // setTimeout(() => navigate("/login"), 2000);

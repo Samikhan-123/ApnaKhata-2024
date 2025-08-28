@@ -115,13 +115,13 @@
   font-size: 0.8rem;
   transition: all 0.2s ease;
 }
-.receipt-modal {
+/* .receipt-modal {
   width: 800px;
   height: 600px;
   margin: auto;
   border-radius: 10px;
   overflow: hidden;
-}
+} */
 
 .receipt-btn:hover {
   background: #667eea;
@@ -130,15 +130,14 @@
 }
 
 .edit-btn:hover {
-  background: #17a2b8;
-  border-color: #17a2b8;
-  transform: scale(1.05);
+ 
+  transform: scale(1.15);
 }
 
 .delete-btn:hover {
   background: #dc3545;
   border-color: #dc3545;
-  transform: scale(1.05);
+  transform: scale(1.15);
 }
 
 .no-receipt-badge {

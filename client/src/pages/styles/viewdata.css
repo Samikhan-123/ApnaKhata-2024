@@ -1,71 +1,71 @@
- .view-data-container {
-          max-width: 1800px;
-          margin: 0 auto;
-        }
+.view-data-container {
+  max-width: 1800px;
+  margin: 0 auto;
+}
 
-        .page-title {
-          color: #2d3436;
-          font-weight: 700;
-          margin-bottom: 0.25rem;
-        }
+.page-title {
+  margin-top: 2rem;
+  color: #2d3436;
+  font-weight: 700;
+}
 
-        .summary-card {
-          border: none;
-          border-radius: 12px;
-          box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
-          transition: transform 0.2s ease;
-        }
+.summary-card {
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+  transition: transform 0.2s ease;
+}
 
-        .summary-card:hover {
-          transform: translateY(-3px);
-        }
+.summary-card:hover {
+  transform: translateY(-3px);
+}
 
-        .custom-tabs .nav-link {
-          border: none;
-          color: #6c757d;
-          font-weight: 600;
-          padding: 1rem 1.5rem;
-          border-radius: 8px 8px 0 0;
-          display: flex;
-          align-items: center;
-        }
+.custom-tabs .nav-link {
+  border: none;
+  color: #6c757d;
+  font-weight: 600;
+  padding: 1rem 1.5rem;
+  border-radius: 8px 8px 0 0;
+  display: flex;
+  align-items: center;
+}
 
-        .custom-tabs .nav-link.active {
-          color: #667eea;
-          background: transparent;
-          border-bottom: 3px solid #667eea;
-        }
+.custom-tabs .nav-link.active {
+  color: #667eea;
+  background: transparent;
+  border-bottom: 3px solid #667eea;
+}
 
-        .custom-tabs .nav-link:hover {
-          color: #667eea;
-          background: rgba(102, 126, 234, 0.1);
-        }
+.custom-tabs .nav-link:hover {
+  color: #667eea;
+  background: rgba(102, 126, 234, 0.1);
+}
 
-        @media (max-width: 768px) {
-          .view-data-container {
-            padding: 0.5rem;
-          }
+@media (max-width: 768px) {
+  .view-data-container {
+    padding: 0.5rem;
+  }
 
-          .summary-card {
-            margin-bottom: 1rem;
-          }
+  .summary-card {
+    margin-bottom: 1rem;
+  }
 
-          .custom-tabs .nav-link {
-            padding: 0.75rem 1rem;
-            font-size: 0.9rem;
-          }
-        }
+  .custom-tabs .nav-link {
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+  }
+}
 
-        @media (max-width: 576px) {
-          .page-title {
-            font-size: 1.5rem;
-          }
+@media (max-width: 576px) {
+  .page-title {
+    font-size: 1.5rem;
+  }
 
-          .summary-card .text-muted {
-            font-size: 0.8rem;
-          }
+  .summary-card .text-muted {
+    font-size: 0.8rem;
+  }
 
-          .summary-card h3 {
-            font-size: 1.25rem;
-          }
-        }
+  .summary-card h3 {
+    font-size: 1.25rem;
+  }
+}

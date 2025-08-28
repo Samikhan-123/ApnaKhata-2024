@@ -73,7 +73,7 @@ const RegisterPage = () => {
         <Row className="w-100 justify-content-center align-items-center min-vh-100">
           <Col lg={6} md={8} sm={10} xs={12} className="glass-form-container">
             <Breadcrumb className="glass-breadcrumb mb-3">
-              <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
+              <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Register</Breadcrumb.Item>
             </Breadcrumb>
             <h2 className="text-center mb-4">Register</h2>

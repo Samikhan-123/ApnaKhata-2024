@@ -42,7 +42,7 @@ const Header = () => {
           {/* Logo/Brand */}
           <NavLink
             className="navbar-brand"
-            to="/expenses"
+            to="/"
             onClick={handleLinkClick}
           >
             <div className="logo-container">

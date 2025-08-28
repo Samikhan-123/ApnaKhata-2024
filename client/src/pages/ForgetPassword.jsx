@@ -55,7 +55,7 @@ const ForgotPasswordPage = () => {
             className="glass-form-container"
           >
             <Breadcrumb className="glass-breadcrumb">
-              <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
+              <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Forgot Password</Breadcrumb.Item>
             </Breadcrumb>
             <h2 className="text-center mb-4">Forgot Password</h2>

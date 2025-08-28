@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-import { Formik } from "formik";
+import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import {
   Button,
-  Form,
   Col,
   Row,
   Breadcrumb,
@@ -15,27 +14,27 @@ import { useAuth } from "../auth/AuthContext";
 import { GoogleLogin, GoogleOAuthProvider } from "@react-oauth/google";
 import axios from "axios";
 import Layout from "../components/Layout";
-import "./styles/forms.css"; // Import the unified CSS
+import "./styles/forms.css";
 
- const LoginPage = () => {
+// Validation Schema
+const loginSchema = Yup.object().shape({
+  email: Yup.string()
+    .email("Invalid email address")
+    .required("Email is required"),
+  password: Yup.string().required("Password is required"),
+});
+
+const LoginPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const navigate = useNavigate();
 
   const togglePasswordVisibility = () => {
     setPasswordShown((prev) => !prev);
   };
-
-  // Yup validation schema
-  const validationSchema = Yup.object().shape({
-    email: Yup.string()
-      .email("Invalid email address")
-      .required("Email is required"),
-    password: Yup.string().required("Password is required"),
-  });
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
@@ -52,9 +51,36 @@ import "./styles/forms.css"; // Import the unified CSS
       }
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "An error occurred during Google login"
+        err.response?.data?.message || "An error occurred during Google login"
       );
+    }
+  };
+
+  const handleFormSubmit = async (values, { setSubmitting, resetForm }) => {
+    setLoading(true);
+    setError("");
+    setShowSuccessAlert(false);
+
+    try {
+      const response = await axios.post("/api/auth/login", values);
+      if (response.data.success) {
+        const { user: loggedInUser, token } = response.data;
+        login(loggedInUser, token);
+        setShowSuccessAlert(true);
+        setTimeout(() => {
+          navigate("/expenses");
+        }, 1000);
+      } else {
+        setError(response.data.message || "Something went wrong");
+      }
+    } catch (err) {
+      setError(
+        err.response?.data?.message || "Something went wrong with server"
+      );
+    } finally {
+      setLoading(false);
+      resetForm();
+      setSubmitting(false);
     }
   };
 
@@ -64,9 +90,10 @@ import "./styles/forms.css"; // Import the unified CSS
         <Row className="w-100 justify-content-center align-items-center min-vh-100">
           <Col lg={6} md={8} sm={10} xs={10} className="glass-form-container">
             <Breadcrumb className="glass-breadcrumb mb-3">
-              <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
+              <Breadcrumb.Item href="/">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Login</Breadcrumb.Item>
             </Breadcrumb>
+
             <h2 className="text-center mb-4">Login</h2>
 
             {error && (
@@ -93,72 +120,36 @@ import "./styles/forms.css"; // Import the unified CSS
 
             <Formik
               initialValues={{ email: "", password: "" }}
-              validationSchema={validationSchema}
-              onSubmit={async (values, { setSubmitting, resetForm }) => {
-                setLoading(true);
-                setError("");
-                setShowSuccessAlert(false);
-                try {
-                  const response = await axios.post("/api/auth/login", values);
-                  if (response.data.success) {
-                    const { user: loggedInUser, token } = response.data;
-                    login(loggedInUser, token);
-                    setShowSuccessAlert(true);
-                    setTimeout(() => {
-                      navigate("/expenses");
-                    }, 1000);
-                  } else {
-                    setError(response.data.message || "Invalid credentials");
-                  }
-                } catch (err) {
-                  setError(
-                    err.response?.data?.message ||
-                      "Something went wrong with server"
-                  );
-                } finally {
-                  setLoading(false);
-                  setSubmitting(false);
-                }
-              }}
+              validationSchema={loginSchema}
+              onSubmit={handleFormSubmit}
             >
-              {({
-                values,
-                errors,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                isSubmitting,
-              }) => (
-                <Form onSubmit={handleSubmit} className="glass-form">
-                  <Form.Group className="mb-3" controlId="formBasicEmail">
-                    <Form.Label>Email address</Form.Label>
-                    <Form.Control
-                      type="email"
+              {({ errors, touched, isSubmitting, isValid }) => (
+                <Form className="glass-form">
+                  <div className="mb-3">
+                    <label htmlFor="email" className="form-label">
+                      Email address
+                    </label>
+                    <Field
                       name="email"
+                      type="email"
+                      className={`form-control ${touched.email && errors.email ? "is-invalid" : ""}`}
                       placeholder="Enter email"
-                      value={values.email}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      isInvalid={touched.email && !!errors.email}
-                      required
                     />
-                    <Form.Control.Feedback type="invalid">
-                      {errors.email}
-                    </Form.Control.Feedback>
-                  </Form.Group>
+                    {touched.email && errors.email && (
+                      <div className="invalid-feedback">{errors.email}</div>
+                    )}
+                  </div>
 
-                  <Form.Group className="mb-3" controlId="formBasicPassword">
-                    <Form.Label>Password</Form.Label>
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      Password
+                    </label>
                     <InputGroup>
-                      <Form.Control
-                        type={passwordShown ? "text" : "password"}
+                      <Field
                         name="password"
+                        type={passwordShown ? "text" : "password"}
+                        className={`form-control ${touched.password && errors.password ? "is-invalid" : ""}`}
                         placeholder="Password"
-                        value={values.password}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.password && !!errors.password}
                       />
                       <Button
                         variant={
@@ -173,11 +164,13 @@ import "./styles/forms.css"; // Import the unified CSS
                       >
                         {passwordShown ? "Hide" : "Show"}
                       </Button>
+                      {touched.password && errors.password && (
+                        <div className="invalid-feedback">
+                          {errors.password}
+                        </div>
+                      )}
                     </InputGroup>
-                    <Form.Control.Feedback type="invalid">
-                      {errors.password}
-                    </Form.Control.Feedback>
-                  </Form.Group>
+                  </div>
 
                   <div className="mb-3 text-end">
                     <NavLink to="/forgot-password" className="glass-link">
@@ -188,7 +181,7 @@ import "./styles/forms.css"; // Import the unified CSS
                   <Button
                     type="submit"
                     className="w-100 glass-btn"
-                    disabled={loading || isSubmitting}
+                    disabled={loading || isSubmitting || !isValid}
                     style={{
                       backgroundColor: "var(--submit-btn-color)",
                       border: "none",
@@ -204,7 +197,7 @@ import "./styles/forms.css"; // Import the unified CSS
               <span>or</span>
             </div>
 
-            {!user && (
+            <div style={{ width: "100%" }}>
               <GoogleOAuthProvider
                 clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID}
               >
@@ -216,7 +209,7 @@ import "./styles/forms.css"; // Import the unified CSS
                   }}
                 />
               </GoogleOAuthProvider>
-            )}
+            </div>
 
             <div className="text-center mt-3">
               <p>
@@ -234,4 +227,3 @@ import "./styles/forms.css"; // Import the unified CSS
 };
 
 export default LoginPage;
-

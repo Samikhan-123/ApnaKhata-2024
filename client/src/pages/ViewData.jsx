@@ -353,7 +353,7 @@ const ViewData = () => {
               </Card.Body>
             </Card>
           </Col>
-          <Col md={6} lg={3} className="mb-3">
+          {/* <Col md={6} lg={3} className="mb-3">
             <Card className="summary-card h-100">
               <Card.Body className="text-center">
                 <h6 className="text-muted">Total Records (All Time)</h6>
@@ -363,8 +363,8 @@ const ViewData = () => {
                 </small>
               </Card.Body>
             </Card>
-          </Col>
-          <Col md={6} lg={3} className="mb-3">
+          </Col> */}
+          {/* <Col md={6} lg={3} className="mb-3">
             <Card className="summary-card h-100">
               <Card.Body className="text-center">
                 <h6 className="text-muted">Filtered Records</h6>
@@ -378,7 +378,7 @@ const ViewData = () => {
                 </small>
               </Card.Body>
             </Card>
-          </Col>
+          </Col> */}
         </Row>
 
         {/* Content Tabs */}

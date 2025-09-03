@@ -5,7 +5,7 @@ import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
-import Profile from "./pages/Profile";
+// import Profile from "./pages/Profile";
 import ExpenseForm from "./pages/PostExpenses";
 import EditExpense from "./pages/EditUserExpense";
 import ForgotPasswordPage from "./pages/ForgetPassword";
@@ -15,6 +15,7 @@ import Analytics from "./pages/Analytics";
 import NoRouteFound from "./pages/NoRouteFound";
 import ViewData from "./pages/ViewData";
 import ErrorBoundary from "./components/ErrorBoundary"; 
+import AdminUserManagement from "./components/AdminUserManagement";
 
 function App() {
   return (
@@ -57,11 +58,19 @@ function App() {
               </PrivateRoute>
             }
           />
-          <Route
+          {/* <Route
             path="/profile"
             element={
               <PrivateRoute>
                 <Profile />
+              </PrivateRoute>
+            }
+          /> */}
+          <Route
+            path="/admin/users"
+            element={
+              <PrivateRoute>
+                <AdminUserManagement />
               </PrivateRoute>
             }
           />

@@ -17,7 +17,7 @@ export const createTransporter = async () => {
       },
     });
   } catch (error) {
-    console.error("Error creating transporter config:", error.message);
+    console.error("Error creating transporter config:", error.message); 
     return null;
   }
 };
@@ -25,15 +25,20 @@ export const createTransporter = async () => {
 // Function to send email using nodemailer with retry logic
 export const sendEmail = async (options, res = null) => {
   const maxRetries = 2; // Maximum retry attempts
-  let attempt = 0;
+  let attempt = 1;
 
   while (attempt <= maxRetries) {
     try {
       const transporter = await createTransporter();
 
-      if (!transporter) {
-        throw new Error("Failed to create email transporter");
-      }
+      // if (!transporter) {
+      //   throw new Error("Failed to create email transporter");
+      //   // console.log()
+      //   // res.status(500).json({
+      //   //   success: false,
+      //   //   message: "Failed to create email transporter",
+      //   // });
+      // }
 
       const mailOptions = {
         from: `ApnaKhata <${process.env.EMAIL_USER}>`,

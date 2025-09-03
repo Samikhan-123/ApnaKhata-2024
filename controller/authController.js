@@ -4,29 +4,11 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { sendEmail } from "../utils/emailConfig.js";
-import Expense from "../model/expenseSchema.js";
+// import Expense from "../model/expenseSchema.js";
+import { formatDate, passwordResetRequestTemplate, passwordResetSuccessTemplate } from "../utils/emailMessages.js";
 
 dotenv.config();
 
-// Password validation function
-export const validatePassword = (password) => {
-  const requirements = [];
-
-  if (!/[A-Z]/.test(password)) {
-    requirements.push("one uppercase letter");
-  }
-  if (!/[a-z]/.test(password)) {
-    requirements.push("one lowercase letter");
-  }
-  if (!/[0-9]/.test(password)) {
-    requirements.push("one number");
-  }
-  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
-    requirements.push("one special character e.g. !@#$%^&*");
-  }
-
-  return requirements;
-};
 
 // Registration Controller
 export const register = async (req, res) => {
@@ -156,59 +138,182 @@ export const login = async (req, res) => {
 };
 
 // Get Profile with Expenses Controller
-export const getProfileWithExpenses = async (req, res) => {
-  try {
-    const user = req.user; // User is already attached by the authenticate middleware
+// export const getProfileWithExpenses = async (req, res) => {
+//   try {
+//     const user = req.user; // User is already attached by the authenticate middleware
 
-    // Fetch expenses where the user is the payer
-    const expenses = await Expense.find({
-      "paidBy.userId": user._id, // Use dot notation to access nested fields
-    }).select("amount date description");
+//     // Fetch expenses where the user is the payer
+//     const expenses = await Expense.find({
+//       "paidBy.userId": user._id, // Use dot notation to access nested fields
+//     }).select("amount date description");
 
-    // Return user info including isGoogleUser
-    res.status(200).json({
-      user: { ...user.toObject(), isGoogleUser: user.isGoogleUser },
-      expenses,
-    });
-  } catch (error) {
-    // console.error('Error fetching profile with expenses:', error);
-    res.status(500).json({
-      message: "Error fetching profile",
-      error: error.message,
-    });
-  }
-};
+//     // Return user info including isGoogleUser
+//     res.status(200).json({
+//       user: { ...user.toObject(), isGoogleUser: user.isGoogleUser },
+//       expenses,
+//     });
+//   } catch (error) {
+//     // console.error('Error fetching profile with expenses:', error);
+//     res.status(500).json({
+//       message: "Error fetching profile",
+//       error: error.message,
+//     });
+//   }
+// };
 
-// Get All Users Controller
+
+// Get All Users with Admin Check
 export const getAllUsers = async (req, res) => {
   try {
-    const users = await User.find().select("-password");
-    res.status(200).json(users);
+    // Check if requester is admin
+    if (req.user.email !== "samikhan7816@gmail.com") {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Admin email is required to access this resource" 
+      });
+    }
+
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 12;
+    const search = req.query.search || "";
+    const skip = (page - 1) * limit;
+
+    // Build search query
+    let searchQuery = {};
+    if (search) {
+      searchQuery = {
+        $or: [
+          { name: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } }
+        ]
+      };
+    }
+
+    const users = await User.find(searchQuery)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    const totalUsers = await User.countDocuments(searchQuery);
+    const totalPages = Math.ceil(totalUsers / limit);
+
+    res.status(200).json({
+      success: true,
+      users,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        hasNext: page < totalPages,
+        hasPrev: page > 1
+      }
+    });
   } catch (error) {
-    // console.error('Error fetching users:', error);
-    res
-      .status(500)
-      .json({ message: "Error fetching users", error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: "Error fetching users", 
+      error: error.message 
+    });
   }
 };
 
-// Forgot Password Controller
-// Forgot Password Controller
+// Update User Password (Admin)
+export const updateUserPassword = async (req, res) => {
+  try {
+    // Check if requester is admin
+    if (req.user.email !== "samikhan7816@gmail.com") {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Admin email is required to access this resource" 
+      });
+    }
+
+    const { userId } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "New password is required"
+      });
+    }
+
+    // Validate password strength
+    if (newPassword.length < 8) {
+      return res.status(400).json({
+        success: false,
+        message: "Password must be at least 8 characters long"
+      });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // Hash new password
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(newPassword, saltRounds);
+
+    // Update user password
+    user.password = hashedPassword;
+    user.passwordChangedAt = new Date();
+    user.passwordVersion = (user.passwordVersion || 0) + 1;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Password updated successfully"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating password",
+      error: error.message
+    });
+  }
+};
+
+
+
+// Password validation helper
+const validatePassword = (password) => {
+  const requirements = [];
+  if (password.length < 8) requirements.push("at least 8 characters");
+  if (!/[A-Z]/.test(password)) requirements.push("one uppercase letter");
+  if (!/[a-z]/.test(password)) requirements.push("one lowercase letter");
+  if (!/[0-9]/.test(password)) requirements.push("one number");
+  if (!/[^A-Za-z0-9]/.test(password))
+    requirements.push("one special character");
+  return requirements;
+};
+
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
   let user = null;
+
   try {
+    // Validate email
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
-      return res
-        .status(400)
-        .json({ message: "Please provide a valid email address" });
+      return res.status(400).json({
+        message: "Please provide a valid email address",
+      });
     }
+
+    // Find user
     user = await User.findOne({ email }).select("+passwordResetAttempts");
     if (!user) {
-      return res
-        .status(400)
-        .json({ message: "user with this email not found." });
+      return res.status(400).json({
+        message:
+          "If a user with that email exists, a password reset link has been sent.",
+      });
     }
+
+    // Check if Google user
     if (user.isGoogleUser) {
       return res.status(400).json({
         success: false,
@@ -217,111 +322,99 @@ export const forgotPassword = async (req, res) => {
         isGoogleUser: true,
       });
     }
-    // Generate JWT token for password reset
+
+    // Generate reset token
     const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "10m",
     });
+
+    // Update user with reset token
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpire = Date.now() + 10 * 60 * 1000;
-    user.sendEmailsOnForgetPass = (user.passwordResetAttempts || 0) + 1;
+    user.passwordResetAttempts = (user.passwordResetAttempts || 0) + 1;
     await user.save();
-    const resetUrl = process.env.clientUrl
+
+    // Create reset URL
+    const resetUrl = process.env.FRONTEND_URL
       ? `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
-      : `http://localhost:5173/reset-password/${resetToken}` ;
-    const formatDate = (date) => {
-      return new Intl.DateTimeFormat("en-GB", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Karachi",
-      }).format(date);
-    };
-    const currentDate = new Date();
-    const formattedDate = formatDate(currentDate);
-    const message = `
-      <div style="font-family: Arial, sans-serif; line-height: 1.5; padding: 20px;">
-        <h2 style="color: #333;">Dear ${user.name},</h2>
-        <p>You have requested to reset your password on <span 
-        style="
-         font-size: .7rem; 
-         font-weight: 500; 
-         color: #333; 
-         background-color: #f2f2f2; 
-         padding: 4px 8px; 
-         border-radius: 4px; 
-         border: 1px solid #ddd;"
-         >
-        ${formattedDate}
-         </span>
-       <br><br>
-       Please use the following link to set a new password:</p> 
-        <p>
-          <a href="${resetUrl}" style="background-color: #28a745; color: white; padding: 10px 15px; text-decoration: none; border-radius: 5px;">
-            Reset Password
-          </a>
-        </p>
-        <p style="color: #666;">
-          This link will expire in 10 minutes for security reasons.
-        </p>
-        <p>If you did not request this password reset, please ignore this email and ensure your account is secure.</p>
-          <div style="margin-top: 20px; font-size: 0.9em; color: #777; ">
-              <p>Best Regards,</p>
-              <p>ApnaKhata Expense Tracker</p>
-            </div>
-      </div>
-    `;
-    await sendEmail({
+      : `http://localhost:5173/reset-password/${resetToken}`;
+
+    // Format date and create email message
+    const formattedDate = formatDate(new Date());
+    const message = passwordResetRequestTemplate(
+      user.name,
+      resetUrl,
+      formattedDate
+    );
+
+    // Send email
+    const emailSent = await sendEmail({
       email: user.email,
-      subject: "Password Reset Request",
+      subject: "Password Reset Request - ApnaKhata",
       html: message,
     });
-    // console.log(`Forgot Email sent to ${user.email}`);
+
+    if (!emailSent) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to send password reset email. Please try again later.",
+      });
+    }
+
     res.status(200).json({
       success: true,
       message:
         "If a user with that email exists, a password reset link has been sent.",
     });
   } catch (error) {
+    console.error("Forgot password error:", error);
+
+    // Clean up on error
     if (user) {
       user.resetPasswordToken = undefined;
       user.resetPasswordExpire = undefined;
       await user.save({ validateBeforeSave: false });
     }
+
     res.status(500).json({
-      message: "An error occurred while processing your request, server error.",
+      message:
+        "An error occurred while processing your request. Please try again later.",
     });
   }
 };
 
-// Reset Password Controller
 export const resetPassword = async (req, res) => {
   const { resetToken } = req.params;
   const { password, confirmPassword } = req.body;
 
-  if (!password || !confirmPassword) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Both password fields are required." });
-  }
-  if (password !== confirmPassword) {
-    return res
-      .status(400)
-      .json({ success: false, message: "Passwords do not match." });
-  }
-  const unmetRequirements = validatePassword(password);
-  if (unmetRequirements.length) {
-    return res.status(400).json({
-      success: false,
-      message: "Missing requirements: " + unmetRequirements.join(" "),
-      requirements: unmetRequirements,
-    });
-  }
   try {
+    // Validate input
+    if (!password || !confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Both password fields are required.",
+      });
+    }
+
+    if (password !== confirmPassword) {
+      return res.status(400).json({
+        success: false,
+        message: "Passwords do not match.",
+      });
+    }
+
+    // Validate password strength
+    const unmetRequirements = validatePassword(password);
+    if (unmetRequirements.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message:
+          "Password does not meet requirements: " +
+          unmetRequirements.join(", "),
+        requirements: unmetRequirements,
+      });
+    }
+
     // Verify JWT token
     let decoded;
     try {
@@ -333,11 +426,14 @@ export const resetPassword = async (req, res) => {
         code: "TOKEN_EXPIRED",
       });
     }
+
+    // Find user with valid reset token
     const user = await User.findOne({
       _id: decoded.userId,
       resetPasswordToken: resetToken,
       resetPasswordExpire: { $gt: Date.now() },
     }).select("+password");
+
     if (!user) {
       return res.status(400).json({
         success: false,
@@ -345,74 +441,45 @@ export const resetPassword = async (req, res) => {
         code: "TOKEN_EXPIRED",
       });
     }
-    // Hash the new password
-    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Hash new password and update user
+    const hashedPassword = await bcrypt.hash(password, 12);
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
     user.passwordChangedAt = new Date();
     user.passwordVersion = (user.passwordVersion || 0) + 1;
     await user.save();
-    const formatDate = (date) => {
-      return new Intl.DateTimeFormat("en-GB", {
-        weekday: "long",
-        year: "numeric",
-        month: "long",
-        day: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: true,
-        timeZone: "Asia/Karachi",
-      }).format(date);
-    };
-    const currentDate = new Date();
-    const formattedDate = formatDate(currentDate);
-    const message = `
-      <h1>Your Password Has Been Successfully Reset</h1>
-      <p>Dear ${user.name || "User"},</p>
-      <p>Your password was successfully changed on  <span 
-        style="
-         font-size: .7rem; 
-         font-weight: 500; 
-         color: #333; 
-         background-color: #f2f2f2; 
-         padding: 4px 8px; 
-         border-radius: 4px; 
-         border: 1px solid #ddd;"
-         >
-        ${formattedDate}
-         </span>
-         </p>
-        <p>If you did not request this change, please take action to secure your account immediately.</p>
-       <h3>Security Tips:</h3>
-       <ul>
-        <li>Use a strong password that is at least 8 characters long.</li>
-        <li>Avoid using common words or easily guessable information.</li>
-      </ul>
-      <p>Thank you for using our service!</p>
-               <div style="margin-top: 20px; font-size: 0.9em; color: #777; ">
-              <p>Best Regards,</p>
-              <p>ApnaKhata Expense Tracker</p>
-            </div>
-    `;
+
+    // Send confirmation email
     try {
+      const formattedDate = formatDate(new Date());
+      const message = passwordResetSuccessTemplate(
+        user.name || "User",
+        formattedDate
+      );
+
       await sendEmail({
         email: user.email,
-        subject: "Password Reset Confirmation",
+        subject: "Password Reset Successful - ApnaKhata",
         html: message,
       });
-    } catch (error) {
-      // Email failure does not block password reset
+    } catch (emailError) {
+      console.error("Failed to send confirmation email:", emailError);
+      // Continue with success response even if email fails
     }
+
     res.status(200).json({
       success: true,
       message: "Your password has been reset successfully.",
     });
   } catch (error) {
+    console.error("Reset password error:", error);
+
     res.status(500).json({
       success: false,
-      message: "An error occurred while resetting the password.",
+      message:
+        "An error occurred while resetting the password. Please try again.",
     });
   }
 };

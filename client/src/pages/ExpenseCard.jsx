@@ -8,13 +8,10 @@ import {
   Col,
   Row,
   Spinner,
-  Toast,
-  ToastContainer,
 } from "react-bootstrap";
 import {
   FaEdit,
   FaTrash,
-  FaEye,
   FaFileDownload,
   FaReceipt,
   FaMoneyBillWave,
@@ -22,11 +19,11 @@ import {
   FaCreditCard,
   FaTag,
   FaExternalLinkAlt,
-  FaCheckCircle,
 } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import "../pages/styles/ExpenseCard.css";
+import toast from "react-hot-toast";
 
 const ExpenseCard = ({
   expenses = [],
@@ -50,12 +47,6 @@ const ExpenseCard = ({
   const [receiptState, setReceiptState] = useState({
     loading: false,
     error: null,
-  });
-
-  const [toast, setToast] = useState({
-    show: false,
-    message: "",
-    variant: "success",
   });
 
   // Helper functions
@@ -83,11 +74,6 @@ const ExpenseCard = ({
     return categoryColors[category.toLowerCase()] || "secondary";
   };
 
-  // Show toast notification
-  const showToast = (message, variant = "success") => {
-    setToast({ show: true, message, variant });
-  };
-
   // Event handlers
   const handleDeleteClick = (expense) => {
     setDeleteModal({ show: true, expense });
@@ -103,22 +89,24 @@ const ExpenseCard = ({
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      // Show success toast
-      showToast("Expense deleted successfully!");
+      // Show success toast with expense details
+      toast.success(
+        `Deleted ${deleteModal.expense.category} expense: ${formatCurrency(deleteModal.expense.amount)}`
+      );
 
       // Close modal and reset state
       setDeleteModal({ show: false, expense: null });
       setDeleteState({ loading: false, error: null });
 
-      // Notify parent component to remove the expense from UI without reloading
+      // Notify parent component to remove the expense from UI
       if (onDeleteSuccess) {
         onDeleteSuccess(deleteModal.expense._id);
       }
     } catch (err) {
-      setDeleteState({
-        loading: false,
-        error: err.response?.data?.message || "Failed to delete expense",
-      });
+      const errorMessage =
+        err.response?.data?.message || "Failed to delete expense";
+      setDeleteState({ loading: false, error: errorMessage });
+      toast.error(errorMessage);
     }
   };
 
@@ -150,7 +138,7 @@ const ExpenseCard = ({
         window.open(receiptUrl, "_blank");
       } else {
         // For non-image files, trigger download
-        handleDownloadReceipt(receiptUrl, receipt.originalName);
+        triggerDownload(receiptUrl, receipt.originalName);
       }
     } catch (error) {
       setReceiptState({
@@ -161,10 +149,12 @@ const ExpenseCard = ({
     }
   };
 
-  // Always download receipt file
+  // Download receipt file
   const handleDownloadReceipt = async (receipt) => {
     if (!receipt || !receipt.fileId) return;
+
     setReceiptState({ loading: true, error: null });
+
     try {
       const response = await axios.get(
         `/api/expenses/receipt/${receipt.fileId}`,
@@ -173,16 +163,10 @@ const ExpenseCard = ({
           responseType: "blob",
         }
       );
+
       const blob = new Blob([response.data], { type: receipt.contentType });
       const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download =
-        receipt.originalName ||
-        `receipt-${new Date().toLocaleDateString("en-GB")}`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      triggerDownload(url, receipt.originalName);
       URL.revokeObjectURL(url);
     } catch (error) {
       setReceiptState({
@@ -191,6 +175,17 @@ const ExpenseCard = ({
     } finally {
       setReceiptState((prev) => ({ ...prev, loading: false }));
     }
+  };
+
+  // Helper to trigger file download
+  const triggerDownload = (url, originalName) => {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download =
+      originalName || `receipt-${new Date().toLocaleDateString("en-GB")}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Calculate item number for display
@@ -202,23 +197,6 @@ const ExpenseCard = ({
 
   return (
     <div className="expense-card-container">
-      {/* Toast Notification */}
-      <ToastContainer position="top-end" className="p-3">
-        <Toast
-          show={toast.show}
-          onClose={() => setToast({ ...toast, show: false })}
-          delay={3000}
-          autohide
-          bg={toast.variant}
-        >
-          <Toast.Header>
-            <FaCheckCircle className="me-2 text-success" />
-            <strong className="me-auto">Success</strong>
-          </Toast.Header>
-          <Toast.Body className="text-white">{toast.message}</Toast.Body>
-        </Toast>
-      </ToastContainer>
-
       {/* Error Alert */}
       {deleteState.error && (
         <Alert
@@ -357,15 +335,7 @@ const ExpenseCard = ({
                           <FaFileDownload />
                         </Button>
                       </div>
-                    ) : (
-                      <Badge
-                        bg="light"
-                        text="secondary"
-                        className="no-receipt-badge"
-                      >
-                        <FaReceipt className="me-1" /> No Receipt
-                      </Badge>
-                    )}
+                    ) : ""}
                     <div className="action-buttons">
                       <Button
                         variant="outline-primary"
@@ -423,7 +393,13 @@ const ExpenseCard = ({
           <div className="delete-icon mb-3">
             <FaTrash />
           </div>
-          <h5>Are you sure you want to delete this expense?</h5>
+          {/* <h5>Are you sure you want to delete this expense?</h5> */}
+          {deleteModal.expense && (
+            <p className="text-muted mb-2">
+              <strong>{deleteModal.expense.category}</strong> expense of{" "}
+              <strong>{formatCurrency(deleteModal.expense.amount)}</strong>
+            </p>
+          )}
           <p className="text-muted">This action cannot be undone.</p>
         </Modal.Body>
         <Modal.Footer className="modal-footer-custom justify-content-center">

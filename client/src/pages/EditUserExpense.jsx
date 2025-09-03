@@ -68,7 +68,18 @@ const EditExpense = () => {
         "Tags can only contain letters, numbers, and commas"
       )
       .nullable(),
-    receipt: Yup.mixed().nullable(), // Handle receipt input
+    receipt: Yup.mixed()
+      .nullable()
+      .test("fileSize", "File size too large, max allowed 1MB", (value) => {
+        if (!value) return true;
+        return value.size <= 1 * 1024 * 1024; // 1MB limit
+      })
+      .test("fileType", "Unsupported file type", (value) => {
+        if (!value) return true;
+        return ["image/jpeg", "image/png", "application/pdf"].includes(
+          value.type
+        );
+      }),
   });
 
   const formik = useFormik({
@@ -107,7 +118,7 @@ const EditExpense = () => {
         setSuccess("Expense updated successfully!");
 
         toast.success("Expense updated successfully!"); // Use toast for success message
-        setTimeout(() => navigate("/expenses"), 1500);
+        setTimeout(() => navigate("/expenses"), 500);
       } catch (err) {
         toast.error(err.response?.data?.message || "Failed to update expense"); // Use toast for error message
         setError(err.response?.data?.message || "Failed to update expense");
@@ -298,16 +309,33 @@ const EditExpense = () => {
                   </Form.Group>
 
                   <Form.Group className="mb-3">
+                    <Form.Label>Tags *</Form.Label>
+                    <Form.Control
+                      type="text"
+                      name="tags"
+                      value={formik.values.tags}
+                      onChange={formik.handleChange}
+                      onBlur={formik.handleBlur}
+                      placeholder="Enter tags e.g personal,family (comma separated)"
+                      isInvalid={formik.touched.tags && formik.errors.tags}
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {formik.errors.tags}
+                    </Form.Control.Feedback>
+                  </Form.Group>
+
+                  <Form.Group className="mb-3">
                     <Form.Label>Receipt (optional)</Form.Label>
                     {currentReceipt && (
                       <div className="mb-2">
-                        current: {currentReceipt || <span>No receipt uploaded</span>}
+                        current:{" "}
+                        {currentReceipt || <span>No receipt uploaded</span>}
                       </div>
                     )}
                     <p className="text-muted">
-                      
-                      If a new receipt is uploaded, it will replace the current
-                      one.
+                      {currentReceipt
+                        ? "If a new receipt is uploaded, it will replace the current one"
+                        : "no receipt found for this expense"}
                     </p>
                     <Form.Control
                       type="file"
@@ -325,22 +353,7 @@ const EditExpense = () => {
                     )}
                   </Form.Group>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Tags *</Form.Label>
-                    <Form.Control
-                      type="text"
-                      name="tags"
-                      value={formik.values.tags}
-                      onChange={formik.handleChange}
-                      onBlur={formik.handleBlur}
-                      placeholder="Enter tags e.g personal,family (comma separated)"
-                      isInvalid={formik.touched.tags && formik.errors.tags}
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {formik.errors.tags}
-                    </Form.Control.Feedback>
-                  </Form.Group>
-
+                  
                   <div className="d-grid gap-2">
                     <Button
                       style={{

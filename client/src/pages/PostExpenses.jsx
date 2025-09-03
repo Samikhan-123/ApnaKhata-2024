@@ -47,42 +47,40 @@ const PostExpenses = () => {
 
   const validationSchema = Yup.object().shape({
     description: Yup.string()
-      .required('Description is required')
-      .min(5, 'Description must be at least 5 characters long')
-      .max(100, 'Description cannot exceed 100 characters'),
+      .required("Description is required")
+      .min(5, "Description must be at least 5 characters long")
+      .max(100, "Description cannot exceed 100 characters"),
     amount: Yup.number()
-      .required('Amount is required')
-      .min(0, 'Amount must be a positive number'),
-    date: Yup.date().nullable().required('Date is required'),
+      .required("Amount is required")
+      .min(0, "Amount must be a positive number"),
+    date: Yup.date().nullable().required("Date is required"),
     category: Yup.string()
-      .required('Category is required')
-      .oneOf(categories, 'Invalid category'),
+      .required("Category is required")
+      .oneOf(categories, "Invalid category"),
     paymentMethod: Yup.string()
-      .required('Payment method is required')
-      .oneOf(paymentMethods, 'Invalid payment method'),
+      .required("Payment method is required")
+      .oneOf(paymentMethods, "Invalid payment method"),
     tags: Yup.string()
-      .required('Tags are required')
-      .min(2, 'Tags must be at least 2 characters long')
-      .max(30, 'Tags cannot exceed 30 characters')
+      .required("Tags are required")
+      .min(2, "Tags must be at least 2 characters long")
+      .max(30, "Tags cannot exceed 30 characters")
       .matches(
         /^[a-zA-Z0-9,\s]*$/,
-        'Tags can only contain letters, numbers, and commas'
+        "Tags can only contain letters, numbers, and commas"
       )
       .nullable(),
-    
+
     receipt: Yup.mixed()
       .nullable()
-      .test('fileSize', 'File size too large', (value) => {
+      .test("fileSize", "File size too large, max allowed 1MB", (value) => {
         if (!value) return true;
         return value.size <= 1 * 1024 * 1024; // 1MB limit
       })
-      .test('fileType', 'Unsupported file type', (value) => {
+      .test("fileType", "Unsupported file type, only jpeg/png/pdf allowed", (value) => {
         if (!value) return true;
-        return [
-          'image/jpeg',
-          'image/png',
-          'application/pdf',
-        ].includes(value.type);
+        return ["image/jpeg", "image/png", "application/pdf"].includes(
+          value.type
+        );
       }),
   });
   const formik = useFormik({
@@ -120,7 +118,7 @@ const PostExpenses = () => {
         setSuccess('Expense added successfully!');
         toast.success('Expense added successfully!'); // Show toast success message
 
-        setTimeout(() => navigate('/expenses'), 1500);
+        // setTimeout(() => navigate('/expenses'), 500);
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to add expense'); // Show toast error message
 
@@ -144,7 +142,7 @@ const PostExpenses = () => {
                   <Alert
                     variant="danger"
                     dismissible
-                    onClose={() => setError('')}
+                    onClose={() => setError("")}
                   >
                     {error}
                   </Alert>
@@ -153,7 +151,7 @@ const PostExpenses = () => {
                   <Alert
                     variant="success"
                     dismissible
-                    onClose={() => setSuccess('')}
+                    onClose={() => setSuccess("")}
                   >
                     {success}
                   </Alert>
@@ -248,37 +246,16 @@ const PostExpenses = () => {
                       name="date"
                       value={formik.values.date}
                       onChange={(e) =>
-                        formik.setFieldValue('date', e.target.value || '')
+                        formik.setFieldValue("date", e.target.value || "")
                       }
-                      onBlur={() => formik.setFieldTouched('date', true, true)}
+                      onBlur={() => formik.setFieldTouched("date", true, true)}
                       isInvalid={formik.touched.date && formik.errors.date}
                     />
                     <Form.Control.Feedback type="invalid">
                       {formik.errors.date}
                     </Form.Control.Feedback>
                   </Form.Group>
-                  {/* Receipt Upload */}
-                  <Form.Group className="mb-3">
-                    <Form.Label>Receipt (optional)</Form.Label>
-                    <Form.Control
-                      type="file"
-                      onChange={(e) =>
-                        formik.setFieldValue('receipt', e.target.files[0])
-                      }
-                      isInvalid={
-                        formik.touched.receipt && formik.errors.receipt
-                      }
-                      accept="image/*,.pdf"
-                    />
-                    <Form.Control.Feedback type="invalid">
-                      {formik.errors.receipt}
-                    </Form.Control.Feedback>
-                    {formik.values.receipt && (
-                      <small className="text-muted">
-                        Selected file: {formik.values.receipt.name}
-                      </small>
-                    )}
-                  </Form.Group>
+
                   {/* Tags */}
                   <Form.Group className="mb-3">
                     <Form.Label>Tags *</Form.Label>
@@ -295,10 +272,34 @@ const PostExpenses = () => {
                       {formik.errors.tags}
                     </Form.Control.Feedback>
                   </Form.Group>
-                  
+                  {/* Receipt Upload */}
+                  <Form.Group className="mb-3">
+                    <Form.Label>Receipt (optional)</Form.Label>
+                    <Form.Control
+                      type="file"
+                      onChange={(e) =>
+                        formik.setFieldValue("receipt", e.target.files[0])
+                      }
+                      isInvalid={
+                        formik.touched.receipt && formik.errors.receipt
+                      }
+                      accept="image/*,.pdf"
+                    />
+                    <Form.Control.Feedback type="invalid">
+                      {formik.errors.receipt}
+                    </Form.Control.Feedback>
+                    {formik.values.receipt && (
+                      <small className="text-muted">
+                        Selected file: {formik.values.receipt.name}
+                      </small>
+                    )}
+                  </Form.Group>
                   <div className="d-grid gap-2 py-4">
                     <Button
-                      style={{ backgroundColor: "var(--submit-btn-color)" , borderColor: "var(--home-primary-color)"}}
+                      style={{
+                        backgroundColor: "var(--submit-btn-color)",
+                        borderColor: "var(--home-primary-color)",
+                      }}
                       type="submit"
                       disabled={loading || !formik.isValid}
                     >
@@ -315,7 +316,7 @@ const PostExpenses = () => {
                           Submitting...
                         </>
                       ) : (
-                        'Submit Expense'
+                        "Submit Expense"
                       )}
                     </Button>
                     <Button

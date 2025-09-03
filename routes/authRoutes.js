@@ -1,5 +1,5 @@
 import express from 'express';
-import { register, login, getAllUsers, resetPassword, forgotPassword, getProfileWithExpenses } from '../controller/authController.js';
+import { register, login, getAllUsers, resetPassword, forgotPassword, updateUserPassword } from '../controller/authController.js';
 import { authenticate } from '../utils/jwtUtills.js';
 // import { resetPasswordLimiter } from '../utils/rateLimitToMail.js';
 import { googleLogin } from '../utils/googleLoginAuth.js';
@@ -9,9 +9,10 @@ const router = express.Router();
 router.post('/register', register);
 router.post('/login', login);
 
-// get all users from the database 
-router.get('/users',authenticate, getAllUsers);
-
+// get all admin users from the database 
+router.get("/admin/users", authenticate, getAllUsers);
+// update user pass by admin
+router.patch("/admin/users/:userId/password", authenticate, updateUserPassword);
 // Google Authentication Route
 router.post('/google-login', googleLogin);
 

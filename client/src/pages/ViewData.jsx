@@ -21,12 +21,12 @@ import {
   FaSync,
   FaChartLine,
   FaCalculator,
+  FaTimes,
 } from "react-icons/fa";
 import Layout from "../components/Layout";
 import ExpenseCard from "../pages/ExpenseCard";
 import Filters from "../pages/Filters";
 import Analytics from "../pages/Analytics";
-import { toast } from "react-toastify";
 import "../pages/styles/ViewData.css";
 import SplitCalculator from "./SplitCalculator";
 
@@ -88,7 +88,7 @@ const ViewData = () => {
           params.paymentMethod = filterParams.paymentMethod;
         }
 
-        if (filterParams.startDate) {
+        if (filterParams.startDate) { 
           params.startDate = filterParams.startDate;
         }
 
@@ -123,6 +123,7 @@ const ViewData = () => {
         const filteredTotalRecords = response.data?.filteredTotalRecords || 0; // Filtered records count
         const filteredTotalAmount = response.data?.filteredTotalAmount || 0; // Filtered total amount
         const totalPages = Math.ceil(filteredTotalRecords / limit);
+   
 
         setExpenses(expensesData);
         setPagination({
@@ -188,14 +189,13 @@ const ViewData = () => {
       }));
 
       // If we're on a page that might now be empty, go back one page
-      if (expenses.length === 1 && pagination.currentPage > 1) {
-        fetchExpenses(pagination.currentPage - 1, ITEMS_PER_PAGE, filters);
-      } else {
-        // Otherwise, refresh the current page
-        fetchExpenses(pagination.currentPage, ITEMS_PER_PAGE, filters);
-      }
+      // if (expenses.length === 1 && pagination.currentPage > 1) {
+      //   fetchExpenses(pagination.currentPage - 1, ITEMS_PER_PAGE, filters);
+      // } else {
+      //   // Otherwise, refresh the current page
+      //   fetchExpenses(pagination.currentPage, ITEMS_PER_PAGE, filters);
+      // }
 
-      toast.success("Expense deleted successfully!");
     },
     [expenses, pagination.currentPage, fetchExpenses, filters]
   );
@@ -272,8 +272,35 @@ const ViewData = () => {
             </Col>
           </Row>
         )}
+        {hasActiveFilters() && (
+          <Row className="mb-4">
+            <Col className="d-flex justify-content-end">
+              <Button
+                variant="outline-secondary"
+                onClick={() => {
+                  // Reset filters to default values
+                  const defaultFilters = {
+                    category: "all",
+                    startDate: "",
+                    endDate: "",
+                    searchTerm: "",
+                    paymentMethod: "all",
+                    minAmount: "",
+                    maxAmount: "",
+                    tags: "",
+                  };
+                  handleFilterChange(defaultFilters);
+                }}
+                className="d-flex align-items-center"
+              >
+                <FaTimes className="me-2" />
+                Reset Filters
+              </Button>
+            </Col>
+          </Row>
+        )}
 
-        {/* Alerts */}
+        {/* Alerts */ }
         {error && (
           <Alert
             variant="danger"
@@ -297,6 +324,7 @@ const ViewData = () => {
             </div>
           </Alert>
         )}
+
         {success && (
           <Alert
             variant="success"

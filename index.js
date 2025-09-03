@@ -31,7 +31,7 @@ if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, 'dist')));
 
   // Handle client-side routing - should come BEFORE API routes
-}
+} 
 
 // CORS configuration
 app.use(

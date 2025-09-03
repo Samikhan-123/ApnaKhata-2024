@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { Formik } from "formik";
+import { Formik, Form, Field } from "formik";
 import * as Yup from "yup";
 import {
   Button,
-  Form,
   Col,
   Row,
   Breadcrumb,
@@ -13,7 +12,7 @@ import {
 import { useNavigate, useParams, NavLink } from "react-router-dom";
 import axios from "axios";
 import Layout from "../components/Layout";
-import "./styles/forms.css"; // Import the unified CSS
+import "./styles/forms.css";
 
 const ResetPasswordPage = () => {
   const [passwordShown, setPasswordShown] = useState(false);
@@ -25,6 +24,7 @@ const ResetPasswordPage = () => {
   const navigate = useNavigate();
   const { resetToken } = useParams();
 
+  // Toggle password visibility
   const togglePasswordVisibility = () => setPasswordShown((prev) => !prev);
   const toggleConfirmPasswordVisibility = () =>
     setConfirmPasswordShown((prev) => !prev);
@@ -43,6 +43,46 @@ const ResetPasswordPage = () => {
       .required("Confirm password is required"),
   });
 
+  // Handle form submission
+  const handleSubmit = async (
+    values,
+    { resetForm, setSubmitting, setFieldTouched }
+  ) => {
+    setLoading(true);
+    setError("");
+    setSuccessMessage("");
+
+    try {
+      const response = await axios.post(
+        `/api/auth/reset-password/${resetToken}`,
+        values
+      );
+
+      if (response.data.success) {
+        setSuccessMessage("Password successfully reset! Please log in again.");
+        resetForm(); // Reset the form fields
+      } else {
+        setError(response.data.message);
+      }
+    } catch (err) {
+      if (err.response?.data?.error) {
+        setError(
+          err.response.data.error.map((error) => error.message).join(", ")
+        );
+      } else {
+        setError(
+          err.response?.data?.message ||
+            "An error occurred while resetting your password."
+        );
+      }
+    } finally {
+      setLoading(false);
+      setSubmitting(false);
+      setFieldTouched("password", true);
+      setFieldTouched("confirmPassword", true);
+    }
+  };
+
   return (
     <Layout title="Reset Password - ApnaKhata">
       <div className="container vw-100 vh-100 mt-1">
@@ -52,8 +92,10 @@ const ResetPasswordPage = () => {
               <Breadcrumb.Item href="#">Home</Breadcrumb.Item>
               <Breadcrumb.Item active>Reset Password</Breadcrumb.Item>
             </Breadcrumb>
+
             <h2 className="text-center mb-4">Reset Password</h2>
 
+            {/* Error Alert */}
             {error && (
               <Alert
                 variant="danger"
@@ -65,6 +107,7 @@ const ResetPasswordPage = () => {
               </Alert>
             )}
 
+            {/* Success Alert */}
             {successMessage && (
               <Alert
                 variant="success"
@@ -75,78 +118,33 @@ const ResetPasswordPage = () => {
                 {successMessage}
               </Alert>
             )}
+
+            {/* Password Requirements */}
             <Alert className="text-center" variant="info" dismissible>
               Note: Password must contain at least 8 characters, one uppercase
               letter, one lowercase letter, one number and one special
               character.
             </Alert>
 
+            {/* Formik Form */}
             <Formik
               initialValues={{ password: "", confirmPassword: "" }}
               validationSchema={validationSchema}
-              validateOnBlur={true}
-              validateOnChange={true}
-              onSubmit={async (values, { setSubmitting, setFieldTouched }, resetForm) => {
-                setLoading(true);
-                setError("");
-                setSuccessMessage("");
-                try {
-                  const response = await axios.post(
-                    `/api/auth/reset-password/${resetToken}`,
-                    values
-                  );
-                  if (response.data.success) {
-                    setSuccessMessage(
-                      "Password successfully reset! please log in again."
-                    );
-                    resetForm();
-                    // setTimeout(() => navigate("/login"), 2000);
-                  } else {
-                    setError(response.data.message);
-                  }
-                } catch (err) {
-                  if (err.response?.data?.error) {
-                    setError(
-                      err.response.data.error.map((err) => err.message).join(", ")
-                    );
-                  } else {
-                    setError(
-                      err.response?.data?.message ||
-                        "An error occurred while resetting your password."
-                    );
-                  }
-                } finally {
-                  setLoading(false);
-                  setSubmitting(false);
-                  setFieldTouched("password", true);
-                  setFieldTouched("confirmPassword", true);
-                }
-              }}
+              onSubmit={handleSubmit}
             >
-              {({
-                values,
-                errors,
-                touched,
-                handleChange,
-                handleBlur,
-                handleSubmit,
-                isSubmitting,
-                isValid,
-                dirty,
-              }) => (
-                <Form noValidate onSubmit={handleSubmit} className="glass-form">
-                  <Form.Group className="mb-3">
-                    <Form.Label>New Password</Form.Label>
+              {({ errors, touched, isSubmitting, isValid, dirty }) => (
+                <Form className="glass-form">
+                  {/* Password Field */}
+                  <div className="mb-3">
+                    <label htmlFor="password" className="form-label">
+                      New Password
+                    </label>
                     <InputGroup>
-                      <Form.Control
-                        type={passwordShown ? "text" : "password"}
+                      <Field
                         name="password"
+                        type={passwordShown ? "text" : "password"}
+                        className={`form-control ${touched.password && errors.password ? "is-invalid" : ""}`}
                         placeholder="Enter new password"
-                        value={values.password}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={touched.password && !!errors.password}
-                        required
                       />
                       <Button
                         variant="outline-secondary"
@@ -158,26 +156,25 @@ const ResetPasswordPage = () => {
                       >
                         {passwordShown ? "Hide" : "Show"}
                       </Button>
-                      <Form.Control.Feedback type="invalid">
-                        {errors.password}
-                      </Form.Control.Feedback>
+                      {touched.password && errors.password && (
+                        <div className="invalid-feedback d-block">
+                          {errors.password}
+                        </div>
+                      )}
                     </InputGroup>
-                  </Form.Group>
+                  </div>
 
-                  <Form.Group className="mb-3">
-                    <Form.Label>Confirm New Password</Form.Label>
+                  {/* Confirm Password Field */}
+                  <div className="mb-3">
+                    <label htmlFor="confirmPassword" className="form-label">
+                      Confirm New Password
+                    </label>
                     <InputGroup>
-                      <Form.Control
-                        type={confirmPasswordShown ? "text" : "password"}
+                      <Field
                         name="confirmPassword"
+                        type={confirmPasswordShown ? "text" : "password"}
+                        className={`form-control ${touched.confirmPassword && errors.confirmPassword ? "is-invalid" : ""}`}
                         placeholder="Confirm new password"
-                        value={values.confirmPassword}
-                        onChange={handleChange}
-                        onBlur={handleBlur}
-                        isInvalid={
-                          touched.confirmPassword && !!errors.confirmPassword
-                        }
-                        required
                       />
                       <Button
                         variant="outline-secondary"
@@ -191,12 +188,15 @@ const ResetPasswordPage = () => {
                       >
                         {confirmPasswordShown ? "Hide" : "Show"}
                       </Button>
-                      <Form.Control.Feedback type="invalid">
-                        {errors.confirmPassword}
-                      </Form.Control.Feedback>
+                      {touched.confirmPassword && errors.confirmPassword && (
+                        <div className="invalid-feedback d-block">
+                          {errors.confirmPassword}
+                        </div>
+                      )}
                     </InputGroup>
-                  </Form.Group>
+                  </div>
 
+                  {/* Submit Button */}
                   <Button
                     style={{
                       backgroundColor: "var(--submit-btn-color)",
@@ -204,7 +204,7 @@ const ResetPasswordPage = () => {
                     }}
                     type="submit"
                     className="w-100 glass-btn"
-                    disabled={loading || isSubmitting }
+                    disabled={loading || isSubmitting || !isValid || !dirty}
                   >
                     {loading ? "Resetting Password..." : "Reset Password"}
                   </Button>
@@ -212,6 +212,7 @@ const ResetPasswordPage = () => {
               )}
             </Formik>
 
+            {/* Login Link */}
             <div className="text-center mt-3">
               <p>
                 Remembered your password?{" "}

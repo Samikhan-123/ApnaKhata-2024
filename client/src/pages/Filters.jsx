@@ -21,7 +21,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
     onFilterChange(localFilters);
   };
 
-  const resetFilters = () => {
+   const resetFilters = () => {
     const resetFilters = {
       category: "all",
       paymentMethod: "all",

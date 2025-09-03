@@ -22,8 +22,8 @@ const NoRouteFound = () => {
           <span className="text-danger">Oops!</span> Page not found.
         </p>
         <p className="lead">The page you’re looking for doesn’t exist.</p>
-        <a href="/" className="btn btn-primary">
-          Go Home
+        <a href="#" onClick={() => window.history.back()} className="btn btn-primary">
+          Go Back
         </a>
       </div>
     </div>

@@ -264,3 +264,313 @@ export const passwordResetSuccessTemplate = (userName, formattedDate) => `
 </body>
 </html>
 `;
+
+export const newExpenseAddedEmailTemplate = (
+  userName,
+  description,
+  amount,
+  date,
+  category,
+  paymentMethod,
+  parsedTags,
+  receipt
+) =>
+  `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Expense Added - ApnaKhata</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Inter', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #2c3e50;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 20px;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+        
+        .email-header {
+            background: #660B05;
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .email-header h2 {
+            font-size: 20px;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+        
+        .email-header p {
+            font-size: 16px;
+            opacity: 0.9;
+            font-weight: 300;
+        }
+        
+        .email-body {
+            padding: 30px;
+        }
+        
+        .expense-summary {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 12px;
+            padding: 25px;
+            margin: 20px 0;
+            border-left: 4px solid #667eea;
+        }
+        
+        .expense-summary h3 {
+            color: #2c3e50;
+            font-size: 18px;
+            font-weight: 600;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+        
+        .expense-summary h3:before {
+            content: "💼";
+            margin-right: 10px;
+        }
+        
+        .expense-details {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .expense-details li {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+        }
+        
+        .expense-details li:last-child {
+            border-bottom: none;
+        }
+        
+        .expense-details strong {
+            color: #2c3e50;
+            font-weight: 600;
+            min-width: 120px;
+        }
+        
+        .expense-details span {
+            color: #5a6c7d;
+            text-align: right;
+            flex: 1;
+        }
+        
+        .amount-highlight {
+            color: #e74c3c !important;
+            font-weight: 600;
+            font-size: 1.1em;
+        }
+        
+        .receipt-section {
+            background: #fff8e6;
+            border: 1px solid #ffeaa7;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 20px 0;
+            text-align: center;
+        }
+        
+        .receipt-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        
+        .wisdom-quote {
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            padding: 20px;
+            margin: 25px 0;
+            text-align: center;
+            font-style: italic;
+            color: #1565c0;
+            border-left: 4px solid #1976d2;
+        }
+        
+        .quote-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            display: block;
+        }
+        
+        .email-footer {
+            background: #2c3e50;
+            color: white;
+            padding: 25px;
+            text-align: center;
+            border-radius: 0 0 16px 16px;
+        }
+        
+        .footer-logo {
+            font-size: 24px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #fff;
+        }
+        
+        .footer-text {
+            font-size: 14px;
+            opacity: 0.8;
+            line-height: 1.5;
+        }
+        
+        
+        @media (max-width: 600px) {
+            .email-body {
+                padding: 20px;
+            }
+            
+            .expense-details li {
+                flex-direction: column;
+                gap: 5px;
+            }
+            
+            .expense-details span {
+                text-align: left;
+            }
+            
+            .email-header h2 {
+                font-size: 20px;
+            }
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+            color: white;
+        }
+        
+        .tag-pill {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            background: #e8eaf6;
+            color: #3f51b5;
+            margin: 2px;
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="email-header">
+            <p>Your expense has been successfully added to ApnaKhata</p>
+        </div>
+        
+        <!-- Body -->
+        <div class="email-body">
+            <h3>Hello, ${userName}</h3>
+            <p>We're confirming that a new expense has been added to your account. Here's a summary of the transaction:</p>
+            
+            <!-- Expense Summary -->
+            <div class="expense-summary">
+                <h3>Expense Details</h3>
+                <ul class="expense-details">
+                    <li>
+                        <strong>Description:</strong>
+                        <span>${description}</span>
+                    </li>
+                    <li>
+                        <strong>Amount:</strong>
+                        <span class="amount-highlight">${new Intl.NumberFormat(
+                          "en-PK",
+                          {
+                            style: "currency",
+                            currency: "PKR",
+                          }
+                        ).format(amount)}</span>
+                    </li>
+                    <li>
+                        <strong>Category:</strong>
+                        <span><span class="category-badge">${category}</span></span>
+                    </li>
+                    <li>
+                        <strong>Date:</strong>
+                        <span>${new Date(date).toLocaleDateString("en-PK", {
+                          weekday: "long",
+                          year: "numeric",
+                          month: "long",
+                          day: "numeric",
+                        })}</span>
+                    </li>
+                    <li>
+                        <strong>Payment Method:</strong>
+                        <span>${paymentMethod}</span>
+                    </li>
+                    ${
+                      Array.isArray(parsedTags) && parsedTags?.length > 0
+                        ? `<li>
+                            <strong>Tags:</strong>
+                            <span>${parsedTags?.map((tag) => `<span class="tag-pill">${tag}</span>`).join(" ")}</span>
+                           </li>`
+                        : ""
+                    }
+                </ul>
+            </div>
+            
+            <!-- Receipt Information -->
+            ${
+              receipt
+                ? `<div class="receipt-section">
+                    <div class="receipt-icon">📎</div>
+                    <p><strong>Receipt Attached</strong><br>
+                    A digital receipt has been uploaded with this expense for your records.</p>
+                   </div>`
+                : ""
+            }
+            
+            <!-- Financial Wisdom -->
+            <div class="wisdom-quote">
+                <span class="quote-icon">💡</span>
+                <p>"بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔"</p>
+                <p style="margin-top: 10px; font-size: 0.9em;">- ApnaKhata Financial Wisdom</p>
+            </div>
+            
+            <p>Thank you for using ApnaKhata to manage your expenses. We're here to help you achieve financial wellness.</p>
+            
+            <p>Best regards,<br>The ApnaKhata Team</p>
+        </div>
+        
+        <!-- Footer -->
+        <div class="email-footer">
+            <div class="footer-logo">ApnaKhata</div>
+            <div class="footer-text">
+                <p>Your personal expense tracker for better financial management</p>
+                <p>This is an automated notification. Please do not reply to this email.</p>
+            </div>
+           
+        </div>
+    </div>
+</body>
+</html>
+`;

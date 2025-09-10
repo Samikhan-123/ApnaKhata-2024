@@ -15,6 +15,10 @@
   box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
   transition: transform 0.2s ease;
 }
+.text-primary{
+  color: #B2B0E8 !important;
+  font-weight: 500;
+}
 
 .summary-card:hover {
   transform: translateY(-3px);

@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     if (window.google && window.google.accounts && window.google.accounts.id) {
       window.google.accounts.id.disableAutoSelect();
       window.google.accounts.id.revoke(user?.email, () => {
-        console.log('Google consent revoked'); 
+        // console.log('Google consent revoked'); 
       });
     }
   };

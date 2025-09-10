@@ -6,6 +6,7 @@ import {
   getExpenses,
   updateExpense,
   getReceipt,
+  getAnalyticsData,
 } from '../controller/expenseController.js';
 import { authenticate } from '../utils/jwtUtills.js';
 import { upload } from '../middleware/mutler.js';
@@ -24,15 +25,8 @@ router.get("/receipt/:fileId", authenticate, getReceipt);
 
 // Get all expenses with filters
 router.get('/', authenticate, getExpenses);
-
-// Get expense statistics
-// router.get('/stats', authenticate, getExpenseStats);
-
-// Get expenses by category
-// router.get('/by-category', authenticate, getExpensesByCategory);
-
-// Get monthly expenses
-// router.get('/monthly', authenticate, getMonthlyExpenses);
+// Get expense analytics data
+router.get("/analytics", authenticate, getAnalyticsData);
 
 // Get specific expense
 router.get('/:id', authenticate, getExpenseById);

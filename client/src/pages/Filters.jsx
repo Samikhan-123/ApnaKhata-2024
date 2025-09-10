@@ -167,7 +167,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
         <Card.Body className="filter-body">
           <Row className="g-3">
             {/* Search Bar */}
-            {/* <Col md={12} lg={6}>
+            <Col md={12} lg={6}>
               <Form.Group>
                 <Form.Label className="fw-semibold">Search</Form.Label>
                 <div className="search-input-group">
@@ -189,7 +189,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   </Button>
                 </div>
               </Form.Group>
-            </Col> */}
+            </Col>
 
             {/* Tags Filter */}
             <Col md={6} lg={3}>
@@ -280,7 +280,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   name="minAmount"
                   value={localFilters.minAmount}
                   onChange={handleChange}
-                  placeholder="Minimum amount"
+                  placeholder="Amount will be at least"
                   min="0"
                   step="1"
                   className="filter-input"
@@ -298,7 +298,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   name="maxAmount"
                   value={localFilters.maxAmount}
                   onChange={handleChange}
-                  placeholder="Maximum amount"
+                  placeholder="Amount will be at most"
                   min="0"
                   step="1"
                   className="filter-input"
@@ -384,7 +384,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
         }
 
         .filter-header {
-          background: #660b05;
+          background: var(--home-secondary-color);
           color: white;
           padding: 1rem 1.25rem;
           cursor: pointer;
@@ -392,7 +392,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
         }
 
         .filter-header:hover {
-          background: #8c1007;
+          background: #5a4cb8;
         }
 
         .filter-toggle {
@@ -465,3 +465,4 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
 };
 
 export default Filters;
+

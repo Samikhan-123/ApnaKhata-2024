@@ -1,5 +1,16 @@
-import React, { useMemo } from "react";
-import { Card, Row, Col, Button, Badge, ProgressBar } from "react-bootstrap";
+import React, { useState, useEffect } from "react";
+import {
+  Container,
+  Row,
+  Col,
+  Card,
+  Button,
+  Badge,
+  Spinner,
+  Alert,
+  ProgressBar,
+  Table,
+} from "react-bootstrap";
 import { Bar, Pie, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -10,18 +21,20 @@ import {
   Tooltip,
   Legend,
   Title,
-  Filler,
 } from "chart.js";
 import {
   FaChartLine,
   FaMoneyBillWave,
   FaCalendarAlt,
   FaCreditCard,
-  FaTags,
+  FaSync,
   FaArrowUp,
-  FaDatabase,
+  FaArrowDown,
+  FaCrown,
 } from "react-icons/fa";
-import "../pages/styles/Anatytics.css";
+import axios from "axios";
+import "../pages/styles/Analytics.css";
+import { useAuth } from "../auth/AuthContext";
 
 ChartJS.register(
   CategoryScale,
@@ -30,16 +43,39 @@ ChartJS.register(
   ArcElement,
   Tooltip,
   Legend,
-  Title,
-  Filler
+  Title
 );
 
-const Analytics = ({
-  expenses = [],
-  totalRecordsAllTime = 0,
-  totalAmountAllTime = 0,
-}) => {
-  const [timeRange, setTimeRange] = React.useState("monthly");
+const Analytics = () => {
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const { token } = useAuth();
+
+  useEffect(() => {
+    fetchAnalyticsData();
+  }, []);
+
+  const fetchAnalyticsData = async () => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await axios.get(`/api/expenses/analytics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (response.data.success) {
+        setAnalyticsData(response.data.analyticsData);
+      } else {
+        setError(response.data.message || "Failed to fetch analytics data");
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || "Error loading analytics");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (value) =>
     new Intl.NumberFormat("en-PK", {
@@ -49,159 +85,123 @@ const Analytics = ({
       maximumFractionDigits: 0,
     }).format(value || 0);
 
-  const analyticsData = useMemo(() => {
-    if (expenses.length === 0) {
-      return {
-        totalExpenses: 0,
-        totalTransactions: 0,
-        monthlyAverage: 0,
-        totalMonths: 0,
-        monthlyBreakdown: {},
-        highestExpense: 0,
-        lowestExpense: 0,
-        averageExpensePerTransaction: 0,
-        categoryTotals: {},
-        paymentMethodTotals: {},
-        mostExpensiveCategory: "",
-        topExpenses: [],
-      };
-    }
+  const formatDate = (dateString) => {
+    if (!dateString) return "N/A";
+    return new Date(dateString).toLocaleDateString("en-PK", {
+      day: "numeric",
+      month: "short",
+      year: "numeric",
+    });
+  };
 
-    const monthlyBreakdown = expenses.reduce((acc, expense) => {
-      const month = new Date(expense.date).toISOString().slice(0, 7);
-      acc[month] = (acc[month] || 0) + expense.amount;
-      return acc;
-    }, {});
+  const formatMonthYear = (monthString) => {
+    const [year, month] = monthString.split("-");
+    return new Date(year, month - 1).toLocaleDateString("en-US", {
+      month: "long",
+      year: "numeric",
+    });
+  };
 
-    const totalMonths = Object.keys(monthlyBreakdown).length;
-    const totalExpenses = expenses.reduce(
-      (sum, expense) => sum + expense.amount,
-      0
+  const refreshData = () => {
+    fetchAnalyticsData();
+  };
+
+  if (loading) {
+    return (
+      <Container className="analytics-container">
+        <div className="text-center py-5">
+          <Spinner animation="border" variant="primary" />
+          <p className="mt-3">Loading analytics data...</p>
+        </div>
+      </Container>
     );
-    const totalTransactions = expenses.length;
-    const monthlyAverage = totalMonths > 0 ? totalExpenses / totalMonths : 0;
-    const highestExpense = Math.max(...expenses.map((e) => e.amount));
-    const lowestExpense = Math.min(...expenses.map((e) => e.amount));
-    const averageExpensePerTransaction =
-      totalTransactions > 0 ? totalExpenses / totalTransactions : 0;
+  }
 
-    const categoryTotals = expenses.reduce((acc, expense) => {
-      acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
-      return acc;
-    }, {});
+  if (error) {
+    return (
+      <Container className="analytics-container">
+        <Alert variant="danger" className="text-center">
+          <p>{error}</p>
+          <Button variant="primary" onClick={refreshData}>
+            <FaSync className="me-2" />
+            Try Again
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
 
-    const mostExpensiveCategory =
-      Object.keys(categoryTotals).length > 0
-        ? Object.keys(categoryTotals).reduce((a, b) =>
-            categoryTotals[a] > categoryTotals[b] ? a : b
-          )
-        : "";
+  if (!analyticsData || analyticsData.totalTransactions === 0) {
+    return (
+      <Container className="analytics-container">
+        <div className="text-center py-5">
+          <div className="analytics-empty">
+            <FaChartLine size={48} className="text-muted mb-3" />
+            <h4>No Analytics Data</h4>
+            <p className="text-muted">
+              No expenses found. Start adding expenses to see analytics.
+            </p>
+            <Button variant="primary" onClick={refreshData}>
+              Refresh Data
+            </Button>
+          </div>
+        </div>
+      </Container>
+    );
+  }
 
-    const paymentMethodTotals = expenses.reduce((acc, expense) => {
-      acc[expense.paymentMethod] =
-        (acc[expense.paymentMethod] || 0) + expense.amount;
-      return acc;
-    }, {});
+  // Prepare chart data
+  const monthlyTrendData = {
+    labels: Object.keys(analyticsData.monthlyBreakdown).map((month) =>
+      formatMonthYear(month)
+    ),
+    datasets: [
+      {
+        label: "Monthly Spending",
+        data: Object.values(analyticsData.monthlyBreakdown),
+        backgroundColor: "rgba(102, 126, 234, 0.8)",
+        borderColor: "rgba(102, 126, 234, 1)",
+        borderWidth: 2,
+        borderRadius: 8,
+      },
+    ],
+  };
 
-    const topExpenses = [...expenses]
-      .sort((a, b) => b.amount - a.amount)
-      .slice(0, 5);
+  const categoryData = {
+    labels: Object.keys(analyticsData.categoryDistribution),
+    datasets: [
+      {
+        data: Object.values(analyticsData.categoryDistribution),
+        backgroundColor: [
+          "rgba(102, 126, 234, 0.8)",
+          "rgba(255, 99, 132, 0.8)",
+          "rgba(54, 162, 235, 0.8)",
+          "rgba(255, 206, 86, 0.8)",
+          "rgba(75, 192, 192, 0.8)",
+          "rgba(153, 102, 255, 0.8)",
+        ],
+        borderWidth: 2,
+        borderColor: "#fff",
+      },
+    ],
+  };
 
-    return {
-      totalExpenses,
-      totalTransactions,
-      monthlyAverage,
-      totalMonths,
-      monthlyBreakdown,
-      highestExpense,
-      lowestExpense,
-      averageExpensePerTransaction,
-      categoryTotals,
-      paymentMethodTotals,
-      mostExpensiveCategory,
-      topExpenses,
-    };
-  }, [expenses]);
-
-  const chartData = useMemo(() => {
-    const { monthlyBreakdown, categoryTotals, paymentMethodTotals } =
-      analyticsData;
-
-    const monthlyTrendData = {
-      labels: Object.keys(monthlyBreakdown).map((month) => {
-        const date = new Date(month);
-        return date.toLocaleDateString("en-US", {
-          month: "short",
-          year: "numeric",
-        });
-      }),
-      datasets: [
-        {
-          label: "Monthly Expenses",
-          data: Object.values(monthlyBreakdown),
-          backgroundColor: "rgba(102, 126, 234, 0.7)",
-          borderColor: "rgba(102, 126, 234, 1)",
-          borderWidth: 2,
-          borderRadius: 8,
-          maxBarThickness: 40,
-        },
-      ],
-    };
-
-    const categoryColors = [
-      "rgba(102, 126, 234, 0.8)",
-      "rgba(255, 99, 132, 0.8)",
-      "rgba(54, 162, 235, 0.8)",
-      "rgba(255, 206, 86, 0.8)",
-      "rgba(75, 192, 192, 0.8)",
-      "rgba(153, 102, 255, 0.8)",
-      "rgba(255, 159, 64, 0.8)",
-      "rgba(199, 199, 199, 0.8)",
-      "rgba(83, 102, 255, 0.8)",
-      "rgba(40, 159, 64, 0.8)",
-    ];
-
-    const categoryData = {
-      labels: Object.keys(categoryTotals),
-      datasets: [
-        {
-          data: Object.values(categoryTotals),
-          backgroundColor: categoryColors.slice(
-            0,
-            Object.keys(categoryTotals).length
-          ),
-          borderWidth: 2,
-          borderColor: "#fff",
-          hoverOffset: 12,
-        },
-      ],
-    };
-
-    const paymentData = {
-      labels: Object.keys(paymentMethodTotals),
-      datasets: [
-        {
-          data: Object.values(paymentMethodTotals),
-          backgroundColor: [
-            "rgba(102, 126, 234, 0.8)",
-            "rgba(255, 99, 132, 0.8)",
-            "rgba(54, 162, 235, 0.8)",
-            "rgba(75, 192, 192, 0.8)",
-            "rgba(153, 102, 255, 0.8)",
-          ].slice(0, Object.keys(paymentMethodTotals).length),
-          borderWidth: 2,
-          borderColor: "#fff",
-          hoverOffset: 12,
-        },
-      ],
-    };
-
-    return {
-      monthlyTrendData,
-      categoryData,
-      paymentData,
-    };
-  }, [analyticsData]);
+  const paymentMethodData = {
+    labels: Object.keys(analyticsData.paymentMethods),
+    datasets: [
+      {
+        data: Object.values(analyticsData.paymentMethods),
+        backgroundColor: [
+          "rgba(102, 126, 234, 0.8)",
+          "rgba(255, 99, 132, 0.8)",
+          "rgba(54, 162, 235, 0.8)",
+          "rgba(255, 206, 86, 0.8)",
+        ],
+        borderWidth: 2,
+        borderColor: "#fff",
+      },
+    ],
+  };
 
   const chartOptions = {
     responsive: true,
@@ -212,9 +212,6 @@ const Analytics = ({
         labels: {
           padding: 20,
           usePointStyle: true,
-          font: {
-            size: 12,
-          },
         },
       },
       tooltip: {
@@ -222,159 +219,148 @@ const Analytics = ({
           label: (context) =>
             `${context.label}: ${formatCurrency(context.raw)}`,
         },
-        backgroundColor: "rgba(0, 0, 0, 0.8)",
-        titleFont: { size: 14 },
-        bodyFont: { size: 13 },
-        padding: 12,
-        cornerRadius: 6,
-        displayColors: true,
-        boxPadding: 5,
       },
     },
   };
 
   const barChartOptions = {
     ...chartOptions,
-    indexAxis: "x",
     scales: {
       y: {
         beginAtZero: true,
-        grid: {
-          color: "rgba(0, 0, 0, 0.05)",
-        },
+        grid: { color: "rgba(0, 0, 0, 0.05)" },
         ticks: {
           callback: (value) => formatCurrency(value),
         },
       },
       x: {
-        grid: {
-          display: false,
+        grid: { display: false },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 45,
         },
-      },
-    },
-    plugins: {
-      ...chartOptions.plugins,
-      legend: {
-        display: false,
       },
     },
   };
 
   return (
-    <div className="analytics-container">
-      {/* Header with controls */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="mb-1">
-            <FaChartLine className="me-2 text-primary" />
-            Expense Analytics
-          </h2>
-          <p className="text-muted mb-0">
-            {totalRecordsAllTime} total transactions •{" "}
-            {formatCurrency(totalAmountAllTime)} total amount
-          </p>
-        </div>
-        <Button
-          variant="outline-primary"
-          size="sm"
-          onClick={() => window.location.reload()}
-        >
-          Refresh
-        </Button>
-      </div>
+    <Container fluid className="analytics-container">
+      {/* Header */}
+      <Row className="mb-4">
+        <Col>
+          <div className="analytics-header">
+            <div className="d-flex justify-content-between align-items-center flex-wrap">
+              <div>
+                <h1>
+                  <FaChartLine className="me-2" />
+                  Expense Analytics
+                </h1>
+                <p className="text-muted">
+                  {analyticsData.totalTransactions} transactions •{" "}
+                  {formatCurrency(analyticsData.totalExpenses)} total
+                </p>
+              </div>
+              <Button variant="outline-primary" onClick={refreshData}>
+                <FaSync /> Refresh
+              </Button>
+            </div>
+          </div>
+        </Col>
+      </Row>
 
       {/* Summary Cards */}
-      <Row className="g-3 mb-4">
+      <Row className="g-4 mb-4">
         <Col md={3} sm={6}>
-          <Card className="summary-card h-100 shadow-sm">
+          <Card className="analytics-card">
             <Card.Body className="text-center">
-              <div className="summary-icon bg-primary">
+              <div className="card-icon total-expenses">
                 <FaMoneyBillWave />
               </div>
-              <h5 className="text-muted mt-3">Total Expenses</h5>
-              <h3 className="text-primary mb-2">
-                {formatCurrency(totalAmountAllTime)}
-              </h3>
-              <small className="text-muted">
-                {totalRecordsAllTime} transactions
-              </small>
+              <h3>{formatCurrency(analyticsData.totalExpenses)}</h3>
+              <p className="text-muted">Total Expenses</p>
             </Card.Body>
           </Card>
         </Col>
+
         <Col md={3} sm={6}>
-          <Card className="summary-card h-100 shadow-sm">
+          <Card className="analytics-card">
             <Card.Body className="text-center">
-              <div className="summary-icon bg-success">
+              <div className="card-icon monthly-avg">
                 <FaCalendarAlt />
               </div>
-              <h5 className="text-muted mt-3">Monthly Average</h5>
-              <h3 className="text-success mb-2">
-                {formatCurrency(analyticsData.monthlyAverage)}
-              </h3>
-              <small className="text-muted">
-                {analyticsData.totalMonths} months
-              </small>
+              <h3>{formatCurrency(analyticsData.monthlyAverage)}</h3>
+              <p className="text-muted">Monthly Average</p>
+              <small>{analyticsData.totalMonths} months</small>
             </Card.Body>
           </Card>
         </Col>
+
         <Col md={3} sm={6}>
-          <Card className="summary-card h-100 shadow-sm">
+          <Card className="analytics-card">
             <Card.Body className="text-center">
-              <div className="summary-icon bg-warning">
-                <FaArrowUp />
-              </div>
-              <h5 className="text-muted mt-3">Highest Expense</h5>
-              <h3 className="text-warning mb-2">
-                {formatCurrency(analyticsData.highestExpense)}
-              </h3>
-              <small className="text-muted">Single transaction</small>
-            </Card.Body>
-          </Card>
-        </Col>
-        <Col md={3} sm={6}>
-          <Card className="summary-card h-100 shadow-sm">
-            <Card.Body className="text-center">
-              <div className="summary-icon bg-info">
+              <div className="card-icon avg-transaction">
                 <FaCreditCard />
               </div>
-              <h5 className="text-muted mt-3">Avg per Transaction</h5>
-              <h3 className="text-info mb-2">
-                {formatCurrency(analyticsData.averageExpensePerTransaction)}
-              </h3>
-              <small className="text-muted">Across all expenses</small>
+              <h3>{formatCurrency(analyticsData.averagePerTransaction)}</h3>
+              <p className="text-muted">Avg per Transaction</p>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col md={3} sm={6}>
+          <Card className="analytics-card">
+            <Card.Body className="text-center">
+              <div className="card-icon highest-expense">
+                <FaArrowUp />
+              </div>
+              <h3>{formatCurrency(analyticsData.highestExpense.amount)}</h3>
+              <p className="text-muted">
+                Highest Expense{" "}
+                <Badge bg="secondary">
+                  {analyticsData.highestExpense.category}
+                </Badge>
+              </p>
+              <small>{formatDate(analyticsData.highestExpense.date)}</small>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
+      {/* Lowest Expense Card (if exists) */}
+      {analyticsData.lowestExpense.amount > 0 &&
+        analyticsData.lowestExpense.amount < Infinity && (
+          <Row className="mb-4">
+            <Col md={6} className="mx-auto">
+              <Card className="analytics-card">
+                <Card.Body className="text-center">
+                  <div className="card-icon lowest-expense">
+                    <FaArrowDown />
+                  </div>
+                  <h3>{formatCurrency(analyticsData.lowestExpense.amount)}</h3>
+                  <p className="text-muted">
+                    Lowest Expense{" "}
+                    <Badge bg="secondary">
+                      {analyticsData.lowestExpense.category}
+                    </Badge>
+                  </p>
+                  <small>{formatDate(analyticsData.lowestExpense.date)}</small>
+                </Card.Body>
+              </Card>
+            </Col>
+          </Row>
+        )}
+
       {/* Charts Section */}
       <Row className="g-4">
-        {/* Expense Trend Chart (Bar) */}
+        {/* Spending Trend */}
         <Col xl={8} lg={7}>
-          <Card className="chart-card shadow-sm">
-            <Card.Header className="d-flex justify-content-between align-items-center bg-white border-0 pt-3">
-              <h5 className="mb-0">
-                <FaChartLine className="me-2 text-primary" />
-                Spending Trend
-              </h5>
-              <Button
-                size="sm"
-                variant="outline-primary"
-                onClick={() =>
-                  setTimeRange(
-                    timeRange === "monthly" ? "quarterly" : "monthly"
-                  )
-                }
-              >
-                {timeRange === "monthly" ? "Quarterly View" : "Monthly View"}
-              </Button>
+          <Card className="chart-card">
+            <Card.Header>
+              <h5>Monthly Spending Trend</h5>
             </Card.Header>
-            <Card.Body className="pt-0">
-              <div style={{ height: "300px" }}>
-                <Bar
-                  data={chartData.monthlyTrendData}
-                  options={barChartOptions}
-                />
+            <Card.Body>
+              <div className="chart-container">
+                <Bar data={monthlyTrendData} options={barChartOptions} />
               </div>
             </Card.Body>
           </Card>
@@ -382,109 +368,134 @@ const Analytics = ({
 
         {/* Category Distribution */}
         <Col xl={4} lg={5}>
-          <Card className="chart-card shadow-sm">
-            <Card.Header className="bg-white border-0 pt-3">
-              <h5 className="mb-0">
-                <FaTags className="me-2 text-primary" />
-                Category Distribution
-              </h5>
+          <Card className="chart-card">
+            <Card.Header>
+              <h5>Category Distribution</h5>
             </Card.Header>
             <Card.Body>
-              <div style={{ height: "250px" }}>
-                <Doughnut
-                  data={chartData.categoryData}
-                  options={chartOptions}
-                />
+              <div className="chart-container">
+                <Doughnut data={categoryData} options={chartOptions} />
               </div>
-              {analyticsData.mostExpensiveCategory && (
-                <div className="mt-3 p-3 bg-light rounded">
-                  <h6 className="text-muted mb-2">Top Spending Category</h6>
-                  <div className="d-flex align-items-center justify-content-between">
-                    <Badge bg="primary" className="px-2 py-1">
-                      {analyticsData.mostExpensiveCategory}
-                    </Badge>
-                    <span className="fw-bold">
-                      {formatCurrency(
-                        analyticsData.categoryTotals[
-                          analyticsData.mostExpensiveCategory
-                        ]
-                      )}
-                    </span>
-                  </div>
-                </div>
-              )}
             </Card.Body>
           </Card>
         </Col>
 
         {/* Payment Methods */}
-        <Col md={6}>
-          <Card className="chart-card shadow-sm">
-            <Card.Header className="bg-white border-0 pt-3">
-              <h5 className="mb-0">
-                <FaCreditCard className="me-2 text-primary" />
-                Payment Methods
-              </h5>
+        <Col lg={6}>
+          <Card className="chart-card">
+            <Card.Header>
+              <h5>Payment Methods</h5>
             </Card.Header>
             <Card.Body>
-              <div style={{ height: "250px" }}>
-                <Pie data={chartData.paymentData} options={chartOptions} />
+              <div className="chart-container">
+                <Pie data={paymentMethodData} options={chartOptions} />
               </div>
             </Card.Body>
           </Card>
         </Col>
 
         {/* Top Expenses */}
-        <Col md={6}>
-          <Card className="chart-card shadow-sm">
-            <Card.Header className="bg-white border-0 pt-3">
-              <h5 className="mb-0">Top 5 Expenses</h5>
+        <Col lg={6}>
+          <Card className="chart-card">
+            <Card.Header>
+              <h5>Top 3 Highest Expenses</h5>
             </Card.Header>
             <Card.Body>
-              <div className="top-expenses-list">
+              <div className="top-expenses">
                 {analyticsData.topExpenses.map((expense, index) => (
-                  <div
-                    key={expense._id || index}
-                    className="expense-item mb-3 p-3 bg-light rounded"
-                  >
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <span className="fw-medium text-truncate">
-                        {expense.description || "No description"}
-                      </span>
-                      <span className="fw-bold text-primary">
-                        {formatCurrency(expense.amount)}
-                      </span>
+                  <div key={index} className="expense-item">
+                    <div className="expense-rank">
+                      <FaCrown
+                        className={
+                          index === 0 ? "text-warning" : "text-secondary"
+                        }
+                      />
+                      <span>#{index + 1}</span>
                     </div>
-                    <div className="d-flex justify-content-between align-items-center">
-                      <Badge bg="secondary" className="text-truncate">
-                        {expense.category}
-                      </Badge>
-                      <small className="text-muted">
-                        {new Date(expense.date).toLocaleDateString()}
-                      </small>
+                    <div className="expense-details">
+                      <h6>{expense.description || "No description"}</h6>
+                      <div className="expense-meta">
+                        <Badge bg="secondary">{expense.category}</Badge>
+                        <span>{formatDate(expense.date)}</span>
+                      </div>
                     </div>
-                    <ProgressBar
-                      now={
-                        (expense.amount / analyticsData.highestExpense) * 100
-                      }
-                      variant="primary"
-                      className="mt-2"
-                      style={{ height: "6px" }}
-                    />
+                    <div className="expense-amount-analytics">
+                      {formatCurrency(expense.amount)}
+                    </div>
                   </div>
                 ))}
-                {analyticsData.topExpenses.length === 0 && (
-                  <div className="text-center text-muted py-4">
-                    <FaDatabase size={32} className="mb-2 opacity-50" />
-                    <p>No expenses to display</p>
-                  </div>
-                )}
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        {/* Monthly Breakdown Table */}
+        <Col lg={12}>
+          <Card className="chart-card">
+            <Card.Header>
+              <h5>Monthly Breakdown</h5>
+            </Card.Header>
+            <Card.Body>
+              <div className="table-responsive">
+                <Table striped bordered hover>
+                  <thead>
+                    <tr>
+                      <th>#</th>
+                      <th>Year</th>
+                      <th>Month</th>
+                      <th>Amount</th>
+                      <th>Percentage of Total</th>
+                      <th>Progress</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {Object.entries(analyticsData.monthlyBreakdown).map(
+                      ([month, amount], index) => {
+                        const date = new Date(month);
+                        const year = date.getFullYear();
+                        const monthLabel = new Intl.DateTimeFormat("en-US", {
+                          month: "long",
+                        }).format(date);
+                        return (
+                          <tr key={month}>
+                            <td>{index + 1}</td>
+                            <td>{year}</td>
+                            <td>{monthLabel}</td>
+                            <td>{formatCurrency(amount)}</td>
+                            <td>
+                              {analyticsData.totalExpenses > 0
+                                ? `${Math.round(
+                                    (amount / analyticsData.totalExpenses) * 100
+                                  )}%`
+                                : "0%"}
+                            </td>
+                            <td>
+                              <ProgressBar
+                                now={
+                                  analyticsData.totalExpenses > 0
+                                    ? (amount / analyticsData.totalExpenses) *
+                                      100
+                                    : 0
+                                }
+                                variant="success"
+                                style={{ height: "20px" }}
+                                label={`${Math.round(
+                                  (amount / analyticsData.totalExpenses) * 100
+                                )}%`}
+                              />
+                            </td>
+                          </tr>
+                        );
+                      }
+                    )}
+                  </tbody>
+                </Table>
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
-    </div>
+    </Container>
   );
 };
 

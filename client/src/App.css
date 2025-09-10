@@ -12,11 +12,11 @@ body {
   min-height: 100vh;
 }
 :root {
-  --header-color: #3E0703;
-  --home-primary-color: #660B05;
-  --home-secondary-color: #8C1007;
-  --footer-bg-color: #3E0703;
-  --submit-btn-color: #660b05;
+  --header-color: #1A2A80;
+  --home-primary-color: #7A85C1;
+  --home-secondary-color: #7A85C1;
+  --footer-bg-color: #1A2A80;
+  --submit-btn-color: #3B38A0;
 }
 main {
   flex: 1;

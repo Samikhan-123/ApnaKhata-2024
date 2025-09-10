@@ -16,6 +16,7 @@ import NoRouteFound from "./pages/NoRouteFound";
 import ViewData from "./pages/ViewData";
 import ErrorBoundary from "./components/ErrorBoundary"; 
 import AdminUserManagement from "./components/AdminUserManagement";
+import TaskManager from "./pages/TaskManagement";
 
 function App() {
   return (
@@ -55,6 +56,14 @@ function App() {
             element={
               <PrivateRoute>
                 <Analytics />
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/tasks"
+            element={
+              <PrivateRoute>
+                <TaskManager />
               </PrivateRoute>
             }
           />

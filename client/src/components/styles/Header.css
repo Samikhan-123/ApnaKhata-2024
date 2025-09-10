@@ -15,7 +15,7 @@
 }
 
 .navbar-collapse-custom {
-  background: #3e0703;
+  background: var(--header-color);
   position: absolute;
   top: 100%;
   left: 0;
@@ -75,6 +75,11 @@
   width: 20%;
   padding: 0.75rem;
   border: 1px solid #fff;
+}
+.logout-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: #ddd;
+  color: #fff;
 }
 
 /* Desktop styles */

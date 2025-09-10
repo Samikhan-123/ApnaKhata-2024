@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const expenseSchema = new mongoose.Schema(
   {
@@ -16,6 +16,10 @@ const expenseSchema = new mongoose.Schema(
       type: Number,
       required: true,
       min: 0,
+      validate: {
+        validator: (val) => !isNaN(val),
+        message: ({ value }) => `${value} is not a valid number`,
+      },
     },
     date: {
       type: Date,
@@ -63,13 +67,11 @@ const expenseSchema = new mongoose.Schema(
       type: [String],
       required: true,
     },
-    
   },
   { timestamps: true }
 );
 
 expenseSchema.index({ date: -1 });
 
-
-const Expense = mongoose.model('Expense', expenseSchema);
+const Expense = mongoose.model("Expense", expenseSchema);
 export default Expense;

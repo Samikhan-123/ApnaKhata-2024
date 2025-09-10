@@ -31,7 +31,7 @@
 }
 
 .expense-card-header {
-  background: #660b05;
+  background: var(--home-primary-color);
   color: white;
   border: none;
   padding: 1rem;

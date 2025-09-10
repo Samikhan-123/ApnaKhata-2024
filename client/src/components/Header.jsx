@@ -11,6 +11,7 @@ import {
   FaSignOutAlt,
   FaBars,
   FaTimes,
+  FaTasks,
 } from "react-icons/fa";
 import "../components/styles/Header.css";
 
@@ -24,7 +25,8 @@ const Header = () => {
     if (confirmLogout) {
       logout();
       navigate("/login");
-      toast.success("Logged out successfully");
+      // close mobile menu
+      setIsOpen(false);
     }
   };
 
@@ -40,11 +42,7 @@ const Header = () => {
       >
         <Container fluid>
           {/* Logo/Brand */}
-          <NavLink
-            className="navbar-brand"
-            to="/"
-            onClick={handleLinkClick}
-          >
+          <NavLink className="navbar-brand" to="/" onClick={handleLinkClick}>
             <div className="logo-container">
               <img
                 src="./ApnaKhata.png"
@@ -95,6 +93,14 @@ const Header = () => {
                       <FaMoneyBillWave className="me-2" />
                       Expenses
                     </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/tasks"
+                      onClick={handleLinkClick}
+                    >
+                      <FaTasks className="me-2" />
+                      Tasks
+                    </Nav.Link>
 
                     <NavDropdown
                       title={
@@ -138,6 +144,7 @@ const Header = () => {
                       <FaPlusCircle className="me-2" />
                       Create Expense
                     </Nav.Link>
+
                     <Nav.Link
                       as={NavLink}
                       to="/expenses"
@@ -146,6 +153,15 @@ const Header = () => {
                     >
                       <FaMoneyBillWave className="me-2" />
                       Expenses
+                    </Nav.Link>
+                    <Nav.Link
+                      as={NavLink}
+                      to="/tasks"
+                      onClick={handleLinkClick}
+                      className="mobile-nav-item"
+                    >
+                      <FaTasks className="me-2" />
+                      Tasks
                     </Nav.Link>
 
                     <div className="mobile-user-section">
@@ -234,8 +250,6 @@ const Header = () => {
 
       {/* Content padding */}
       <div style={{ paddingTop: "76px" }}></div>
-
-      
     </>
   );
 };

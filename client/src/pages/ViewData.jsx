@@ -22,6 +22,7 @@ import {
   FaChartLine,
   FaCalculator,
   FaTimes,
+  FaTasks,
 } from "react-icons/fa";
 import Layout from "../components/Layout";
 import ExpenseCard from "../pages/ExpenseCard";
@@ -29,6 +30,7 @@ import Filters from "../pages/Filters";
 import Analytics from "../pages/Analytics";
 import "../pages/styles/ViewData.css";
 import SplitCalculator from "./SplitCalculator";
+import TaskManager from "./TaskManagement";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -88,13 +90,8 @@ const ViewData = () => {
           params.paymentMethod = filterParams.paymentMethod;
         }
 
-        if (filterParams.startDate) { 
-          params.startDate = filterParams.startDate;
-        }
-
-        if (filterParams.endDate) {
-          params.endDate = filterParams.endDate;
-        }
+        params.startDate = filterParams.startDate ? filterParams.startDate : undefined;
+        params.endDate = filterParams.endDate ? filterParams.endDate : undefined;
 
         if (filterParams.searchTerm) {
           params.searchTerm = filterParams.searchTerm;
@@ -116,6 +113,7 @@ const ViewData = () => {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
+        console.log("data",response.data)
 
         const expensesData = response.data?.expenses || [];
         const totalRecords = response.data?.totalRecords || 0; // All-time total records
@@ -137,7 +135,7 @@ const ViewData = () => {
         setTotalRecordsAllTime(totalRecords);
         setTotalAmountAllTime(totalAmount);
       } catch (err) {
-        console.error("Error fetching expenses:", err);
+        // console.error("Error fetching expenses:", err);
         setError(err.response?.data?.message || "Failed to fetch expenses");
       } finally {
         setLoading(false);
@@ -348,7 +346,7 @@ const ViewData = () => {
                     currency: "PKR",
                   }).format(totalAmountAllTime)}
                 </h3>
-                <small className="text-muted">
+                <small className="text-muted total-records-text">
                   {totalRecordsAllTime} total records
                 </small>
               </Card.Body>
@@ -516,6 +514,18 @@ const ViewData = () => {
             />
           </Tab>
           <Tab
+            className="task-manager-tab"
+            eventKey="task-manager"
+            title={
+              <span className="d-flex align-items-center text-dark">
+                <FaTasks className="me-1" /> Task Manager
+              </span>
+            }
+          >
+            <TaskManager />
+          </Tab>
+
+          <Tab
             eventKey="split-calculator"
             title={
               <span className="d-flex align-items-center text-dark">
@@ -532,3 +542,4 @@ const ViewData = () => {
 };
 
 export default ViewData;
+

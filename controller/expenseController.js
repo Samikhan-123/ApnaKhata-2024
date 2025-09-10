@@ -11,14 +11,14 @@ import {
   getFileFromGridFS,
   getFileInfoFromGridFS,
 } from "../middleware/mutler.js";
+import { newExpenseAddedEmailTemplate } from "../utils/emailMessages.js";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+// const __filename = fileURLToPath(import.meta.url);
+// const __dirname = path.dirname(__filename);
 
 // Get all expenses with pagination and filtering
 export const getExpenses = async (req, res) => {
   try {
-    // Extract query parameters with defaults
     const {
       page = 1,
       limit = 12,
@@ -35,83 +35,106 @@ export const getExpenses = async (req, res) => {
     // Build the base query for filtered results
     let query = { user: req.user._id };
 
-    // Apply filters if provided
-    if (category && category !== "all") {
-      query.category = category;
-    }
-
-    if (paymentMethod && paymentMethod !== "all") {
-      query.paymentMethod = paymentMethod;
-    }
-
-    // Date range filter
-    if (startDate || endDate) {
-      query.date = {};
-      if (startDate) query.date.$gte = new Date(startDate);
-      if (endDate) {
-        const end = new Date(endDate);
-        end.setHours(23, 59, 59, 999); // End of the day
-        query.date.$lte = end;
-      }
-    }
-
-    // Amount range filter
-    if (minAmount || maxAmount) {
-      query.amount = {};
-      if (minAmount) query.amount.$gte = Number(minAmount);
-      if (maxAmount) query.amount.$lte = Number(maxAmount);
-    }
-
-    // Search term filter (search in description and tags)
-    if (searchTerm) {
-      query.$or = [
-        { description: { $regex: searchTerm, $options: "i" } },
-        { tags: { $in: [new RegExp(searchTerm, "i")] } },
-      ];
-    }
-
-    // Tags filter
-    if (tags) {
-      const tagArray = tags.split(",").map((tag) => tag.trim());
-      query.tags = { $in: tagArray.map((tag) => new RegExp(tag, "i")) };
-    }
+    // Apply filters if provided using conditional approach
+    query = {
+      ...query,
+      ...(category && category !== "all" ? { category } : {}),
+      ...(paymentMethod && paymentMethod !== "all" ? { paymentMethod } : {}),
+      ...(startDate || endDate ? { date: {} } : {}),
+      ...(startDate
+        ? {
+            date: {
+              ...(endDate
+                ? {
+                    $gte: new Date(startDate),
+                    $lte: new Date(endDate).setHours(23, 59, 59, 999),
+                  }
+                : { $gte: new Date(startDate) }),
+            },
+          }
+        : {}),
+      ...(endDate
+        ? {
+            date: {
+              ...query.date,
+              $lte: new Date(endDate).setHours(23, 59, 59, 999),
+            },
+          }
+        : {}),
+      ...(minAmount || maxAmount ? { amount: {} } : {}),
+      ...(minAmount ? { amount: { $gte: Number(minAmount) } } : {}),
+      ...(maxAmount
+        ? {
+            amount: {
+              ...query.amount,
+              $lte: Number(maxAmount),
+              $gte: Number(minAmount) || 0,
+            },
+          }
+        : {}),
+      ...(searchTerm
+        ? {
+            $or: [
+              { description: { $regex: searchTerm, $options: "i" } },
+              { category: { $regex: searchTerm, $options: "i" } },
+              { paymentMethod: { $regex: searchTerm, $options: "i" } },
+              { tags: { $in: [new RegExp(`^${searchTerm}$`, "i")] } },
+              ...(new RegExp(/^\d{4}-\d{2}-\d{2}$/).test(searchTerm)
+                ? [{ date: { $eq: new Date(searchTerm) } }]
+                : []),
+              ...(new RegExp(/^\d+(\.\d+)?$/).test(searchTerm)
+                ? [{ amount: Number(searchTerm) }]
+                : []),
+              ...(new RegExp(/^\d{4}$/).test(searchTerm)
+                ? [{ date: { $gte: new Date(`${searchTerm}-01-01`), $lt: new Date(`${searchTerm}-12-31`) } }]
+                : []),
+              ...(new RegExp(/^\d{2}$/).test(searchTerm)
+                ? [{ date: { $gte: new Date(`${new Date().getFullYear()}-${searchTerm}-01`), $lt: new Date(`${new Date().getFullYear()}-${Number(searchTerm) + 1}-01`) } }]
+                : []),
+              ...(query.$or || []),
+            ],
+          }
+        : {}),
+      ...(tags
+        ? {
+            $or: [
+              {
+                tags: {
+                  $in: tags.split(",").map((tag) => new RegExp(tag, "i")),
+                },
+              },
+            ],
+          }
+        : {}),
+    };
 
     // Calculate pagination values
     const pageNum = Math.max(1, Number(page));
     const limitNum = Math.max(1, Number(limit));
     const skip = (pageNum - 1) * limitNum;
 
-    // Execute queries in parallel for better performance
-    const [
-      expenses,
-      totalRecords,
-      filteredTotalRecords,
-      totalAmountResult,
-      filteredTotalAmountResult,
-    ] = await Promise.all([
-      // Get paginated expenses with filters
-      Expense.find(query)
-        .sort({ date: -1, createdAt: -1 })
-        .skip(skip)
-        .limit(limitNum),
+    // Get paginated expenses with filters
+    const expenses = await Expense.find(query)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limitNum);
 
-      // Get total records (ALL records, no filters)
-      Expense.countDocuments({ user: req.user._id }),
+    // Get total records (ALL records, no filters)
+    const totalRecords = await Expense.countDocuments({ user: req.user._id });
 
-      // Get filtered records count
-      Expense.countDocuments(query),
+    // Get filtered records count
+    const filteredTotalRecords = await Expense.countDocuments(query);
 
-      // Get total amount (ALL expenses, no filters)
-      Expense.aggregate([
-        { $match: { user: req.user._id } },
-        { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
-      ]),
+    // Get total amount (ALL expenses, no filters)
+    const totalAmountResult = await Expense.aggregate([
+      { $match: { user: req.user._id } },
+      { $group: { _id: null, totalAmount: { $sum: "$amount" } } },
+    ]);
 
-      // Get filtered total amount
-      Expense.aggregate([
-        { $match: query },
-        { $group: { _id: null, filteredTotalAmount: { $sum: "$amount" } } },
-      ]),
+    // Get filtered total amount
+    const filteredTotalAmountResult = await Expense.aggregate([
+      { $match: query },
+      { $group: { _id: null, filteredTotalAmount: { $sum: "$amount" } } },
     ]);
 
     // Calculate total pages
@@ -143,7 +166,7 @@ export const getExpenses = async (req, res) => {
       message: "Expenses fetched successfully",
     });
   } catch (error) {
-    // console.error("Error fetching expenses:", error);
+    console.error("Error fetching expenses:", error);
     res.status(500).json({
       success: false,
       message: "some error occurred",
@@ -151,13 +174,143 @@ export const getExpenses = async (req, res) => {
     });
   }
 };
+// getAnalyticsData
+export const getAnalyticsData = async (req, res) => {
+  try {
+    const userId = req.user._id;
 
+    const expenses = await Expense.find({ user: userId }).sort({ date: -1 });
+
+    if (expenses.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No expenses found",
+        data: getEmptyAnalyticsData(),
+      });
+    }
+
+    const analyticsData = calculateAnalytics(expenses);
+
+    res.status(200).json({
+      success: true,
+      analyticsData,
+    });
+  } catch (error) {
+    console.error("Analytics error:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error fetching analytics data",
+      error: error.message,
+    });
+  }
+};
+
+// Helper function to calculate analytics from expenses
+const calculateAnalytics = (expenses) => {
+  const totalExpenses = expenses.reduce(
+    (sum, expense) => sum + expense.amount,
+    0
+  );
+
+  const totalMonths = Object.keys(
+    expenses.reduce((acc, expense) => {
+      const monthYear = new Date(expense.date).toISOString().slice(0, 7);
+      acc[monthYear] = (acc[monthYear] || 0) + 1;
+      return acc;
+    }, {})
+  ).length;
+
+  // Calculate monthly breakdown
+  const monthlyBreakdown = expenses.reduce((acc, expense) => {
+    const monthYear = new Date(expense.date).toISOString().slice(0, 7);
+    acc[monthYear] = (acc[monthYear] || 0) + expense.amount;
+    return acc;
+  }, {});
+
+  const monthlyAverage = totalMonths > 0 ? totalExpenses / totalMonths : 0;
+  const averagePerTransaction =
+    expenses.length > 0 ? totalExpenses / expenses.length : 0;
+
+  // Find highest and lowest expenses
+  const highestExpense = expenses.reduce(
+    (max, expense) =>
+      expense.amount > max.amount
+        ? {
+            amount: expense.amount,
+            category: expense.category,
+            date: expense.date,
+          }
+        : max,
+    { amount: 0, category: "", date: null }
+  );
+
+  const lowestExpense = expenses.reduce(
+    (min, expense) =>
+      expense.amount < min.amount
+        ? { amount: expense.amount, category: expense.category, date: expense.date }
+        : min,
+    { amount: Infinity, category: "" }
+  );
+
+  // Get top 3 highest expenses
+  const topExpenses = expenses
+    .sort((a, b) => b.amount - a.amount)
+    .slice(0, 3)
+    .map((expense) => ({
+      description: expense.description,
+      amount: expense.amount,
+      category: expense.category,
+      date: expense.date,
+    }));
+
+  // Calculate category distribution
+  const categoryDistribution = expenses.reduce((acc, expense) => {
+    acc[expense.category] = (acc[expense.category] || 0) + expense.amount;
+    return acc;
+  }, {});
+
+  // Calculate payment methods distribution
+  const paymentMethods = expenses.reduce((acc, expense) => {
+    acc[expense.paymentMethod] =
+      (acc[expense.paymentMethod] || 0) + expense.amount;
+    return acc;
+  }, {});
+
+  return {
+    totalExpenses,
+    monthlyAverage: Number(monthlyAverage.toFixed(2)),
+    averagePerTransaction,
+    highestExpense,
+    lowestExpense,
+    topExpenses,
+    monthlyBreakdown,
+    categoryDistribution,
+    paymentMethods,
+    totalTransactions: expenses.length,
+    totalMonths,
+  };
+};
+
+// Helper function for empty analytics data
+const getEmptyAnalyticsData = () => ({
+  totalExpenses: 0,
+  monthlyAverage: 0,
+  averagePerTransaction: 0,
+  highestExpense: { amount: 0, category: "N/A" },
+  lowestExpense: { amount: 0, category: "N/A" },
+  topExpenses: [],
+  monthlyBreakdown: {},
+  categoryDistribution: {},
+  paymentMethods: {},
+  totalTransactions: 0,
+  totalMonths: 0,
+});
 
 // Get receipt by fileId
 export const getReceipt = async (req, res) => {
   try {
     const { fileId } = req.params;
-    
+
     // Get file info to check if it exists
     const fileInfo = await getFileInfoFromGridFS(fileId);
     if (!fileInfo) {
@@ -168,15 +321,21 @@ export const getReceipt = async (req, res) => {
     }
 
     // Set headers
-    res.setHeader("Content-Type", fileInfo.contentType || "application/octet-stream");
-    res.setHeader("Content-Disposition", `inline; filename="${fileInfo.filename}"`);
+    res.setHeader(
+      "Content-Type",
+      fileInfo.contentType || "application/octet-stream"
+    );
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${fileInfo.filename}"`
+    );
 
     // Stream the file
     const downloadStream = getFileFromGridFS(fileId);
     downloadStream.pipe(res);
-    
-    downloadStream.on('error', (error) => {
-      console.error('Error streaming file:', error);
+
+    downloadStream.on("error", (error) => {
+      console.error("Error streaming file:", error);
       res.status(500).json({
         success: false,
         message: "Error streaming file",
@@ -230,12 +389,11 @@ export const getReceipt = async (req, res) => {
 //   }
 // };
 
-
 // Add expense
-// Add expense (updated)
 export const addExpense = async (req, res) => {
   try {
-    const { description, amount, date, category, paymentMethod, tags } = req.body;
+    const { description, amount, date, category, paymentMethod, tags } =
+      req.body;
 
     // Parse tags if provided as a string
     const parsedTags =
@@ -249,17 +407,21 @@ export const addExpense = async (req, res) => {
       if (req.file.size > 1024 * 1024 * 1) {
         return res.status(400).json({
           success: false,
-          message: "Receipt file size exceeds the maximum limit of 1MB, max allowed size is 1MB",
+          message: "Receipt file size exceeds the maximum limit of 1MB",
         });
       }
-      
-      if (!["image/jpeg", "image/png", "application/pdf"].includes(req.file.mimetype)) {
+
+      if (
+        !["image/jpeg", "image/png", "application/pdf"].includes(
+          req.file.mimetype
+        )
+      ) {
         return res.status(400).json({
           success: false,
           message: "Unsupported receipt file format",
         });
       }
-      
+
       // Upload to GridFS
       receipt = await uploadToGridFS(req.file);
     }
@@ -279,53 +441,24 @@ export const addExpense = async (req, res) => {
     await newExpense.save();
 
     // Enhanced HTML Email
-    const emailHtml = `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #ddd; border-radius: 8px; background: #fff;">
-        <h2 style="color: #2c3e50; text-align: center; padding-bottom: 10px; border-bottom: 2px solid #eee;">
-           New Expense Added!
-        </h2>
-        
-        <div style="margin: 20px 0; background: #f9f9f9; padding: 15px; border-radius: 5px;">
-          <h3 style="color: #34495e; margin-bottom: 15px;">Expense Summary:</h3>
-          <ul style="list-style: none; padding: 0; line-height: 1.6;">
-            <li><strong>Description:</strong> ${description}</li>
-            <li><strong>Amount:</strong> ${new Intl.NumberFormat("en-PK", {
-              style: "currency",
-              currency: "PKR",
-            }).format(amount)}</li>
-            <li><strong>Category:</strong> ${category}</li>
-            <li><strong>Date:</strong> ${new Date(date).toLocaleDateString()}</li>
-            <li><strong>Payment Method:</strong> ${paymentMethod}</li>
-            ${
-              parsedTags.length > 0
-                ? `<li><strong>Tags:</strong> ${parsedTags.join(", ")}</li>`
-                : ""
-            }
-            <li><strong>Receipt:</strong> ${receipt ? "uploaded successfully" : "No receipt uploaded"}</li>
-          </ul>
-        </div>
+    const emailHtml = newExpenseAddedEmailTemplate(
+      req.user.name,
+      description,
+      amount,
+      date,
+      category,
+      paymentMethod,
+      parsedTags,
+      receipt
+    );
 
-        ${
-          receipt
-            ? `
-          <div style="margin-top: 20px; text-align: center;">
-            <p style="color: #7f8c8d; font-size: 0.9em;">📎 A receipt has been uploaded with this expense.</p>
-          </div>
-          `
-            : ""
-        }
-        <br />
-        <p>
-          بغیر منصوبہ بندی کے خرچ زندگی کو مشکلات میں ڈال سکتا ہے، ہمیشہ اپنے
-          بجٹ کے اصولوں پر چلیں اور مالی سکون حاصل کریں۔
-        </p>
-
-        <div style="text-align: center; margin-top: 20px; font-size: 0.85em; color: #7f8c8d;">
-          <p>This is an automated notification from <strong>ApnaKhata Expense Tracker</strong>.</p>
-          <p>Please do not reply to this email.</p>
-        </div>
-      </div>
-    `;
+    // Validate email template props
+    if (!emailHtml) {
+      return res.status(500).json({
+        success: false,
+        message: "Error generating email template",
+      });
+    }
 
     // Send notification email
     await sendEmail({
@@ -341,7 +474,7 @@ export const addExpense = async (req, res) => {
       expense: newExpense,
     });
   } catch (error) {
-    // console.error("Error adding expense:", error);
+    console.error("Error adding expense:", error);
     res.status(500).json({
       success: false,
       message: "Error adding expense",
@@ -390,17 +523,8 @@ export const getExpenseById = async (req, res) => {
 // Update expense (updated)
 export const updateExpense = async (req, res) => {
   try {
-    const {
-      description,
-      amount,
-      date,
-      category,
-      paymentMethod,
-      tags,
-      notes,
-      isRecurring,
-      recurringDetails,
-    } = req.body;
+    const { description, amount, date, category, paymentMethod, tags } =
+      req.body;
 
     const expense = await Expense.findOne({
       _id: req.params.id,
@@ -412,19 +536,6 @@ export const updateExpense = async (req, res) => {
         success: false,
         message: "Expense not found",
       });
-    }
-
-    // Parse recurring details
-    let parsedRecurringDetails = null;
-    if (isRecurring === true || isRecurring === "true") {
-      try {
-        parsedRecurringDetails =
-          typeof recurringDetails === "string"
-            ? JSON.parse(recurringDetails)
-            : recurringDetails;
-      } catch (parseError) {
-        parsedRecurringDetails = recurringDetails;
-      }
     }
 
     // Parse tags
@@ -440,9 +551,6 @@ export const updateExpense = async (req, res) => {
     expense.category = category;
     expense.paymentMethod = paymentMethod;
     expense.tags = parsedTags;
-    expense.notes = notes;
-    expense.isRecurring = isRecurring === true || isRecurring === "true";
-    expense.recurringDetails = parsedRecurringDetails;
 
     // Handle file upload if a new file is provided
     if (req.file) {
@@ -450,7 +558,7 @@ export const updateExpense = async (req, res) => {
       if (expense.receipt && expense.receipt.fileId) {
         await deleteFromGridFS(expense.receipt.fileId);
       }
-      
+
       // Upload new file to GridFS
       expense.receipt = await uploadToGridFS(req.file);
     }
@@ -473,7 +581,6 @@ export const updateExpense = async (req, res) => {
     });
   }
 };
-
 
 // Delete expense
 export const deleteExpense = async (req, res) => {
@@ -504,7 +611,7 @@ export const deleteExpense = async (req, res) => {
         message: "Expense not found",
       });
     }
-    
+
     // Delete associated receipt file from GridFS if exists
     if (expense.receipt?.fileId) {
       await deleteFromGridFS(expense.receipt.fileId);
@@ -524,151 +631,6 @@ export const deleteExpense = async (req, res) => {
   }
 };
 
-
-// Get expense statistics
-// export const getExpenseStats = async (req, res) => {
-//   try {
-//     const { startDate, endDate } = req.query;
-//     const query = { user: req.user._id };
-
-//     if (startDate) query.date = { $gte: new Date(startDate) };
-//     if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
-
-//     const stats = await Expense.aggregate([
-//       { $match: query },
-//       {
-//         $group: {
-//           _id: null,
-//           totalAmount: { $sum: "$amount" },
-//           averageAmount: { $avg: "$amount" },
-//           maxAmount: { $max: "$amount" },
-//           minAmount: { $min: "$amount" },
-//           count: { $sum: 1 },
-//         },
-//       },
-//     ]);
-
-//     const categoryStats = await Expense.aggregate([
-//       { $match: query },
-//       {
-//         $group: {
-//           _id: "$category",
-//           total: { $sum: "$amount" },
-//           count: { $sum: 1 },
-//         },
-//       },
-//     ]);
-
-//     const paymentMethodStats = await Expense.aggregate([
-//       { $match: query },
-//       {
-//         $group: {
-//           _id: "$paymentMethod",
-//           total: { $sum: "$amount" },
-//           count: { $sum: 1 },
-//         },
-//       },
-//     ]);
-
-//     res.status(200).json({
-//       success: true,
-//       stats: stats[0] || {},
-//       categoryStats,
-//       paymentMethodStats,
-//     });
-//   } catch (error) {
-//     console.error("Error getting expense stats:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Error getting expense statistics",
-//     });
-//   }
-// };
-
-// Get expenses by category
-// export const getExpensesByCategory = async (req, res) => {
-//   try {
-//     const { startDate, endDate } = req.query;
-//     const query = { user: req.user._id };
-
-//     if (startDate) query.date = { $gte: new Date(startDate) };
-//     if (endDate) query.date = { ...query.date, $lte: new Date(endDate) };
-
-//     const expenses = await Expense.aggregate([
-//       { $match: query },
-//       {
-//         $group: {
-//           _id: "$category",
-//           total: { $sum: "$amount" },
-//           count: { $sum: 1 },
-//           expenses: { $push: "$$ROOT" },
-//         },
-//       },
-//       { $sort: { total: -1 } },
-//     ]);
-
-//     res.status(200).json({
-//       success: true,
-//       expenses,
-//     });
-//   } catch (error) {
-//     console.error("Error getting expenses by category:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Error getting expenses by category",
-//     });
-//   }
-// };
-
-// Get monthly expenses
-// export const getMonthlyExpenses = async (req, res) => {
-//   try {
-//     const { year = new Date().getFullYear() } = req.query;
-
-//     const expenses = await Expense.aggregate([
-//       {
-//         $match: {
-//           user: req.user._id,
-//           date: {
-//             $gte: new Date(`${year}-01-01`),
-//             $lte: new Date(`${year}-12-31`),
-//           },
-//         },
-//       },
-//       {
-//         $group: {
-//           _id: { $month: "$date" },
-//           total: { $sum: "$amount" },
-//           count: { $sum: 1 },
-//           expenses: { $push: "$$ROOT" },
-//         },
-//       },
-//       {
-//         $project: {
-//           month: "$_id",
-//           total: 1,
-//           count: 1,
-//           expenses: 1,
-//           _id: 0,
-//         },
-//       },
-//       { $sort: { month: 1 } },
-//     ]);
-
-//     res.status(200).json({
-//       success: true,
-//       year,
-//       expenses,
-//     });
-//   } catch (error) {
-//     console.error("Error getting monthly expenses:", error);
-//     res.status(500).json({
-//       success: false,
-//       message: "Error getting monthly expenses",
-//     });
-//   }
-// };
-
 // // Helper function to get file URL
 // export const getFileUrl = (req, filename) => {
 //   if (!filename) return null;
@@ -684,7 +646,4 @@ export default {
   getExpenseById,
   updateExpense,
   deleteExpense,
-  // getExpenseStats,
-  // getExpensesByCategory,
-  // getMonthlyExpenses,
 };

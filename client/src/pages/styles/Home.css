@@ -1,7 +1,7 @@
 /* Home.css */
 .hero-section {
   position: relative;
-  background: #660B05;
+  background: var(--home-primary-color);
   overflow: hidden;
 }
 
@@ -15,17 +15,16 @@
   background-size: cover;
 }
 .btn-dashboard {
-    background: #3E0703;
-    border: none;
-    transition: all 0.3s ease;
+  background: #3e0703;
+  border: none;
+  transition: all 0.3s ease;
 }
 
 .btn-dashboard:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgb(62, 7, 3);
-    background: #3E0703;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgb(62, 7, 3);
+  background: #3e0703;
 }
-
 
 /* .hero-overlay {
   position: absolute;
@@ -85,24 +84,24 @@
   font-weight: bold;
   margin: 0 auto 1rem;
 }
-.CTA-Section{
-    background: #8C1007;
-    padding: 3rem 0;
+.CTA-Section {
+  background: var(--home-primary-color);
+  padding: 3rem 0;
 }
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .display-3 {
     font-size: 2.5rem;
   }
-  
+
   .display-5 {
     font-size: 2rem;
   }
-  
+
   .hero-buttons {
     flex-direction: column;
   }
-  
+
   .hero-buttons .btn {
     width: 100%;
     margin-bottom: 0.5rem;
@@ -113,11 +112,11 @@
   .display-3 {
     font-size: 2rem;
   }
-  
+
   .display-5 {
     font-size: 1.75rem;
   }
-  
+
   .step-number {
     width: 50px;
     height: 50px;

@@ -95,6 +95,42 @@ export const createTask = async (req, res) => {
   try {
     const { title, description, priority, dueDate, tags } = req.body;
 
+    if (!title) {
+      return res.status(400).json({
+        success: false,
+        message: "Title is required",
+      });
+    }
+
+    if (!description) {
+      return res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+    }
+
+    if (!priority) {
+      return res.status(400).json({
+        success: false,
+        message: "Priority is required",
+      });
+    }
+    const validPriorities = ["low", "medium", "high"];
+    if (!validPriorities.includes(priority)) {
+      return res.status(400).json({
+        success: false,
+        message: `Priority must be one of ${validPriorities.join(", ")}`,
+      });
+    }
+    if (dueDate && isNaN(new Date(dueDate).getTime())) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid due date format",
+      });
+    }
+
+  
+
     const task = new Task({
       title,
       description,

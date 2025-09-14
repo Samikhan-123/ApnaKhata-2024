@@ -245,7 +245,7 @@ const ViewData = () => {
                 {showFilters ? "Hide Filters" : "Show Filters"}
               </Button>
               <Button
-                variant="secondary"
+                variant="primary"
                 onClick={() => navigate("/create")}
                 className="d-flex align-items-center"
               >

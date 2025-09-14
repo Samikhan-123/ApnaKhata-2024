@@ -44,7 +44,9 @@ const taskValidationSchema = Yup.object().shape({
     .required("Title is required")
     .min(3, "Title must be at least 3 characters")
     .max(40, "Title cannot exceed 40 characters"),
-  description: Yup.string().max(
+  description: Yup.string()
+    .required("Description is required")
+    .max(
     200,
     "Description cannot exceed 200 characters"
   ),
@@ -250,7 +252,7 @@ const TaskManager = () => {
       <Container className="task-manager-container">
         <div className="text-center py-5">
           <Spinner animation="border" variant="primary" />
-          <p className="mt-3">Loading tasks...</p>
+          <p className="mt-3 min-vh-100">Loading tasks...</p>
         </div>
       </Container>
     );
@@ -677,12 +679,10 @@ const TaskManager = () => {
                 </Form.Group>
 
                 {/* Description Field */}
-                <Form.Group as={Col} md={6} className="mb-3 ">
-                  <Form.Label>Description</Form.Label>
+                <Form.Group  as={Col} md={12} className="mb-3">
+                  <Form.Label>Description *</Form.Label>
                   <Field
                     as={Form.Control}
-                    as="textarea"
-                    rows={3}
                     name="description"
                     placeholder="Enter task description"
                     isInvalid={touched.description && errors.description}
@@ -698,7 +698,7 @@ const TaskManager = () => {
                   {/* Priority Field */}
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Priority</Form.Label>
+                      <Form.Label>Priority *</Form.Label>
                       <Field
                         as={Form.Select}
                         name="priority"
@@ -719,7 +719,7 @@ const TaskManager = () => {
                   {/* Due Date Field */}
                   <Col md={6}>
                     <Form.Group className="mb-3">
-                      <Form.Label>Due Date</Form.Label>
+                      <Form.Label>Due Date *</Form.Label>
                       <Field
                         as={Form.Control}
                         type="date"
@@ -738,7 +738,7 @@ const TaskManager = () => {
 
                 {/* Tags Field */}
                 <Form.Group className="mb-3">
-                  <Form.Label>Tags (optional)</Form.Label>
+                  <Form.Label>Tags (optional) </Form.Label>
                   <div className="d-flex mb-2">
                     <Form.Control
                       type="text"

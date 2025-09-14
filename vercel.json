@@ -4,6 +4,6 @@
     { "src": "index.js", "use": "@vercel/node" }
   ],
   "routes": [
-    { "src": "/(.*)", "dest": "/" } 
+    { "src": "/(.*)", "dest": "/", "headers": { "Content-Security-Policy": "style-src 'self' https://apna-khata-2024.vercel.app/assets/index-ZTcnG7fv.css'" } }
   ]
 }

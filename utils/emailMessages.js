@@ -13,9 +13,8 @@ export const formatDate = (date) => {
   }).format(date);
 };
 
-
 export const welcomeEmailTemplate = (userName, appUrl) => {
-    return `
+  return `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -23,7 +22,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to ApnaKhata</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         * {
             margin: 0;
@@ -330,7 +328,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
 `;
 };
 
-
 export const passwordResetRequestTemplate = (
   userName,
   resetUrl,
@@ -601,7 +598,6 @@ export const newExpenseAddedEmailTemplate = (
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Expense Added - ApnaKhata</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
         
         * {
             margin: 0;

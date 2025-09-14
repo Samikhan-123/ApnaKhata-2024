@@ -22,7 +22,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Welcome to ApnaKhata</title>
     <style>
-        
         * {
             margin: 0;
             padding: 0;
@@ -78,7 +77,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             padding: 15px 25px;
             background: rgba(255, 255, 255, 0.15);
             border-radius: 16px;
-            backdrop-filter: blur(10px);
         }
         
         .email-body {
@@ -121,12 +119,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             border-radius: 12px;
             padding: 20px;
             text-align: center;
-            transition: transform 0.3s ease;
-        }
-        
-        .feature-card:hover {
-            transform: translateY(-5px);
-            background: rgba(102, 126, 234, 0.1);
         }
         
         .feature-icon {
@@ -165,13 +157,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             font-weight: 600;
             font-size: 16px;
             margin: 20px 0;
-            transition: all 0.3s ease;
-            box-shadow: 0 6px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .cta-button:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
         }
         
         .security-note {
@@ -189,21 +174,36 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             margin-bottom: 10px;
         }
         
-      
+        .support-section {
+            text-align: center;
+            margin: 30px 0;
+            padding: 25px;
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 16px;
+        }
+        
+        .support-section h3 {
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+        
+        .support-contact {
+            color: #667eea;
+            font-weight: 600;
+            text-decoration: none;
+        }
         
         .email-footer {
             background: #2c3e50;
             color: white;
             padding: 30px;
             text-align: center;
-            border-radius: 0 0 20px 20px;
         }
         
         .footer-logo {
             font-size: 24px;
             font-weight: 700;
             margin-bottom: 20px;
-            color: white;
         }
         
         .footer-links {
@@ -216,13 +216,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             margin: 0 15px;
             font-size: 14px;
         }
-        
-        .footer-links a:hover {
-            text-decoration: underline;
-        }
-        
-       
-        
         
         .copyright {
             font-size: 14px;
@@ -242,10 +235,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             .email-header {
                 padding: 30px 15px;
             }
-            
-            .email-header h1 {
-                font-size: 28px;
-            }
         }
         
         .highlight {
@@ -256,7 +245,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
 </head>
 <body>
     <div class="email-container">
-        <!-- Header -->
         <div class="email-header">
             <div class="logo-container">
                 <div class="logo">ApnaKhata</div>
@@ -265,7 +253,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
             <p>Your journey to better financial management starts here</p>
         </div>
         
-        <!-- Body -->
         <div class="email-body">
             <div class="welcome-section">
                 <div class="welcome-icon">👋</div>
@@ -274,7 +261,6 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
                 <p>Your account has been successfully created and is ready to use. Now you can take control of your finances with our powerful tools.</p>
             </div>
             
-            <!-- Features Grid -->
             <h3 style="text-align: center; color: #2c3e50; margin-bottom: 20px;">Here's what you can do with ApnaKhata:</h3>
             <div class="features-grid">
                 <div class="feature-card">
@@ -299,26 +285,33 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
                 </div>
             </div>
             
-            <!-- CTA Section -->
             <div class="cta-section">
                 <h3>Ready to get started?</h3>
                 <p>Begin your financial journey by adding your first expense</p>
-                <a href="https://apna-khata-2024.vercel.app/expenses" class="cta-button">Go to Dashboard</a>
+                <a href="${appUrl}/expenses" class="cta-button">Go to Dashboard</a>
             </div>
             
-            <!-- Security Note -->
             <div class="security-note">
                 <h3>🔒 Account Security</h3>
                 <p>For your security, we recommend verifying your email address and setting up two-factor authentication in your account settings.</p>
             </div>
             
-          
+            <div class="support-section">
+                <h3>Need Help?</h3>
+                <p>Check out our <a href="${appUrl}/help" class="support-contact">Help Center</a> for guides and tutorials</p>
+                <p>Or contact our support team at <a href="mailto:support@apnakhata.com" class="support-contact">support@apnakhata.com</a></p>
+            </div>
         </div>
         
-        <!-- Footer -->
         <div class="email-footer">
             <div class="footer-logo">ApnaKhata</div>
             <p>Your personal expense tracker for better financial management</p>
+            
+            <div class="footer-links">
+                <a href="${appUrl}/privacy">Privacy Policy</a>
+                <a href="${appUrl}/terms">Terms of Service</a>
+            </div>
+            
             <p class="copyright">© 2024 ApnaKhata. All rights reserved.</p>
             <p class="copyright">This is an automated message. Please do not reply to this email.</p>
         </div>
@@ -327,6 +320,9 @@ export const welcomeEmailTemplate = (userName, appUrl) => {
 </html>
 `;
 };
+
+// The rest of your templates (passwordResetRequestTemplate, passwordResetSuccessTemplate, 
+// newExpenseAddedEmailTemplate)
 
 export const passwordResetRequestTemplate = (
   userName,

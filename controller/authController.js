@@ -63,7 +63,10 @@ export const register = async (req, res) => {
     });
 
     await newUser.save();
-    const welcomeEmail = welcomeEmailTemplate(newUser.name || "User");
+    const welcomeEmail = welcomeEmailTemplate(
+      newUser.name || "User",
+      process.env.FRONTEND_URL || "https://apna-khata-2024.vercel.app/expenses"
+    );
 
     await sendEmail({
       email: newUser.email,

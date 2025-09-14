@@ -5,10 +5,14 @@ import jwt from "jsonwebtoken";
 import dotenv from "dotenv";
 import { sendEmail } from "../utils/emailConfig.js";
 // import Expense from "../model/expenseSchema.js";
-import { formatDate, passwordResetRequestTemplate, passwordResetSuccessTemplate } from "../utils/emailMessages.js";
+import {
+  formatDate,
+  passwordResetRequestTemplate,
+  passwordResetSuccessTemplate,
+  welcomeEmailTemplate,
+} from "../utils/emailMessages.js";
 
 dotenv.config();
-
 
 // Registration Controller
 export const register = async (req, res) => {
@@ -59,6 +63,13 @@ export const register = async (req, res) => {
     });
 
     await newUser.save();
+    const welcomeEmail = welcomeEmailTemplate(newUser.name || "User");
+
+    await sendEmail({
+      email: newUser.email,
+      subject: "Welcome to ApnaKhata - Start Managing Your Expenses",
+      html: welcomeEmail,
+    });
 
     res.status(201).json({ message: "User registered successfully." });
   } catch (error) {
@@ -161,15 +172,14 @@ export const login = async (req, res) => {
 //   }
 // };
 
-
 // Get All Users with Admin Check
 export const getAllUsers = async (req, res) => {
   try {
     // Check if requester is admin
     if (req.user.email !== "samikhan7816@gmail.com") {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Admin email is required to access this resource" 
+      return res.status(403).json({
+        success: false,
+        message: "Admin email is required to access this resource",
       });
     }
 
@@ -184,8 +194,8 @@ export const getAllUsers = async (req, res) => {
       searchQuery = {
         $or: [
           { name: { $regex: search, $options: "i" } },
-          { email: { $regex: search, $options: "i" } }
-        ]
+          { email: { $regex: search, $options: "i" } },
+        ],
       };
     }
 
@@ -206,14 +216,14 @@ export const getAllUsers = async (req, res) => {
         totalPages,
         totalUsers,
         hasNext: page < totalPages,
-        hasPrev: page > 1
-      }
+        hasPrev: page > 1,
+      },
     });
   } catch (error) {
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: "Error fetching users", 
-      error: error.message 
+      message: "Error fetching users",
+      error: error.message,
     });
   }
 };
@@ -223,9 +233,9 @@ export const updateUserPassword = async (req, res) => {
   try {
     // Check if requester is admin
     if (req.user.email !== "samikhan7816@gmail.com") {
-      return res.status(403).json({ 
-        success: false, 
-        message: "Admin email is required to access this resource" 
+      return res.status(403).json({
+        success: false,
+        message: "Admin email is required to access this resource",
       });
     }
 
@@ -235,7 +245,7 @@ export const updateUserPassword = async (req, res) => {
     if (!newPassword) {
       return res.status(400).json({
         success: false,
-        message: "New password is required"
+        message: "New password is required",
       });
     }
 
@@ -243,7 +253,7 @@ export const updateUserPassword = async (req, res) => {
     if (newPassword.length < 8) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters long"
+        message: "Password must be at least 8 characters long",
       });
     }
 
@@ -251,7 +261,7 @@ export const updateUserPassword = async (req, res) => {
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
@@ -267,18 +277,16 @@ export const updateUserPassword = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: "Password updated successfully"
+      message: "Password updated successfully",
     });
   } catch (error) {
     res.status(500).json({
       success: false,
       message: "Error updating password",
-      error: error.message
+      error: error.message,
     });
   }
 };
-
-
 
 // Password validation helper
 const validatePassword = (password) => {

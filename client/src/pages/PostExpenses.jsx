@@ -118,7 +118,7 @@ const PostExpenses = () => {
         setSuccess('Expense added successfully!');
         toast.success('Expense added successfully!'); // Show toast success message
 
-        // setTimeout(() => navigate('/expenses'), 500);
+        setTimeout(() => navigate('/expenses'), 500);
       } catch (err) {
         toast.error(err.response?.data?.message || 'Failed to add expense'); // Show toast error message
 

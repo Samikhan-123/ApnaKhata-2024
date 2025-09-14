@@ -1,20 +1,17 @@
 import mongoose from "mongoose";
 import Expense from "../model/expenseSchema.js";
-import { sendEmail } from "../utils/emailConfig.js";
-import path from "path";
-import fs from "fs";
-import mime from "mime-types";
-import { fileURLToPath } from "url";
+// import { sendEmail } from "../utils/emailConfig.js";
+// import path from "path";
+// import fs from "fs";
+// import mime from "mime-types";
+// import { fileURLToPath } from "url";
 import {
   uploadToGridFS,
   deleteFromGridFS,
   getFileFromGridFS,
   getFileInfoFromGridFS,
 } from "../middleware/mutler.js";
-import { newExpenseAddedEmailTemplate } from "../utils/emailMessages.js";
-
-// const __filename = fileURLToPath(import.meta.url);
-// const __dirname = path.dirname(__filename);
+// import { newExpenseAddedEmailTemplate } from "../utils/emailMessages.js";
 
 // Get all expenses with pagination and filtering
 export const getExpenses = async (req, res) => {
@@ -166,7 +163,7 @@ export const getExpenses = async (req, res) => {
       message: "Expenses fetched successfully",
     });
   } catch (error) {
-    console.error("Error fetching expenses:", error);
+    // console.error("Error fetching expenses:", error);
     res.status(500).json({
       success: false,
       message: "some error occurred",
@@ -196,7 +193,7 @@ export const getAnalyticsData = async (req, res) => {
       analyticsData,
     });
   } catch (error) {
-    console.error("Analytics error:", error);
+    // console.error("Analytics error:", error);
     res.status(500).json({
       success: false,
       message: "Error fetching analytics data",
@@ -441,31 +438,31 @@ export const addExpense = async (req, res) => {
     await newExpense.save();
 
     // Enhanced HTML Email
-    const emailHtml = newExpenseAddedEmailTemplate(
-      req.user.name,
-      description,
-      amount,
-      date,
-      category,
-      paymentMethod,
-      parsedTags,
-      receipt
-    );
+    // const emailHtml = newExpenseAddedEmailTemplate(
+    //   req.user.name,
+    //   description,
+    //   amount,
+    //   date,
+    //   category,
+    //   paymentMethod,
+    //   parsedTags,
+    //   receipt
+    // );
 
     // Validate email template props
-    if (!emailHtml) {
-      return res.status(500).json({
-        success: false,
-        message: "Error generating email template",
-      });
-    }
+    // if (!emailHtml) {
+    //   return res.status(500).json({
+    //     success: false,
+    //     message: "Error generating email template",
+    //   });
+    // }
 
     // Send notification email
-    await sendEmail({
-      email: req.user.email,
-      subject: "📌 New Expense Added - ApnaKhata",
-      html: emailHtml,
-    });
+    // await sendEmail({
+    //   email: req.user.email,
+    //   subject: "📌 New Expense Added - ApnaKhata",
+    //   html: emailHtml,
+    // });
 
     // Respond with success
     res.status(201).json({
@@ -474,10 +471,10 @@ export const addExpense = async (req, res) => {
       expense: newExpense,
     });
   } catch (error) {
-    console.error("Error adding expense:", error);
+    // console.error("Error adding expense:", error);
     res.status(500).json({
       success: false,
-      message: "Error adding expense",
+      message: "Error adding expense: " + error.message,
       error: error.message,
       details: {
         body: req.body,

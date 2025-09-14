@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Form, Row, Col, Button, Card, Badge } from "react-bootstrap";
+import { Form, Row, Col, Button, Card, Badge, Alert } from "react-bootstrap";
 import {
   FaFilter,
   FaSearch,
@@ -176,7 +176,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                     name="searchTerm"
                     value={localFilters.searchTerm}
                     onChange={handleChange}
-                    placeholder="Search by description or tags..."
+                    placeholder="Search by tags, description, date in format yyyy-MM-dd..."
                     className="search-input"
                   />
                   <Button
@@ -188,6 +188,12 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                     <FaSearch />
                   </Button>
                 </div>
+                <Alert className="mt-2" variant="info" dismissible>
+                  <small>
+                    Note: You can search expenses by tags, description, categories, paymentMethod, exact amount or date in format
+                    yyyy-MM-dd or yyyy-MM.
+                  </small>
+                </Alert>
               </Form.Group>
             </Col>
 
@@ -307,7 +313,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
             </Col>
 
             {/* Start Date Filter */}
-            <Col md={6} lg={3}>
+            {/* <Col md={6} lg={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold">Start Date</Form.Label>
                 <Form.Control
@@ -318,10 +324,10 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   className="filter-input"
                 />
               </Form.Group>
-            </Col>
+            </Col> */}
 
             {/* End Date Filter */}
-            <Col md={6} lg={3}>
+            {/* <Col md={6} lg={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold">End Date</Form.Label>
                 <Form.Control
@@ -332,7 +338,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   className="filter-input"
                 />
               </Form.Group>
-            </Col>
+            </Col> */}
 
             {/* Action Buttons */}
             <Col md={12}>

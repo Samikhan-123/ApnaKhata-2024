@@ -9,6 +9,7 @@ const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
   const [alert, setAlert] = useState({ message: "", type: "" });
   const [loading, setLoading] = useState(false);
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -17,7 +18,7 @@ const ForgotPasswordPage = () => {
     setEmail("");
 
     try {
-      const response = await axios.post("/api/auth/forgot-password", { email });
+      const response = await axios.post(`${api}/auth/forgot-password`, { email });
       setAlert({
         message: response.data.message || "Reset link sent successfully!",
         type: "success",

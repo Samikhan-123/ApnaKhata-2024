@@ -23,6 +23,7 @@ const PostExpenses = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   const categories = [
     'Food & Dining',
@@ -108,7 +109,7 @@ const PostExpenses = () => {
         }
       });
       try {
-        await axios.post(`/api/expenses/add`, submitData, {
+        await axios.post(`${api}/expenses/add`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'multipart/form-data',

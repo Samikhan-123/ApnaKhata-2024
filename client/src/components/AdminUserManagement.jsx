@@ -29,6 +29,7 @@ import {
   FaCog,
 } from "react-icons/fa";
 import axios from "axios";
+import { useAuth } from "../auth/AuthContext";
 
 const AdminUserManagement = () => {
   const [email, setEmail] = useState("");
@@ -44,6 +45,9 @@ const AdminUserManagement = () => {
   const [newPassword, setNewPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [updateLoading, setUpdateLoading] = useState(false);
+    const { token } = useAuth();
+  
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   // Container styles
   const containerStyle = {
@@ -130,9 +134,8 @@ const AdminUserManagement = () => {
   const fetchUsers = async (page = 1, search = "") => {
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await axios.get(
-        `/api/auth/admin/users?page=${page}&limit=12&search=${search}`,
+        `${api}/auth/admin/users?page=${page}&limit=12&search=${search}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         }
@@ -178,9 +181,8 @@ const AdminUserManagement = () => {
 
     setUpdateLoading(true);
     try {
-      const token = localStorage.getItem("token");
       const response = await axios.patch(
-        `/api/auth/admin/users/${selectedUser._id}/password`,
+        `${api}/auth/admin/users/${selectedUser._id}/password`,
         { newPassword },
         { headers: { Authorization: `Bearer ${token}` } }
       );

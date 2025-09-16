@@ -24,6 +24,7 @@ const RegisterPage = () => {
   const [showPassword, setShowPassword] = useState(false);
   const { login, user } = useAuth();
   const navigate = useNavigate();
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   // Yup validation schema
   const validationSchema = Yup.object().shape({
@@ -49,7 +50,7 @@ const RegisterPage = () => {
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
-      const response = await axios.post("/api/auth/google-login", {
+      const response = await axios.post(`${api}/auth/google-login`, {
         tokenId: credentialResponse.credential,
       });
 
@@ -108,7 +109,7 @@ const RegisterPage = () => {
                 setSuccess("");
                 try {
                   const response = await axios.post(
-                    "/api/auth/register",
+                    `${api}/auth/register`,
                     values
                   );
                   if (response.status === 201) {

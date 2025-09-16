@@ -51,6 +51,7 @@ const Analytics = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const { token } = useAuth();
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   useEffect(() => {
     fetchAnalyticsData();
@@ -61,7 +62,7 @@ const Analytics = () => {
       setLoading(true);
       setError("");
 
-      const response = await axios.get(`/api/expenses/analytics`, {
+      const response = await axios.get(`${api}/expenses/analytics`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

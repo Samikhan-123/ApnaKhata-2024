@@ -31,6 +31,7 @@ const LoginPage = () => {
   const [showSuccessAlert, setShowSuccessAlert] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   const togglePasswordVisibility = () => {
     setPasswordShown((prev) => !prev);
@@ -38,7 +39,7 @@ const LoginPage = () => {
 
   const handleGoogleLogin = async (credentialResponse) => {
     try {
-      const response = await axios.post("/api/auth/google-login", {
+      const response = await axios.post(`${api}/auth/google-login`, {
         tokenId: credentialResponse.credential,
       });
 
@@ -62,7 +63,7 @@ const LoginPage = () => {
     setShowSuccessAlert(false);
 
     try {
-      const response = await axios.post("/api/auth/login", values);
+      const response = await axios.post(`${api}/auth/login`, values);
       if (response.data.success) {
         const { user: loggedInUser, token } = response.data;
         login(loggedInUser, token);

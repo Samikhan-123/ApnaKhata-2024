@@ -23,6 +23,7 @@ const ResetPasswordPage = () => {
 
   const navigate = useNavigate();
   const { resetToken } = useParams();
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   // Toggle password visibility
   const togglePasswordVisibility = () => setPasswordShown((prev) => !prev);
@@ -54,7 +55,7 @@ const ResetPasswordPage = () => {
 
     try {
       const response = await axios.post(
-        `/api/auth/reset-password/${resetToken}`,
+        `${api}/auth/reset-password/${resetToken}`,
         values
       );
 

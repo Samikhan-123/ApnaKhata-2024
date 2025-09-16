@@ -199,6 +199,7 @@ export const updateTask = async (req, res) => {
       data: task,
     });
   } catch (error) {
+    console.log(error)
     if (error.name === "ValidationError") {
       const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({

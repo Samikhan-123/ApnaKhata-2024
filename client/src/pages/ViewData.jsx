@@ -112,8 +112,9 @@ const ViewData = () => {
         if (filterParams.tags) {
           params.tags = filterParams.tags;
         }
+        const api = import.meta.env.VITE_API_BASE_URL;
 
-        const response = await axios.get("/api/expenses", {
+        const response = await axios.get(`${api}/expenses`, {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
@@ -226,7 +227,7 @@ const ViewData = () => {
   }
 
   return (
-    <Layout>
+    <Layout title="All Expense - ApnaKhata">
       <Container fluid className="py-4 view-data-container">
         {/* Header Section */}
         <Row className="mb-4 align-items-center">

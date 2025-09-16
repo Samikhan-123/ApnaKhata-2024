@@ -27,6 +27,7 @@ const EditExpense = () => {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [currentReceipt, setCurrentReceipt] = useState(""); // Store receipt URL or filename
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   const categories = [
     "Food & Dining",
@@ -109,7 +110,7 @@ const EditExpense = () => {
       });
 
       try {
-        await axios.put(`/api/expenses/${id}`, submitData, {
+        await axios.put(`${api}/expenses/${id}`, submitData, {
           headers: {
             Authorization: `Bearer ${token}`,
             "Content-Type": "multipart/form-data",
@@ -131,7 +132,7 @@ const EditExpense = () => {
   useEffect(() => {
     const fetchExpense = async () => {
       try {
-        const { data } = await axios.get(`/api/expenses/${id}`, {
+        const { data } = await axios.get(`${api}/expenses/${id}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 

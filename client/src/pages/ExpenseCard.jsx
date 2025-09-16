@@ -32,6 +32,7 @@ const ExpenseCard = ({
   token,
 }) => {
   const navigate = useNavigate();
+  const api = import.meta.env.VITE_API_BASE_URL;
 
   // State management
   const [deleteModal, setDeleteModal] = useState({
@@ -85,7 +86,7 @@ const ExpenseCard = ({
     setDeleteState({ loading: true, error: null });
 
     try {
-      await axios.delete(`/api/expenses/${deleteModal.expense._id}`, {
+      await axios.delete(`${api}/expenses/${deleteModal.expense._id}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -123,7 +124,7 @@ const ExpenseCard = ({
 
     try {
       const response = await axios.get(
-        `/api/expenses/receipt/${receipt.fileId}`,
+        `${api}/expenses/receipt/${receipt.fileId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",
@@ -157,7 +158,7 @@ const ExpenseCard = ({
 
     try {
       const response = await axios.get(
-        `/api/expenses/receipt/${receipt.fileId}`,
+        `${api}/expenses/receipt/${receipt.fileId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
           responseType: "blob",

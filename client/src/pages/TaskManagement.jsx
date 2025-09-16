@@ -46,10 +46,7 @@ const taskValidationSchema = Yup.object().shape({
     .max(40, "Title cannot exceed 40 characters"),
   description: Yup.string()
     .required("Description is required")
-    .max(
-    200,
-    "Description cannot exceed 200 characters"
-  ),
+    .max(200, "Description cannot exceed 200 characters"),
   priority: Yup.string()
     .oneOf(["low", "medium", "high"], "Invalid priority level")
     .required("Priority is required"),
@@ -350,7 +347,7 @@ const TaskManager = () => {
       {/* Filters and Sorting */}
       <Row className="mb-3">
         <Col md={6}>
-          <Dropdown className="d-inline me-2">
+          <Dropdown className="d-flex flex-wrap mb-2">
             <Dropdown.Toggle variant="outline-primary">
               <FaFilter className="me-2" />
               Filter: {filter === "all" ? "All" : filter}
@@ -371,7 +368,7 @@ const TaskManager = () => {
             </Dropdown.Menu>
           </Dropdown>
 
-          <Dropdown className="d-inline">
+          <Dropdown className="d-flex ">
             <Dropdown.Toggle variant="outline-secondary">
               <FaSort className="me-2" />
               Sort: {sortBy} ({sortOrder})
@@ -679,7 +676,7 @@ const TaskManager = () => {
                 </Form.Group>
 
                 {/* Description Field */}
-                <Form.Group  as={Col} md={12} className="mb-3">
+                <Form.Group as={Col} md={12} className="mb-3">
                   <Form.Label>Description *</Form.Label>
                   <Field
                     as={Form.Control}

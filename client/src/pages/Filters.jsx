@@ -115,7 +115,8 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
           {formatDate(localFilters.endDate)}
         </span>
       );
-    } else if (localFilters.startDate) {
+    }
+    else if (localFilters.startDate) {
       summary.push(
         <span key="from">
           <strong>From:</strong> {formatDate(localFilters.startDate)}
@@ -167,7 +168,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
         <Card.Body className="filter-body">
           <Row className="g-3">
             {/* Search Bar */}
-            <Col md={12} lg={6}>
+            {/* <Col md={12} lg={6}>
               <Form.Group>
                 <Form.Label className="fw-semibold">Search</Form.Label>
                 <div className="search-input-group">
@@ -195,7 +196,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   </small>
                 </Alert>
               </Form.Group>
-            </Col>
+            </Col> */}
 
             {/* Tags Filter */}
             <Col md={6} lg={3}>
@@ -313,7 +314,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
             </Col>
 
             {/* Start Date Filter */}
-            {/* <Col md={6} lg={3}>
+            <Col md={6} lg={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold">Start Date</Form.Label>
                 <Form.Control
@@ -324,10 +325,10 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   className="filter-input"
                 />
               </Form.Group>
-            </Col> */}
+            </Col>
 
             {/* End Date Filter */}
-            {/* <Col md={6} lg={3}>
+            <Col md={6} lg={3}>
               <Form.Group>
                 <Form.Label className="fw-semibold">End Date</Form.Label>
                 <Form.Control
@@ -338,7 +339,7 @@ const Filters = ({ filters, onFilterChange, totalRecords, loading }) => {
                   className="filter-input"
                 />
               </Form.Group>
-            </Col> */}
+            </Col>
 
             {/* Action Buttons */}
             <Col md={12}>

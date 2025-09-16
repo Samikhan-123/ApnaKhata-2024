@@ -33,74 +33,43 @@ export const getExpenses = async (req, res) => {
     let query = { user: req.user._id };
 
     // Apply filters if provided using conditional approach
+    let dateFilter = {};
+
+    // Handle date filters
+    if (startDate || endDate) {
+      dateFilter = {};
+      if (startDate) {
+        dateFilter.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        dateFilter.$lte = new Date(endDate);
+      }
+    }
+
+    let amountFilter = {};
+
+    // Handle amount filters
+    if (minAmount || maxAmount) {
+      amountFilter = {};
+      if (minAmount) {
+        amountFilter.$gte = Number(minAmount);
+      }
+      if (maxAmount) {
+        amountFilter.$lte = Number(maxAmount);
+      }
+    }
+
     query = {
       ...query,
       ...(category && category !== "all" ? { category } : {}),
       ...(paymentMethod && paymentMethod !== "all" ? { paymentMethod } : {}),
-      ...(startDate || endDate ? { date: {} } : {}),
-      ...(startDate
-        ? {
-            date: {
-              ...(endDate
-                ? {
-                    $gte: new Date(startDate),
-                    $lte: new Date(endDate).setHours(23, 59, 59, 999),
-                  }
-                : { $gte: new Date(startDate) }),
-            },
-          }
-        : {}),
-      ...(endDate
-        ? {
-            date: {
-              ...query.date,
-              $lte: new Date(endDate).setHours(23, 59, 59, 999),
-            },
-          }
-        : {}),
-      ...(minAmount || maxAmount ? { amount: {} } : {}),
-      ...(minAmount ? { amount: { $gte: Number(minAmount) } } : {}),
-      ...(maxAmount
-        ? {
-            amount: {
-              ...query.amount,
-              $lte: Number(maxAmount),
-              $gte: Number(minAmount) || 0,
-            },
-          }
-        : {}),
-      ...(searchTerm
-        ? {
-            $or: [
-              { description: { $regex: searchTerm, $options: "i" } },
-              { category: { $regex: searchTerm, $options: "i" } },
-              { paymentMethod: { $regex: searchTerm, $options: "i" } },
-              { tags: { $in: [new RegExp(`^${searchTerm}$`, "i")] } },
-              ...(new RegExp(/^\d{4}-\d{2}-\d{2}$/).test(searchTerm)
-                ? [{ date: { $eq: new Date(searchTerm) } }]
-                : []),
-              ...(new RegExp(/^\d+(\.\d+)?$/).test(searchTerm)
-                ? [{ amount: Number(searchTerm) }]
-                : []),
-              ...(new RegExp(/^\d{4}$/).test(searchTerm)
-                ? [{ date: { $gte: new Date(`${searchTerm}-01-01`), $lt: new Date(`${searchTerm}-12-31`) } }]
-                : []),
-              ...(new RegExp(/^\d{2}$/).test(searchTerm)
-                ? [{ date: { $gte: new Date(`${new Date().getFullYear()}-${searchTerm}-01`), $lt: new Date(`${new Date().getFullYear()}-${Number(searchTerm) + 1}-01`) } }]
-                : []),
-              ...(query.$or || []),
-            ],
-          }
-        : {}),
+      ...(Object.keys(dateFilter).length > 0 ? { date: dateFilter } : {}),
+      ...(Object.keys(amountFilter).length > 0 ? { amount: amountFilter } : {}),
       ...(tags
         ? {
-            $or: [
-              {
-                tags: {
-                  $in: tags.split(",").map((tag) => new RegExp(tag, "i")),
-                },
-              },
-            ],
+            tags: {
+              $in: tags.split(",").map((tag) => new RegExp(tag, "i")),
+            },
           }
         : {}),
     };
@@ -244,7 +213,11 @@ const calculateAnalytics = (expenses) => {
   const lowestExpense = expenses.reduce(
     (min, expense) =>
       expense.amount < min.amount
-        ? { amount: expense.amount, category: expense.category, date: expense.date }
+        ? {
+            amount: expense.amount,
+            category: expense.category,
+            date: expense.date,
+          }
         : min,
     { amount: Infinity, category: "" }
   );

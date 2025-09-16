@@ -90,8 +90,12 @@ const ViewData = () => {
           params.paymentMethod = filterParams.paymentMethod;
         }
 
-        params.startDate = filterParams.startDate ? filterParams.startDate : undefined;
-        params.endDate = filterParams.endDate ? filterParams.endDate : undefined;
+        params.startDate = filterParams.startDate
+          ? filterParams.startDate
+          : undefined;
+        params.endDate = filterParams.endDate
+          ? filterParams.endDate
+          : undefined;
 
         if (filterParams.searchTerm) {
           params.searchTerm = filterParams.searchTerm;
@@ -113,7 +117,7 @@ const ViewData = () => {
           headers: { Authorization: `Bearer ${token}` },
           params,
         });
-        console.log("data",response.data)
+        // console.log("data",response.data)
 
         const expensesData = response.data?.expenses || [];
         const totalRecords = response.data?.totalRecords || 0; // All-time total records
@@ -121,7 +125,6 @@ const ViewData = () => {
         const filteredTotalRecords = response.data?.filteredTotalRecords || 0; // Filtered records count
         const filteredTotalAmount = response.data?.filteredTotalAmount || 0; // Filtered total amount
         const totalPages = Math.ceil(filteredTotalRecords / limit);
-   
 
         setExpenses(expensesData);
         setPagination({
@@ -193,7 +196,6 @@ const ViewData = () => {
       //   // Otherwise, refresh the current page
       //   fetchExpenses(pagination.currentPage, ITEMS_PER_PAGE, filters);
       // }
-
     },
     [expenses, pagination.currentPage, fetchExpenses, filters]
   );
@@ -298,7 +300,7 @@ const ViewData = () => {
           </Row>
         )}
 
-        {/* Alerts */ }
+        {/* Alerts */}
         {error && (
           <Alert
             variant="danger"
@@ -441,7 +443,7 @@ const ViewData = () => {
                   token={token}
                 />
                 {pagination.totalPages > 1 && (
-                  <div className="d-flex justify-content-center mt-4">
+                  <div className="d-flex justify-content-center mt-4 px-4">
                     <Pagination>
                       <Pagination.First
                         disabled={pagination.currentPage === 1}
@@ -493,6 +495,11 @@ const ViewData = () => {
                         onClick={() => handlePageChange(pagination.totalPages)}
                       />
                     </Pagination>
+                    <div className="pagination-info text-muted mt-2 ms-3">
+                      Page {pagination.currentPage} of {pagination.totalPages} |
+                      Showing {expenses.length} of{" "}
+                      {pagination.totalRecords || 0} records
+                    </div>
                   </div>
                 )}
               </>
@@ -542,4 +549,3 @@ const ViewData = () => {
 };
 
 export default ViewData;
-

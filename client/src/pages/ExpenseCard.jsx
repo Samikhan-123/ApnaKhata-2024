@@ -215,6 +215,7 @@ const ExpenseCard = ({
         {expenses.length > 0 ? (
           expenses.map((expense, index) => (
             <Col
+              sm={12}
               md={6}
               lg={4}
               xl={3}

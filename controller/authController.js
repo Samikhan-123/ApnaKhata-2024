@@ -334,17 +334,17 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Rate limiting: max 3 requests per hour
-    const oneHourAgo = Date.now() - 60 * 60 * 1000;
-    if (
-      user.passwordResetAttempts >= 3 &&
-      user.resetPasswordExpire > oneHourAgo
-    ) {
-      return res.status(429).json({
-        message:
-          "You have exceeded the maximum number of password reset attempts. Please try again later (1 hour limit).",
-      });
-    }
+    // // Rate limiting: max 3 requests per hour
+    // const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
+    // if (
+    //   user.passwordResetAttempts >= 3 &&
+    //   user.resetPasswordExpire > tenMinutesAgo
+    // ) {
+    //   return res.status(429).json({
+    //     message:
+    //       "You have exceeded the maximum number of password reset attempts. Please try again later (10 minutes limit).",
+    //   });
+    // }
 
     // Generate reset token
     const resetToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
@@ -361,9 +361,7 @@ export const forgotPassword = async (req, res) => {
     const resetUrl = process.env.FRONTEND_URL
       ? `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
       : `https://apna-khata-2024.vercel.app/reset-password/${resetToken}`;
-    console.log(process.env.FRONTEND_URL);
-    console.log("Reset URL:", resetUrl);
-    console.log("Email message:", message);
+ 
     // Format date and create email message
     const formattedDate = formatDate(new Date());
     const message = passwordResetRequestTemplate(

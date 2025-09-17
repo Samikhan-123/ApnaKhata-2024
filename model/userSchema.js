@@ -49,10 +49,10 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
-    sendEmailsOnForgetPass: {
-      type: Number,
-      default: 0,
-    },
+    // sendEmailsOnForgetPass: {
+    //   type: Number,
+    //   default: 0,
+    // },
     passwordChangedAt: Date,
     passwordVersion: {
       type: Number,

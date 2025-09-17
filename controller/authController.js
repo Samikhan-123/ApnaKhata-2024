@@ -337,10 +337,8 @@ export const forgotPassword = async (req, res) => {
     // Rate limiting: max 3 requests per hour
     const oneHourAgo = Date.now() - 60 * 60 * 1000;
     if (
-      user.passwordResetAttempts &&
-      user.passwordResetAttempts > 2 &&
-      user.lastPasswordResetAttempt &&
-      user.lastPasswordResetAttempt > oneHourAgo
+      user.passwordResetAttempts >= 3 &&
+      user.resetPasswordExpire > oneHourAgo
     ) {
       return res.status(429).json({
         message:

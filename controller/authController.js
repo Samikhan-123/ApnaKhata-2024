@@ -13,7 +13,17 @@ import {
 } from "../utils/emailMessages.js";
 
 dotenv.config();
-
+// Password validation helper
+const validatePassword = (password) => {
+  const requirements = [];
+  if (password.length < 8) requirements.push("at least 8 characters");
+  if (!/[A-Z]/.test(password)) requirements.push("one uppercase letter");
+  if (!/[a-z]/.test(password)) requirements.push("one lowercase letter");
+  if (!/[0-9]/.test(password)) requirements.push("one number");
+  if (!/[^A-Za-z0-9]/.test(password))
+    requirements.push("one special character");
+  return requirements;
+};
 // Registration Controller
 export const register = async (req, res) => {
   try {
@@ -251,15 +261,18 @@ export const updateUserPassword = async (req, res) => {
         message: "New password is required",
       });
     }
-
-    // Validate password strength
-    if (newPassword.length < 8) {
+    var unmetRequirements = validatePassword(newPassword);
+    if (unmetRequirements.length > 0) {
       return res.status(400).json({
         success: false,
-        message: "Password must be at least 8 characters long",
+        message:
+          "Password does not meet requirements: " +
+          unmetRequirements.join(", "),
+        requirements: unmetRequirements,
       });
     }
 
+    // Find user by ID
     const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({
@@ -291,22 +304,8 @@ export const updateUserPassword = async (req, res) => {
   }
 };
 
-// Password validation helper
-const validatePassword = (password) => {
-  const requirements = [];
-  if (password.length < 8) requirements.push("at least 8 characters");
-  if (!/[A-Z]/.test(password)) requirements.push("one uppercase letter");
-  if (!/[a-z]/.test(password)) requirements.push("one lowercase letter");
-  if (!/[0-9]/.test(password)) requirements.push("one number");
-  if (!/[^A-Za-z0-9]/.test(password))
-    requirements.push("one special character");
-  return requirements;
-};
-
 export const forgotPassword = async (req, res) => {
   const { email } = req.body;
-  let user = null;
-
   try {
     // Validate email
     if (!email || !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/)) {
@@ -315,12 +314,13 @@ export const forgotPassword = async (req, res) => {
       });
     }
 
-    // Find user
-    user = await User.findOne({ email }).select("+passwordResetAttempts");
+    // Find user by email
+    const user = await User.findOne({ email }).select("+passwordResetAttempts");
+
     if (!user) {
       return res.status(400).json({
         message:
-          "If a user with that email exists, a password reset link has been sent.",
+          "User with this email does not exist. Please check and try again.",
       });
     }
 
@@ -331,6 +331,20 @@ export const forgotPassword = async (req, res) => {
         message:
           "This account uses Google Sign-In. Please use Google to access your account.",
         isGoogleUser: true,
+      });
+    }
+
+    // Rate limiting: max 3 requests per hour
+    const oneHourAgo = Date.now() - 60 * 60 * 1000;
+    if (
+      user.passwordResetAttempts &&
+      user.passwordResetAttempts > 2 &&
+      user.lastPasswordResetAttempt &&
+      user.lastPasswordResetAttempt > oneHourAgo
+    ) {
+      return res.status(429).json({
+        message:
+          "You have exceeded the maximum number of password reset attempts. Please try again later.",
       });
     }
 
@@ -378,15 +392,6 @@ export const forgotPassword = async (req, res) => {
         "If a user with that email exists, a password reset link has been sent.",
     });
   } catch (error) {
-    console.error("Forgot password error:", error);
-
-    // Clean up on error
-    if (user) {
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpire = undefined;
-      await user.save({ validateBeforeSave: false });
-    }
-
     res.status(500).json({
       message:
         "An error occurred while processing your request. Please try again later.",
@@ -485,7 +490,7 @@ export const resetPassword = async (req, res) => {
       message: "Your password has been reset successfully.",
     });
   } catch (error) {
-    console.error("Reset password error:", error);
+    // console.error("Reset password error:", error);
 
     res.status(500).json({
       success: false,

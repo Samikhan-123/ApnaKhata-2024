@@ -18,11 +18,13 @@ const ForgotPasswordPage = () => {
     setEmail("");
 
     try {
-      const response = await axios.post(`${api}/auth/forgot-password`, { email });
+      const response = await axios.post(`${api}/auth/forgot-password`, {
+        email,
+      });
       setAlert({
         message: response.data.message || "Reset link sent successfully!",
         type: "success",
-        text: "success"
+        text: "success",
       });
     } catch (err) {
       if (err.response?.status === 429) {
@@ -69,10 +71,10 @@ const ForgotPasswordPage = () => {
 
             <Form onSubmit={handleSubmit} className="glass-form">
               <Form.Group className="mb-3" controlId="formBasicEmail">
-                <Form.Label>Registered Email address</Form.Label>
+                <Form.Label> Email address</Form.Label>
                 <Form.Control
                   type="email"
-                  placeholder="Enter your registered email"
+                  placeholder="Enter registered email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required
@@ -81,7 +83,10 @@ const ForgotPasswordPage = () => {
 
               <Button
                 type="submit"
-                style={{ backgroundColor: 'var(--submit-btn-color)', border: 'none' }} 
+                style={{
+                  backgroundColor: "var(--submit-btn-color)",
+                  border: "none",
+                }}
                 className="w-100 glass-btn"
                 disabled={loading}
               >

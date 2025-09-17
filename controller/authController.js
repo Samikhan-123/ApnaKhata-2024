@@ -342,7 +342,7 @@ export const forgotPassword = async (req, res) => {
     ) {
       return res.status(429).json({
         message:
-          "You have exceeded the maximum number of password reset attempts. Please try again later.",
+          "You have exceeded the maximum number of password reset attempts. Please try again later (1 hour limit).",
       });
     }
 
@@ -360,8 +360,10 @@ export const forgotPassword = async (req, res) => {
     // Create reset URL
     const resetUrl = process.env.FRONTEND_URL
       ? `${process.env.FRONTEND_URL}/reset-password/${resetToken}`
-      : `http://localhost:5173/reset-password/${resetToken}`;
-
+      : `https://apna-khata-2024.vercel.app/reset-password/${resetToken}`;
+    console.log(process.env.FRONTEND_URL);
+    console.log("Reset URL:", resetUrl);
+    console.log("Email message:", message);
     // Format date and create email message
     const formattedDate = formatDate(new Date());
     const message = passwordResetRequestTemplate(
@@ -369,6 +371,7 @@ export const forgotPassword = async (req, res) => {
       resetUrl,
       formattedDate
     );
+
 
     // Send email
     const emailSent = await sendEmail({
